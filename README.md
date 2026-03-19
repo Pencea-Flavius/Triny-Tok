@@ -2,15 +2,14 @@
 
 **TrinyTok** is a real-time TikTok LIVE integration platform that bridges your stream with games — viewers interact with your gameplay through gifts, likes, and follows.
 
-> Think Crowd Control or TikFinity, but open-source and built your way.
-
 ## Features
 
 - **Real-Time Gift Tracking** — tracks diamonds live with full donor stats
 - **Top Donors Leaderboard** — auto-deduplication and ranking of your biggest supporters
+- **SQLite Database** — all donations, users, and gifts are persisted across sessions
+- **Auto-Learning Gifts** — new gifts are automatically detected and saved during live streams
 - **Game Integration** — TikTok gifts trigger in-game events (currently: Minecraft via RCON)
 - **Command Manager** — map any gift to any command directly from the Dashboard
-- **Initial Sync** — automatically fetches the top fans when you go live
 - **OBS Overlay** — clean overlay page for streaming software
 - **Modern Dashboard** — Glassmorphism UI with Dark Mode
 
@@ -26,7 +25,7 @@ npm install
 
 # 3. Start the server
 npm start
-# Dashboard available at http://localhost:8081
+# Dashboard available at http://localhost:3000
 ```
 
 ## Configuration
@@ -39,7 +38,7 @@ npm start
 
 | Game | Status | Bridge |
 |------|--------|--------|
-| Minecraft (Java) | Supported | RCON via TikTokBridge plugin |
+| Minecraft (Java) | Supported | RCON |
 | More games | Planned | — |
 
 ## Requirements

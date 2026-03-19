@@ -9,6 +9,7 @@ const { clientBlocked } = require('./utils/limiter');
 const minecraftBridge = require('./tiktok/minecraftBridge');
 const path = require('path');
 const fs = require('fs');
+const db = require('./database/db_manager');
 
 // Load Config
 const configPath = path.join(__dirname, '../config/config.json');
@@ -26,32 +27,19 @@ try {
     console.error('Failed to load config.json:', e);
 }
 
-// Load Gifts Cache
-const giftsCachePath = path.join(__dirname, '../data/gifts-cache.json');
+// Load Gifts from DB
 let availableGifts = [];
 
-function loadGiftsCache() {
+async function initDatabase() {
     try {
-        if (fs.existsSync(giftsCachePath)) {
-            const content = fs.readFileSync(giftsCachePath, 'utf8').trim();
-            if (content) {
-                availableGifts = JSON.parse(content);
-            } else {
-                availableGifts = [];
-            }
-        }
+        await db.connect();
+        availableGifts = await db.getGifts();
+        console.info(`[DB] Loaded ${availableGifts.length} gifts from SQLite.`);
     } catch (e) {
-        console.error('Failed to load gifts-cache.json', e);
-        availableGifts = [];
+        console.error('[DB] Failed to load gifts from database', e);
     }
 }
-function saveGiftsCache() {
-    try {
-        fs.writeFileSync(giftsCachePath, JSON.stringify(availableGifts, null, 2));
-    } catch (e) { console.error('Failed to save gifts-cache.json', e); }
-}
-loadGiftsCache();
-
+initDatabase();
 const app = express();
 const httpServer = createServer(app);
 
@@ -71,17 +59,15 @@ let initialDonorsSum = 0;
 let initialTopDonors = [];
 let giftCooldowns = new Map(); // { giftName: lastExecutionTime }
 let tiktokConnectionWrapper = null;
+let tiktokOwnerSocketId = null; // Which socket created the TikTok connection
 
 function upsertDonor(userId, uniqueId, nickname, profilePictureUrl, diamonds, lastGift) {
     let donor = null;
+    let key = userId || uniqueId;
 
-    // 1. Try to find by userId first
     if (userId && donorStats[userId]) {
         donor = donorStats[userId];
-    }
-    // 2. If not found by userId (or userId is unknown), try to find by uniqueId
-    else if (uniqueId) {
-        // Look through all donor objects for a matching uniqueId
+    } else if (uniqueId) {
         donor = Object.values(donorStats).find(d => d.uniqueId === uniqueId);
     }
 
@@ -91,16 +77,14 @@ function upsertDonor(userId, uniqueId, nickname, profilePictureUrl, diamonds, la
         if (nickname && nickname !== 'Unknown') donor.nickname = nickname;
         if (profilePictureUrl) donor.profilePictureUrl = profilePictureUrl;
 
-        // Ensure both IDs are kept if we found them now
         if (userId && (!donor.userId || donor.userId.startsWith('init_'))) donor.userId = userId;
         if (uniqueId) donor.uniqueId = uniqueId;
 
-        // Ensure the map entry exists for the userId if we just learned it
         if (userId && !donorStats[userId]) {
             donorStats[userId] = donor;
         }
     } else {
-        const key = userId || uniqueId || `init_${Math.random()}`;
+        key = key || `init_${Math.random()}`;
         donorStats[key] = {
             userId,
             uniqueId,
@@ -109,6 +93,18 @@ function upsertDonor(userId, uniqueId, nickname, profilePictureUrl, diamonds, la
             totalDiamonds: parseInt(diamonds),
             lastGift: lastGift || ''
         };
+        donor = donorStats[key];
+    }
+
+    // Persist to Database asynchronously
+    if (donor.userId && !donor.userId.startsWith('init_') && db) {
+        db.upsertUser({
+            userId: donor.userId,
+            uniqueId: donor.uniqueId,
+            nickname: donor.nickname,
+            profilePictureUrl: donor.profilePictureUrl,
+            addedDiamonds: parseInt(diamonds)
+        }).catch(err => console.error('[DB] Failed to upsert user', err));
     }
 }
 
@@ -119,6 +115,28 @@ function finalizeGift(msg) {
     if (totalDiamonds > 0) {
         trackedDiamonds += totalDiamonds;
         upsertDonor(msg.userId, msg.uniqueId, msg.nickname, msg.profilePictureUrl, totalDiamonds, msg.giftName);
+        
+        // Persist Donation Record
+        if (msg.userId && msg.giftId && db) {
+            db.recordDonation(msg.userId, msg.giftId, msg.repeatCount || 1, totalDiamonds)
+              .catch(err => console.error('[DB] Failed to record donation', err));
+        }
+
+        // Auto-Learning: If this gift is new, add it to DB and cache
+        const exists = availableGifts.find(g => g.id === msg.giftId);
+        if (!exists && msg.giftId && msg.giftName && db) {
+            const newGift = {
+                id: msg.giftId,
+                name: msg.giftName,
+                diamondCount: msg.diamondCount || 0,
+                imageUrl: (msg.giftDetails && msg.giftDetails.giftImage && msg.giftDetails.giftImage.urlList && msg.giftDetails.giftImage.urlList[0]) || msg.giftPictureUrl || ''
+            };
+            availableGifts.push(newGift); // Update cache locally
+            io.emit('giftsUpdated');      // Notify UI
+            db.upsertGift(newGift).then(() => {
+                console.info(`[DB] Auto-learned new gift: ${msg.giftName}`);
+            }).catch(err => console.error('[DB] Failed to learn new gift', err));
+        }
     }
 
     io.emit('gift', msg);
@@ -219,6 +237,9 @@ io.on('connection', (socket) => {
             options = {};
         }
 
+        // Force disable extended gift info to prevent 403 connection crash (TikTok locked this endpoint)
+        options.enableExtendedGiftInfo = false;
+
         if (process.env.SESSIONID) {
             options.sessionId = process.env.SESSIONID;
         }
@@ -237,6 +258,7 @@ io.on('connection', (socket) => {
 
         try {
             tiktokConnectionWrapper = new TikTokConnectionWrapper(uniqueId, options, true);
+            tiktokOwnerSocketId = socket.id; // Mark this socket as TikTok owner
             tiktokConnectionWrapper.connect();
         } catch (err) {
             socket.emit('tiktokDisconnected', err.toString());
@@ -246,7 +268,8 @@ io.on('connection', (socket) => {
         tiktokConnectionWrapper.once('connected', state => {
             socket.emit('tiktokConnected', state);
 
-            // SYNC ALL AVAILABLE GIFTS
+            /* 
+            // SYNC ALL AVAILABLE GIFTS (Blocked by TikTok (403) without premium auth)
             tiktokConnectionWrapper.connection.fetchAvailableGifts()
                 .then(gifts => {
                     if (Array.isArray(gifts)) {
@@ -270,6 +293,10 @@ io.on('connection', (socket) => {
                     }
                 })
                 .catch(err => console.error('Failed to sync gifts:', err));
+            */
+
+             // NOTE: Extended gift info is disabled to prevent 403 on connection.
+             // Gifts are loaded from local data/gifts-cache.json instead.
 
             // Initial Top Donors Extraction
             const roomData = state.roomInfo?.data || state.roomInfo || state.data || state;
@@ -343,7 +370,7 @@ io.on('connection', (socket) => {
         });
 
         let currentLikes = 0;
-        tiktokConnectionWrapper.connection.on('like', msg => {
+        tiktokConnectionWrapper.connection.on('like', msg =>{
             const likeCmd = config.likeCommand;
             if (likeCmd && likeCmd.command && likeCmd.minLikes > 0 && minecraftBridge.isConnected) {
                 currentLikes += msg.likeCount;
@@ -362,6 +389,15 @@ io.on('connection', (socket) => {
             }
             io.emit('like', msg);
         });
+    });
+
+    // Only the socket that created the TikTok connection should clean it up
+    socket.on('disconnect', () => {
+        if (socket.id === tiktokOwnerSocketId && tiktokConnectionWrapper) {
+            try { tiktokConnectionWrapper.disconnect(); } catch (e) {}
+            tiktokConnectionWrapper = null;
+            tiktokOwnerSocketId = null;
+        }
     });
 });
 
@@ -434,7 +470,14 @@ app.post('/api/commands', express.json(), (req, res) => {
 });
 
 app.get('/api/gifts', (req, res) => {
-    res.json({ success: true, gifts: availableGifts });
+    // Normalize DB format (camelCase) to frontend format (snake_case / nested image)
+    const normalized = availableGifts.map(g => ({
+        id: g.id,
+        name: g.name,
+        diamond_count: g.diamond_count ?? g.diamondCount ?? 0,
+        image: { url_list: g.imageUrl ? [g.imageUrl] : (g.image?.url_list || []) }
+    }));
+    res.json({ success: true, gifts: normalized });
 });
 
 app.get('/api/config', (req, res) => {
