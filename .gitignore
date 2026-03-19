@@ -1,0 +1,9 @@
+node_modules/
+.env
+config/config.json
+data/gifts-cache.json
+*.log
+.vscode/
+.DS_Store
+dist/
+build/
