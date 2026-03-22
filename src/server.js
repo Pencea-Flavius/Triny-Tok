@@ -13,15 +13,25 @@ const db = require('./database/db_manager');
 
 // Load Config
 const configPath = path.join(__dirname, '../config/config.json');
+// Ensure config directory exists
+const configDir = path.dirname(configPath);
+if (!fs.existsSync(configDir)) {
+    fs.mkdirSync(configDir, { recursive: true });
+}
+
 let config = {
-    minecraft: { host: 'localhost', port: 25566, enabled: false },
+    minecraft: { host: 'localhost', port: 25575, password: '', enabled: false },
     giftCommands: {},
     followCommand: { command: "", cooldown: 0 },
     likeCommand: { command: "", minLikes: 100 }
 };
+
 try {
     if (fs.existsSync(configPath)) {
         config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    } else {
+        // Create default config file if it doesn't exist
+        fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
     }
 } catch (e) {
     console.error('Failed to load config.json:', e);
@@ -48,6 +58,15 @@ const io = new Server(httpServer, {
     cors: {
         origin: '*'
     }
+});
+
+// Listen to Minecraft Connection Status and update clients
+minecraftBridge.on('statusChange', (isConnected, errorMsg) => {
+    io.emit('minecraftStatus', { 
+        isConnected, 
+        config: config.minecraft, 
+        error: errorMsg || null 
+    });
 });
 
 
@@ -180,12 +199,15 @@ io.on('connection', (socket) => {
 
     // Minecraft Control
     socket.on('minecraftConnect', (data) => {
-        minecraftBridge.connect(data.host, data.port).then(() => {
-            config.minecraft.host = data.host;
-            config.minecraft.port = data.port;
+        // Save settings immediately so they are not lost on error
+        config.minecraft.host = data.host;
+        config.minecraft.port = data.port;
+        config.minecraft.password = data.password;
+        fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+
+        minecraftBridge.connect(data.host, data.port, data.password).then(() => {
             config.minecraft.enabled = true;
             fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-            io.emit('minecraftStatus', { isConnected: true, config: config.minecraft });
         }).catch(err => {
             socket.emit('minecraftError', err.message);
         });

@@ -27,8 +27,9 @@ export function initMinecraftUI(ioConnection) {
     connectBtn.click(() => {
         if (connectBtn.text() === 'Connect') {
             const host = hostInput.val() || 'localhost';
-            const port = parseInt(portInput.val()) || 25566;
-            socket.emit('minecraftConnect', { host, port });
+            const port = parseInt(portInput.val()) || 25575;
+            const password = $('#minecraftPassword').val() || '';
+            socket.emit('minecraftConnect', { host, port, password });
             connectBtn.text('Connecting...').prop('disabled', true);
         } else {
             socket.emit('minecraftDisconnect');
@@ -39,6 +40,7 @@ export function initMinecraftUI(ioConnection) {
 function updateStatus(isConnected, config) {
     const hostInput = $('#minecraftHost');
     const portInput = $('#minecraftPort');
+    const passwordInput = $('#minecraftPassword');
     const connectBtn = $('#mcConnectBtn');
     const statusDot = $('#mcStatusDot');
     const statusText = $('#mcStatusText');
@@ -46,6 +48,9 @@ function updateStatus(isConnected, config) {
     if (config) {
         hostInput.val(config.host);
         portInput.val(config.port);
+        if (config.password) {
+            passwordInput.val(config.password);
+        }
     }
 
     if (isConnected) {
@@ -54,11 +59,13 @@ function updateStatus(isConnected, config) {
         connectBtn.text('Disconnect').prop('disabled', false).removeClass('btn-primary').addClass('btn-danger');
         hostInput.prop('disabled', true);
         portInput.prop('disabled', true);
+        passwordInput.prop('disabled', true);
     } else {
         statusText.text('Disconnected').css('color', 'var(--danger)');
         statusDot.css('background', 'var(--danger)');
         connectBtn.text('Connect').prop('disabled', false).removeClass('btn-danger').addClass('btn-primary');
         hostInput.prop('disabled', false);
         portInput.prop('disabled', false);
+        passwordInput.prop('disabled', false);
     }
 }
