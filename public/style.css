@@ -600,6 +600,7 @@ body {
 }
 
 input[type="text"],
+input[type="password"],
 input[type="number"],
 textarea {
     background: var(--primary-dark);
