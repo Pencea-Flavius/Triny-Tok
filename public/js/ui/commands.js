@@ -10,6 +10,9 @@ export function initCommandsUI(ioConnection) {
     const cmdInput = $('#commandInput');
     const cooldownInput = $('#cooldownInput');
     const waitStreakInput = $('#waitStreakInput');
+    const delayConfigRow = $('#delayConfigRow');
+    const executeDelayInput = $('#executeDelayInput');
+    const delayValueDisplay = $('#delayValueDisplay');
     const saveBtn = $('#saveCommandBtn');
     const closeBtn = $('#closeModalBtn');
     const addBtn = $('#addCommandBtn');
@@ -209,15 +212,20 @@ export function initCommandsUI(ioConnection) {
             cmdInput.val(cmdObj);
             cooldownInput.val(0);
             waitStreakInput.prop('checked', true);
+            executeDelayInput.val(0.2);
         } else if (cmdObj) {
             cmdInput.val(cmdObj.command || '');
             cooldownInput.val(cmdObj.cooldown || 0);
             waitStreakInput.prop('checked', cmdObj.waitForStreak !== false);
+            executeDelayInput.val(cmdObj.executeDelay || 0.2);
         } else {
             cmdInput.val('');
             cooldownInput.val(0);
             waitStreakInput.prop('checked', true);
+            executeDelayInput.val(0.2);
         }
+        waitStreakInput.trigger('change');
+        executeDelayInput.trigger('input');
 
         modalTitle.text(gift ? 'Edit Command' : 'Add Command');
         // giftInput.prop('disabled', !!gift); // Removed to allow editing gift name
@@ -231,6 +239,7 @@ export function initCommandsUI(ioConnection) {
         cmdInput.val('');
         cooldownInput.val(0);
         waitStreakInput.prop('checked', true);
+        waitStreakInput.trigger('change');
         giftImagePreview.html('<span style="font-size: 0.8rem; color: var(--text-muted);">IMAGE</span>');
         currentEditGiftName = null;
     }
@@ -248,6 +257,18 @@ export function initCommandsUI(ioConnection) {
         updateImagePreview($(this).val());
     });
 
+    waitStreakInput.change(function () {
+        if ($(this).is(':checked')) {
+            delayConfigRow.hide();
+        } else {
+            delayConfigRow.css('display', 'flex');
+        }
+    });
+
+    executeDelayInput.on('input', function () {
+        delayValueDisplay.text($(this).val() + 's');
+    });
+
     addBtn.click(() => openModal());
     closeBtn.click(() => closeModal());
 
@@ -256,12 +277,14 @@ export function initCommandsUI(ioConnection) {
         const cmd = cmdInput.val().trim();
         const cooldown = parseInt(cooldownInput.val()) || 0;
         const waitForStreak = waitStreakInput.is(':checked');
+        const executeDelay = parseFloat(executeDelayInput.val()) || 0.2;
 
         if (gift && cmd) {
             updateCommand(gift, {
                 command: cmd,
                 cooldown: cooldown,
-                waitForStreak: waitForStreak
+                waitForStreak: waitForStreak,
+                executeDelay: executeDelay
             }, 'save', currentEditGiftName);
         } else {
             alert('Please fill in both fields');

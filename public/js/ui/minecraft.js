@@ -11,6 +11,27 @@ export function initMinecraftUI(ioConnection) {
     const connectBtn = $('#mcConnectBtn');
     const statusDot = $('#mcStatusDot');
     const statusText = $('#mcStatusText');
+    const targetPlayersInput = $('#targetPlayersInput');
+
+    // Fetch and load generic config (targetPlayers)
+    fetch('/api/config')
+        .then(res => res.json())
+        .then(data => {
+            if (data.success && data.config && data.config.targetPlayers) {
+                targetPlayersInput.val(data.config.targetPlayers.join('\n'));
+            }
+        })
+        .catch(console.error);
+
+    // Auto-save targetPlayers on blur
+    targetPlayersInput.on('blur', () => {
+        const lines = targetPlayersInput.val().split('\n').map(p => p.trim()).filter(p => p.length > 0);
+        fetch('/api/config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ targetPlayers: lines })
+        }).catch(console.error);
+    });
 
     // Socket Events
     socket.on('minecraftStatus', (data) => {

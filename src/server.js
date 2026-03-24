@@ -23,7 +23,8 @@ let config = {
     minecraft: { host: 'localhost', port: 25575, password: '', enabled: false },
     giftCommands: {},
     followCommand: { command: "", cooldown: 0 },
-    likeCommand: { command: "", minLikes: 100 }
+    likeCommand: { command: "", minLikes: 100 },
+    targetPlayers: []
 };
 
 try {
@@ -128,10 +129,10 @@ function upsertDonor(userId, uniqueId, nickname, profilePictureUrl, diamonds, la
 }
 
 // Helper function for gift processing, moved to global scope
-function finalizeGift(msg) {
+async function finalizeGift(msg, updateDbAndCommand = true) {
     const totalDiamonds = (msg.diamondCount || 0) * (msg.repeatCount || 1);
 
-    if (totalDiamonds > 0) {
+    if (totalDiamonds > 0 && updateDbAndCommand) {
         trackedDiamonds += totalDiamonds;
         upsertDonor(msg.userId, msg.uniqueId, msg.nickname, msg.profilePictureUrl, totalDiamonds, msg.giftName);
         
@@ -161,6 +162,8 @@ function finalizeGift(msg) {
     io.emit('gift', msg);
     io.emit('statUpdate', { trackedDiamonds, initialDonorsSynced, initialDonorsSum });
 
+    if (!updateDbAndCommand) return;
+
     const giftCmd = config.giftCommands[msg.giftName];
     if (giftCmd && minecraftBridge.isConnected) {
         const now = Date.now();
@@ -178,15 +181,33 @@ function finalizeGift(msg) {
         else if (giftCmd.command) cmds = [giftCmd.command];
 
         const sender = msg.nickname || msg.uniqueId;
-        cmds.forEach(cmd => {
-            if (!cmd.trim()) return;
-            // Use msg.repeatCount in command replacement if needed, though usually it's handled by trigger frequency
-            // But here we trigger it once at end of streak, so we might want to pass the count
-            const finalCmd = cmd.replace('{username}', sender).replace('{count}', msg.repeatCount || 1);
-            minecraftBridge.sendCommand(finalCmd, sender);
-        });
-        console.info(`[Gift] Triggered command for ${msg.giftName} (x${msg.repeatCount || 1}) from ${sender}`);
-        giftCooldowns.set(msg.giftName, now);
+        const executions = giftCmd.waitForStreak === false ? (msg.repeatCount || 1) : 1;
+        const countPlaceholder = giftCmd.waitForStreak === false ? 1 : (msg.repeatCount || 1);
+        const delayMs = (giftCmd.executeDelay || 0.2) * 1000;
+
+        for (let i = 0; i < executions; i++) {
+            cmds.forEach(cmd => {
+                if (!cmd.trim()) return;
+                
+                const targets = config.targetPlayers || [];
+                const randomPlayer = targets.length > 0 ? targets[Math.floor(Math.random() * targets.length)] : 'Player';
+
+                const finalCmd = cmd
+                    .replace(/\{username\}/g, msg.uniqueId || 'Unknown')
+                    .replace(/\{nickname\}/g, msg.nickname || 'Unknown')
+                    .replace(/\{giftname\}/g, msg.giftName || 'Gift')
+                    .replace(/\{playername\}/g, randomPlayer)
+                    .replace(/\{count\}/g, countPlaceholder);
+
+                minecraftBridge.sendCommand(finalCmd, sender);
+            });
+            console.info(`[Gift] Triggered command for ${msg.giftName} (Exec: ${i+1}/${executions}) from ${sender}`);
+            
+            if (executions > 1 && i < executions - 1) {
+                await new Promise(resolve => setTimeout(resolve, delayMs));
+            }
+        }
+        giftCooldowns.set(msg.giftName, Date.now());
     }
 }
 
@@ -354,25 +375,29 @@ io.on('connection', (socket) => {
         const activeStreaks = new Map();
         tiktokConnectionWrapper.connection.on('gift', msg => {
             const streakId = `${msg.userId}_${msg.giftId}`;
-            const giftCmd = config.giftCommands[msg.giftName];
-            const waitForStreak = (typeof giftCmd === 'object' && giftCmd.waitForStreak !== undefined) ? giftCmd.waitForStreak : true;
 
-            if (msg.giftType === 1 && waitForStreak) {
+            if (msg.giftType === 1) {
                 if (activeStreaks.has(streakId)) clearTimeout(activeStreaks.get(streakId).timeout);
+                
+                // For a smooth UI, emit intermediate streak-building gifts to the frontend real-time
+                if (!msg.repeatEnd) {
+                    io.emit('gift', msg);
+                }
+
                 if (msg.repeatEnd) {
-                    finalizeGift(msg);
+                    finalizeGift(msg, true);
                     activeStreaks.delete(streakId);
                 } else {
                     const timeout = setTimeout(() => {
                         if (activeStreaks.has(streakId)) {
-                            finalizeGift(activeStreaks.get(streakId).msg);
+                            finalizeGift(activeStreaks.get(streakId).msg, true);
                             activeStreaks.delete(streakId);
                         }
                     }, 10000);
                     activeStreaks.set(streakId, { timeout, msg });
                 }
             } else {
-                finalizeGift(msg);
+                finalizeGift(msg, true);
             }
         });
 
@@ -384,7 +409,18 @@ io.on('connection', (socket) => {
                     let cmds = typeof followCmd.command === 'string' ? followCmd.command.split('\n') : [followCmd.command];
                     cmds.forEach(cmd => {
                         if (!cmd.trim()) return;
-                        minecraftBridge.sendCommand(cmd.replace('{username}', sender), sender);
+                        
+                        const targets = config.targetPlayers || [];
+                        const randomPlayer = targets.length > 0 ? targets[Math.floor(Math.random() * targets.length)] : 'Player';
+                        
+                        const finalCmd = cmd
+                            .replace(/\{username\}/g, msg.uniqueId || 'Unknown')
+                            .replace(/\{nickname\}/g, msg.nickname || 'Unknown')
+                            .replace(/\{giftname\}/g, 'Follow')
+                            .replace(/\{playername\}/g, randomPlayer)
+                            .replace(/\{count\}/g, 1);
+
+                        minecraftBridge.sendCommand(finalCmd, sender);
                     });
                 }
             }
@@ -404,7 +440,18 @@ io.on('connection', (socket) => {
                     for (let i = 0; i < triggerCount; i++) {
                         cmds.forEach(cmd => {
                             if (!cmd.trim()) return;
-                            minecraftBridge.sendCommand(cmd.replace('{username}', sender), sender);
+                            
+                            const targets = config.targetPlayers || [];
+                            const randomPlayer = targets.length > 0 ? targets[Math.floor(Math.random() * targets.length)] : 'Player';
+                            
+                            const finalCmd = cmd
+                                .replace(/\{username\}/g, msg.uniqueId || 'Unknown')
+                                .replace(/\{nickname\}/g, msg.nickname || 'Unknown')
+                                .replace(/\{giftname\}/g, 'Like')
+                                .replace(/\{playername\}/g, randomPlayer)
+                                .replace(/\{count\}/g, currentLikes);
+
+                            minecraftBridge.sendCommand(finalCmd, sender);
                         });
                     }
                 }
@@ -529,7 +576,7 @@ httpServer.listen(port, () => {
 
     // Auto-connect Minecraft if enabled
     if (config.minecraft.enabled) {
-        minecraftBridge.connect(config.minecraft.host, config.minecraft.port).then(() => {
+        minecraftBridge.connect(config.minecraft.host, config.minecraft.port, config.minecraft.password).then(() => {
             io.emit('minecraftStatus', { isConnected: true, config: config.minecraft });
         }).catch(() => { });
     }
