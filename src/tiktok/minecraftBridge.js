@@ -15,11 +15,12 @@ class MinecraftBridge extends EventEmitter {
         this.config = {
             host: '127.0.0.1',
             port: 25575,
-            password: ''
+            password: '',
+            autoReconnect: false
         };
     }
 
-    async connect(host, port, password) {
+    async connect(host, port, password, autoReconnect) {
         // Clear any existing reconnect timer to prevent parallel connection loops
         if (this._reconnectTimer) {
             clearTimeout(this._reconnectTimer);
@@ -33,6 +34,7 @@ class MinecraftBridge extends EventEmitter {
         if (host !== undefined) this.config.host = host;
         if (port !== undefined) this.config.port = port;
         if (password !== undefined) this.config.password = password;
+        if (autoReconnect !== undefined) this.config.autoReconnect = autoReconnect;
 
         if (this.config.host === 'localhost') {
             this.config.host = '127.0.0.1'; // Fix potential Node 17+ localhost resolution issues
@@ -94,6 +96,7 @@ class MinecraftBridge extends EventEmitter {
 
     _scheduleReconnect() {
         if (this._reconnectTimer) return;
+        if (!this.config.autoReconnect) return;
 
         const delay = Math.min(
             RECONNECT_BASE_DELAY * Math.pow(2, this._reconnectAttempt),
