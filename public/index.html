@@ -224,6 +224,15 @@
                             </div>
                         </div>
 
+                        <h4 style="margin-top: 32px; margin-bottom: 12px; color: var(--text-muted); font-size: 0.9rem; letter-spacing: 1px;">
+                            TARGET PLAYERS (ONE PER LINE)</h4>
+                        <div class="form-group" style="width: 100%;">
+                            <textarea id="targetPlayersInput" placeholder="Steve&#10;Alex" rows="3" style="width: 100%; font-family: 'JetBrains Mono', monospace; background: var(--bg-hover); padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-md); color: var(--text-main);"></textarea>
+                            <p style="font-size: 0.8rem; color: var(--text-dim); margin-top: 8px;">
+                                Used by the <code>{playername}</code> placeholder. The system randomly picks one player for each command execution.
+                            </p>
+                        </div>
+
                         <div
                             style="display: flex; align-items: center; justify-content: space-between; margin-top: 32px;">
                             <div id="mcStatusLabel" style="display: flex; align-items: center; gap: 12px;">
@@ -308,10 +317,14 @@
                                 <div class="form-group">
                                     <label class="form-label">MINECRAFT COMMANDS (ONE PER LINE)</label>
                                     <textarea id="commandInput" placeholder="summon creeper
-give {username} diamond 1" rows="5" style="width: 100%; font-family: 'JetBrains Mono', monospace;"></textarea>
-                                    <p style="font-size: 0.75rem; color: var(--text-dim); margin-top: 4px;">
-                                        Placeholders: <code>{username}</code> (player name), <code>{count}</code>
-                                        (streak count).
+give {playername} diamond {count}" rows="5" style="width: 100%; font-family: 'JetBrains Mono', monospace;"></textarea>
+                                    <p style="font-size: 0.75rem; color: var(--text-dim); margin-top: 8px; line-height: 1.5;">
+                                        Placeholders:<br>
+                                        <code>{playername}</code> (Random from target list)<br>
+                                        <code>{username}</code> (Unique ID: @user123)<br>
+                                        <code>{nickname}</code> (Display Name)<br>
+                                        <code>{giftname}</code> (Gift Name: Rose)<br>
+                                        <code>{count}</code> (Streak Count)
                                     </p>
                                 </div>
                                 <div style="display: flex; gap: 24px;">
@@ -328,6 +341,16 @@ give {username} diamond 1" rows="5" style="width: 100%; font-family: 'JetBrains 
                                             Wait for Streak
                                         </label>
                                     </div>
+                                </div>
+                                <div id="delayConfigRow" style="display: none; flex-direction: column; gap: 8px; margin-top: 4px;">
+                                    <label class="form-label" style="display: flex; justify-content: space-between;">
+                                        <span>EXECUTION DELAY (SEC)</span>
+                                        <span id="delayValueDisplay" style="color: var(--accent); font-weight: 700;">0.2s</span>
+                                    </label>
+                                    <input type="range" id="executeDelayInput" min="0.1" max="1.0" step="0.1" value="0.2" style="width: 100%; accent-color: var(--accent);">
+                                    <p style="font-size: 0.75rem; color: var(--text-dim); margin-top: 4px;">
+                                        Delay between each command execution when Wait for Streak is disabled.
+                                    </p>
                                 </div>
                                 <div style="display: flex; gap: 12px; margin-top: 12px;">
                                     <button class="btn-primary" id="saveCommandBtn" style="flex: 2;">Save
