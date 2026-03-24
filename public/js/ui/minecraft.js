@@ -12,6 +12,7 @@ export function initMinecraftUI(ioConnection) {
     const statusDot = $('#mcStatusDot');
     const statusText = $('#mcStatusText');
     const targetPlayersInput = $('#targetPlayersInput');
+    const autoConnectCheckbox = $('#autoConnectRcon');
 
     // Fetch and load generic config (targetPlayers)
     fetch('/api/config')
@@ -46,11 +47,12 @@ export function initMinecraftUI(ioConnection) {
 
     // Button Click
     connectBtn.click(() => {
-        if (connectBtn.text() === 'Connect') {
+        if (connectBtn.text() === 'Connect' || connectBtn.text() === 'Connect Bridge') {
             const host = hostInput.val() || 'localhost';
             const port = parseInt(portInput.val()) || 25575;
             const password = $('#minecraftPassword').val() || '';
-            socket.emit('minecraftConnect', { host, port, password });
+            const autoConnect = autoConnectCheckbox.is(':checked');
+            socket.emit('minecraftConnect', { host, port, password, autoConnect });
             connectBtn.text('Connecting...').prop('disabled', true);
         } else {
             socket.emit('minecraftDisconnect');
@@ -65,12 +67,16 @@ function updateStatus(isConnected, config) {
     const connectBtn = $('#mcConnectBtn');
     const statusDot = $('#mcStatusDot');
     const statusText = $('#mcStatusText');
+    const autoConnectCheckbox = $('#autoConnectRcon');
 
     if (config) {
         hostInput.val(config.host);
         portInput.val(config.port);
         if (config.password) {
             passwordInput.val(config.password);
+        }
+        if (config.autoConnect !== undefined) {
+            autoConnectCheckbox.prop('checked', config.autoConnect);
         }
     }
 

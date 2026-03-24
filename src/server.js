@@ -20,7 +20,7 @@ if (!fs.existsSync(configDir)) {
 }
 
 let config = {
-    minecraft: { host: 'localhost', port: 25575, password: '', enabled: false },
+    minecraft: { host: 'localhost', port: 25575, password: '', enabled: false, autoConnect: false },
     giftCommands: {},
     followCommand: { command: "", cooldown: 0 },
     likeCommand: { command: "", minLikes: 100 },
@@ -224,9 +224,10 @@ io.on('connection', (socket) => {
         config.minecraft.host = data.host;
         config.minecraft.port = data.port;
         config.minecraft.password = data.password;
+        if (data.autoConnect !== undefined) config.minecraft.autoConnect = data.autoConnect;
         fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
 
-        minecraftBridge.connect(data.host, data.port, data.password).then(() => {
+        minecraftBridge.connect(data.host, data.port, data.password, data.autoConnect).then(() => {
             config.minecraft.enabled = true;
             fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
         }).catch(err => {
@@ -575,9 +576,15 @@ httpServer.listen(port, () => {
     console.info(`Server running! Please visit http://localhost:${port}`);
 
     // Auto-connect Minecraft if enabled
-    if (config.minecraft.enabled) {
-        minecraftBridge.connect(config.minecraft.host, config.minecraft.port, config.minecraft.password).then(() => {
+    // Auto-connect Minecraft if enabled and if autoConnect is explicitly true
+    if (config.minecraft.autoConnect) {
+        // we can set config.minecraft.enabled back to true since it automatically tried.
+        config.minecraft.enabled = true;
+        minecraftBridge.connect(config.minecraft.host, config.minecraft.port, config.minecraft.password, config.minecraft.autoConnect).then(() => {
             io.emit('minecraftStatus', { isConnected: true, config: config.minecraft });
         }).catch(() => { });
+    } else {
+        // Make sure UI sees disconnected if they disable autoConnect
+        config.minecraft.enabled = false;
     }
 });
