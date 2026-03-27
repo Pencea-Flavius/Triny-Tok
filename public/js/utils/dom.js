@@ -1,8 +1,6 @@
-/**
- * DOM Utility functions
- */
+// dom utilities
 
-// Prevent Cross site scripting (XSS)
+// basic xss prevention
 export function sanitize(text) {
     if (!text) return '';
     return text.toString().replace(/</g, '&lt;').replace(/>/g, '&gt;');

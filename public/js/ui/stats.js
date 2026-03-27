@@ -1,8 +1,9 @@
-/**
- * Update the room stats and session diamonds
- */
+// update stream counters
 export function updateRoomStats(viewerCount, likeCount) {
-    $('#roomStats').html(`Viewers: <b>${viewerCount.toLocaleString()}</b> Likes: <b>${likeCount.toLocaleString()}</b>`);
+    const vc = document.getElementById('viewerCount');
+    const lc = document.getElementById('likeCount');
+    if (vc) vc.textContent = viewerCount.toLocaleString();
+    if (lc) lc.textContent = likeCount.toLocaleString();
 }
 
 export function updateDonationStats(trackedDiamonds, initialDonorsSum, initialDonorsSynced) {
@@ -11,7 +12,7 @@ export function updateDonationStats(trackedDiamonds, initialDonorsSum, initialDo
     $('#totalDiamonds').text(trackedDiamonds.toLocaleString());
     $('#totalUSD').text(`$${usd}`);
 
-    // Initial Sync Button Logic
+    // only show sync button if there are unsynced donors
     if (initialDonorsSum > 0 && !initialDonorsSynced) {
         $('#syncInitialBtn').show().text(`🔄 Sync Initial Top Donors (+${initialDonorsSum.toLocaleString()})`);
     } else {

@@ -3,9 +3,7 @@ const { EventEmitter } = require('events');
 
 let globalConnectionCount = 0;
 
-/**
- * TikTok LIVE connection wrapper with advanced reconnect functionality and error handling
- */
+// tiktok connection handler (reconnects on its own)
 class TikTokConnectionWrapper extends EventEmitter {
     constructor(uniqueId, options, enableLog) {
         super();
@@ -13,7 +11,7 @@ class TikTokConnectionWrapper extends EventEmitter {
         this.uniqueId = uniqueId;
         this.enableLog = enableLog;
 
-        // Connection State
+        // state vars
         this.clientDisconnected = false;
         this.reconnectEnabled = true;
         this.reconnectCount = 0;
@@ -45,17 +43,17 @@ class TikTokConnectionWrapper extends EventEmitter {
 
             globalConnectionCount += 1;
 
-            // Reset reconnect vars
+            // reset tries
             this.reconnectCount = 0;
             this.reconnectWaitMs = 1000;
 
-            // Client disconnected while establishing connection => drop connection
+            // stop if client disconnected meanwhile
             if (this.clientDisconnected) {
                 this.connection.disconnect();
                 return;
             }
 
-            // Notify client
+            // tell the app
             if (!isReconnect) {
                 this.emit('connected', state);
             }
@@ -64,10 +62,10 @@ class TikTokConnectionWrapper extends EventEmitter {
             this.log(`${isReconnect ? 'Reconnect' : 'Connection'} failed, ${err}`);
 
             if (isReconnect) {
-                // Schedule the next reconnect attempt
+                // try again
                 this.scheduleReconnect(err);
             } else {
-                // Notify client
+                // tell the app
                 this.emit('disconnected', err.toString());
             }
         })

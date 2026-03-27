@@ -1,8 +1,6 @@
 import { sanitize, generateUsernameLink } from '../utils/dom.js';
 
-/**
- * Add a new message to the chat container
- */
+// add msg to chat feed
 export function addChatItem(color, data, text, summarize) {
     let container = $('.eventcontainer').length ? $('.eventcontainer') : $('.chatcontainer');
 
@@ -10,10 +8,10 @@ export function addChatItem(color, data, text, summarize) {
         container.find('div').slice(0, 200).remove();
     }
 
-    // Clear placeholder
+    // remove waiting text
     container.find('.placeholder').remove();
 
-    // Simplify logic: if summarizing, remove previous temporary message?
+    // drop old temp messages if this is a summary
     container.find('.temporary').remove();
 
     const profilePic = data.profilePictureUrl ||
@@ -32,10 +30,12 @@ export function addChatItem(color, data, text, summarize) {
         </div>
     `);
 
-    container.stop();
-    container.animate({
-        scrollTop: container[0].scrollHeight
-    }, 400);
+    if ($('#chatAutoScroll').length === 0 || $('#chatAutoScroll').is(':checked')) {
+        container.stop();
+        container.animate({
+            scrollTop: container[0].scrollHeight
+        }, 400);
+    }
 }
 
 export function clearItems() {

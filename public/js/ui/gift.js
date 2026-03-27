@@ -1,8 +1,6 @@
 import { sanitize, generateUsernameLink, isPendingStreak } from '../utils/dom.js';
 
-/**
- * Add a new gift to the gift container
- */
+// throw new gift inside the box
 export function addGiftItem(data) {
     let container = $('.eventcontainer').length ? $('.eventcontainer') : $('.giftcontainer');
 
@@ -10,20 +8,20 @@ export function addGiftItem(data) {
         container.find('div').slice(0, 100).remove();
     }
 
-    // Clear placeholder
+    // remove waiting text
     container.find('.placeholder').remove();
 
-    // Fix streak ID generation to be robust
+    // robust streak id so we dont mix them up
     let streakId = (data.userId || '0').toString() + '_' + (data.giftId || '0');
 
-    // Profile Pic Logic
+    // find the pfp
     const profilePic = data.profilePictureUrl ||
         data.user?.profilePictureUrl ||
         data.sender?.avatar_thumb?.url_list?.[0] ||
         data.user?.avatar_thumb?.url_list?.[0] ||
         'https://www.tiktok.com/static/images/avatar_default.png';
 
-    // Gift Icon Logic
+    // grab the gift icon url
     const iconUrl = data.giftPictureUrl ||
         data.gift?.icon?.url_list?.[0] ||
         data.extendedGiftInfo?.icon?.url_list?.[0] ||
@@ -62,10 +60,12 @@ export function addGiftItem(data) {
         container.append(html);
     }
 
-    container.stop();
-    container.animate({
-        scrollTop: container[0].scrollHeight
-    }, 800);
+    if ($('#giftAutoScroll').length === 0 || $('#giftAutoScroll').is(':checked')) {
+        container.stop();
+        container.animate({
+            scrollTop: container[0].scrollHeight
+        }, 800);
+    }
 }
 
 export function clearGifts() {
