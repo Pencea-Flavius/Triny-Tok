@@ -11,9 +11,9 @@ const path = require('path');
 const fs = require('fs');
 const db = require('./database/db_manager');
 
-// Load Config
+// read settings
 const configPath = path.join(__dirname, '../config/config.json');
-// Ensure config directory exists
+// make sure folder exists
 const configDir = path.dirname(configPath);
 if (!fs.existsSync(configDir)) {
     fs.mkdirSync(configDir, { recursive: true });
@@ -31,14 +31,14 @@ try {
     if (fs.existsSync(configPath)) {
         config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
     } else {
-        // Create default config file if it doesn't exist
+        // make default config if empty
         fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
     }
 } catch (e) {
     console.error('Failed to load config.json:', e);
 }
 
-// Load Gifts from DB
+// get available gifts
 let availableGifts = [];
 
 async function initDatabase() {
@@ -54,24 +54,28 @@ initDatabase();
 const app = express();
 const httpServer = createServer(app);
 
-// Enable cross origin resource sharing
+// setup views
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, '../views'));
+
+// let clients connect
 const io = new Server(httpServer, {
     cors: {
         origin: '*'
     }
 });
 
-// Listen to Minecraft Connection Status and update clients
+// broadcast mc status to everyone
 minecraftBridge.on('statusChange', (isConnected, errorMsg) => {
-    io.emit('minecraftStatus', { 
-        isConnected, 
-        config: config.minecraft, 
-        error: errorMsg || null 
+    io.emit('minecraftStatus', {
+        isConnected,
+        config: config.minecraft,
+        error: errorMsg || null
     });
 });
 
 
-// Tracking State
+// app state
 let trackedDiamonds = 0;
 let donorStats = {}; // { userId: { userId, nickname, uniqueId, profilePictureUrl, totalDiamonds, lastGift } }
 let initialDonorsSynced = false;
@@ -116,7 +120,7 @@ function upsertDonor(userId, uniqueId, nickname, profilePictureUrl, diamonds, la
         donor = donorStats[key];
     }
 
-    // Persist to Database asynchronously
+    // save to sqlite async
     if (donor.userId && !donor.userId.startsWith('init_') && db) {
         db.upsertUser({
             userId: donor.userId,
@@ -128,21 +132,21 @@ function upsertDonor(userId, uniqueId, nickname, profilePictureUrl, diamonds, la
     }
 }
 
-// Helper function for gift processing, moved to global scope
+// handle gift logic globally
 async function finalizeGift(msg, updateDbAndCommand = true) {
     const totalDiamonds = (msg.diamondCount || 0) * (msg.repeatCount || 1);
 
     if (totalDiamonds > 0 && updateDbAndCommand) {
         trackedDiamonds += totalDiamonds;
         upsertDonor(msg.userId, msg.uniqueId, msg.nickname, msg.profilePictureUrl, totalDiamonds, msg.giftName);
-        
-        // Persist Donation Record
+
+        // log donation
         if (msg.userId && msg.giftId && db) {
             db.recordDonation(msg.userId, msg.giftId, msg.repeatCount || 1, totalDiamonds)
-              .catch(err => console.error('[DB] Failed to record donation', err));
+                .catch(err => console.error('[DB] Failed to record donation', err));
         }
 
-        // Auto-Learning: If this gift is new, add it to DB and cache
+        // auto learn new gifts
         const exists = availableGifts.find(g => g.id === msg.giftId);
         if (!exists && msg.giftId && msg.giftName && db) {
             const newGift = {
@@ -151,8 +155,8 @@ async function finalizeGift(msg, updateDbAndCommand = true) {
                 diamondCount: msg.diamondCount || 0,
                 imageUrl: (msg.giftDetails && msg.giftDetails.giftImage && msg.giftDetails.giftImage.urlList && msg.giftDetails.giftImage.urlList[0]) || msg.giftPictureUrl || ''
             };
-            availableGifts.push(newGift); // Update cache locally
-            io.emit('giftsUpdated');      // Notify UI
+            availableGifts.push(newGift); // update local ram
+            io.emit('giftsUpdated');      // tell frontend
             db.upsertGift(newGift).then(() => {
                 console.info(`[DB] Auto-learned new gift: ${msg.giftName}`);
             }).catch(err => console.error('[DB] Failed to learn new gift', err));
@@ -186,9 +190,9 @@ async function finalizeGift(msg, updateDbAndCommand = true) {
         const delayMs = (giftCmd.executeDelay || 0.2) * 1000;
 
         for (let i = 0; i < executions; i++) {
-            cmds.forEach(cmd => {
-                if (!cmd.trim()) return;
-                
+            for (const cmd of cmds) {
+                if (!cmd.trim()) continue;
+
                 const targets = config.targetPlayers || [];
                 const randomPlayer = targets.length > 0 ? targets[Math.floor(Math.random() * targets.length)] : 'Player';
 
@@ -199,10 +203,14 @@ async function finalizeGift(msg, updateDbAndCommand = true) {
                     .replace(/\{playername\}/g, randomPlayer)
                     .replace(/\{count\}/g, countPlaceholder);
 
-                minecraftBridge.sendCommand(finalCmd, sender);
-            });
-            console.info(`[Gift] Triggered command for ${msg.giftName} (Exec: ${i+1}/${executions}) from ${sender}`);
-            
+                // Capture response and emit to UI
+                const response = await minecraftBridge.sendCommand(finalCmd);
+                if (response !== null) {
+                    io.emit('rconLog', { command: finalCmd, response: response, type: 'gift', giftName: msg.giftName });
+                }
+            }
+            console.info(`[Gift] Triggered command for ${msg.giftName} (Exec: ${i + 1}/${executions}) from ${sender}`);
+
             if (executions > 1 && i < executions - 1) {
                 await new Promise(resolve => setTimeout(resolve, delayMs));
             }
@@ -214,13 +222,13 @@ async function finalizeGift(msg, updateDbAndCommand = true) {
 io.on('connection', (socket) => {
     console.info('New connection from origin', socket.handshake.headers['origin'] || socket.handshake.headers['referer']);
 
-    // Emit initial stats and config to new client
+    // send current stats over
     socket.emit('statUpdate', { trackedDiamonds, initialDonorsSynced, initialDonorsSum });
     socket.emit('minecraftStatus', { isConnected: minecraftBridge.isConnected, config: config.minecraft });
 
-    // Minecraft Control
+    // rcon settings
     socket.on('minecraftConnect', (data) => {
-        // Save settings immediately so they are not lost on error
+        // save config so it persists
         config.minecraft.host = data.host;
         config.minecraft.port = data.port;
         config.minecraft.password = data.password;
@@ -242,7 +250,7 @@ io.on('connection', (socket) => {
         io.emit('minecraftStatus', { isConnected: false, config: config.minecraft });
     });
 
-    socket.on('testCommand', (data) => {
+    socket.on('testCommand', async (data) => {
         const giftName = data.giftName;
         const giftCmd = config.giftCommands[giftName];
 
@@ -254,26 +262,39 @@ io.on('connection', (socket) => {
             else if (giftCmd.command) cmds = [giftCmd.command];
 
             const sender = 'Tester';
-            cmds.forEach(cmd => {
-                if (!cmd.trim()) return;
-                minecraftBridge.sendCommand(cmd.replace('{username}', sender), sender);
-            });
+            for (const cmd of cmds) {
+                if (!cmd.trim()) continue;
+                const finalCmd = cmd.replace('{username}', sender);
+                const response = await minecraftBridge.sendCommand(finalCmd);
+                if (response !== null) {
+                    socket.emit('rconLog', { command: finalCmd, response: response, type: 'test' });
+                }
+            }
             console.info(`[Test] Triggered command for ${giftName}`);
         }
     });
 
+    socket.on('rconCommand', async (command) => {
+        if (minecraftBridge.isConnected) {
+            const response = await minecraftBridge.sendCommand(command);
+            socket.emit('rconLog', { command: command, response: response || 'No response', type: 'manual' });
+        } else {
+            socket.emit('rconLog', { command: command, response: 'Bridge not connected', type: 'error' });
+        }
+    });
+
     socket.on('setUniqueId', (uniqueId, options) => {
-        // RESET TRACKING STATE FOR NEW SESSION
+        // clear old state
         trackedDiamonds = 0;
         donorStats = {};
         initialDonorsSynced = false;
         initialDonorsSum = 0;
         initialTopDonors = [];
 
-        // Notify ALL clients of reset stats immediately
+        // broadcast reset
         io.emit('statUpdate', { trackedDiamonds, initialDonorsSynced, initialDonorsSum });
 
-        // Security check
+        // sanitize options
         if (typeof options === 'object' && options) {
             delete options.requestOptions;
             delete options.websocketOptions;
@@ -281,7 +302,7 @@ io.on('connection', (socket) => {
             options = {};
         }
 
-        // Force disable extended gift info to prevent 403 connection crash (TikTok locked this endpoint)
+        // tiktok locked this, disable it so we dont crash
         options.enableExtendedGiftInfo = false;
 
         if (process.env.SESSIONID) {
@@ -293,7 +314,7 @@ io.on('connection', (socket) => {
             return;
         }
 
-        // DISCONNECT OLD WRAPPER IF EXISTS
+        // kick old session
         if (tiktokConnectionWrapper) {
             try {
                 tiktokConnectionWrapper.disconnect();
@@ -339,10 +360,10 @@ io.on('connection', (socket) => {
                 .catch(err => console.error('Failed to sync gifts:', err));
             */
 
-             // NOTE: Extended gift info is disabled to prevent 403 on connection.
-             // Gifts are loaded from local data/gifts-cache.json instead.
+            // NOTE: Extended gift info is disabled to prevent 403 on connection.
+            // Gifts are loaded from local data/gifts-cache.json instead.
 
-            // Initial Top Donors Extraction
+            // grab top donors
             const roomData = state.roomInfo?.data || state.roomInfo || state.data || state;
             const fans = roomData.top_fans || roomData.topFans || [];
             initialDonorsSum = 0;
@@ -367,7 +388,7 @@ io.on('connection', (socket) => {
         tiktokConnectionWrapper.once('disconnected', reason => io.emit('tiktokDisconnected', reason));
         tiktokConnectionWrapper.connection.on('streamEnd', () => io.emit('streamEnd'));
 
-        // GLOBAL TIKTOK EVENT HANDLERS (EMIT TO ALL)
+        // forward events to users
         tiktokConnectionWrapper.connection.on('roomUser', msg => io.emit('roomUser', msg));
         tiktokConnectionWrapper.connection.on('member', msg => io.emit('member', msg));
         tiktokConnectionWrapper.connection.on('chat', msg => io.emit('chat', msg));
@@ -379,8 +400,8 @@ io.on('connection', (socket) => {
 
             if (msg.giftType === 1) {
                 if (activeStreaks.has(streakId)) clearTimeout(activeStreaks.get(streakId).timeout);
-                
-                // For a smooth UI, emit intermediate streak-building gifts to the frontend real-time
+
+                // show streaks as they happen so ui looks smooth
                 if (!msg.repeatEnd) {
                     io.emit('gift', msg);
                 }
@@ -410,10 +431,10 @@ io.on('connection', (socket) => {
                     let cmds = typeof followCmd.command === 'string' ? followCmd.command.split('\n') : [followCmd.command];
                     cmds.forEach(cmd => {
                         if (!cmd.trim()) return;
-                        
+
                         const targets = config.targetPlayers || [];
                         const randomPlayer = targets.length > 0 ? targets[Math.floor(Math.random() * targets.length)] : 'Player';
-                        
+
                         const finalCmd = cmd
                             .replace(/\{username\}/g, msg.uniqueId || 'Unknown')
                             .replace(/\{nickname\}/g, msg.nickname || 'Unknown')
@@ -429,7 +450,7 @@ io.on('connection', (socket) => {
         });
 
         let currentLikes = 0;
-        tiktokConnectionWrapper.connection.on('like', msg =>{
+        tiktokConnectionWrapper.connection.on('like', msg => {
             const likeCmd = config.likeCommand;
             if (likeCmd && likeCmd.command && likeCmd.minLikes > 0 && minecraftBridge.isConnected) {
                 currentLikes += msg.likeCount;
@@ -441,10 +462,10 @@ io.on('connection', (socket) => {
                     for (let i = 0; i < triggerCount; i++) {
                         cmds.forEach(cmd => {
                             if (!cmd.trim()) return;
-                            
+
                             const targets = config.targetPlayers || [];
                             const randomPlayer = targets.length > 0 ? targets[Math.floor(Math.random() * targets.length)] : 'Player';
-                            
+
                             const finalCmd = cmd
                                 .replace(/\{username\}/g, msg.uniqueId || 'Unknown')
                                 .replace(/\{nickname\}/g, msg.nickname || 'Unknown')
@@ -461,22 +482,34 @@ io.on('connection', (socket) => {
         });
     });
 
-    // Only the socket that created the TikTok connection should clean it up
+    // only the owner socket can kill the connection
     socket.on('disconnect', () => {
         if (socket.id === tiktokOwnerSocketId && tiktokConnectionWrapper) {
-            try { tiktokConnectionWrapper.disconnect(); } catch (e) {}
+            try { tiktokConnectionWrapper.disconnect(); } catch (e) { }
             tiktokConnectionWrapper = null;
             tiktokOwnerSocketId = null;
         }
     });
 });
 
-// API Endpoints for UI
+// web routes
 app.get('/api/top-donors', (req, res) => {
     const donors = Array.from(new Set(Object.values(donorStats)))
         .sort((a, b) => b.totalDiamonds - a.totalDiamonds)
         .slice(0, 50);
     res.json({ success: true, donors });
+});
+
+app.get('/api/demo-users', async (req, res) => {
+    try {
+        const dbInstance = await db.connect();
+        const users = await dbInstance.all(
+            `SELECT * FROM users WHERE uniqueId IN ("zzflaviusboss", "alexnon3", "ghinescumarius298", "memenorul20", "gtrap_", "umbrahero")`
+        );
+        res.json({ success: true, users });
+    } catch (e) {
+        res.json({ success: false, users: [] });
+    }
 });
 
 app.get('/api/donation-stats', (req, res) => {
@@ -487,7 +520,7 @@ app.post('/api/sync-initial', (req, res) => {
     if (!initialDonorsSynced) {
         trackedDiamonds += initialDonorsSum;
 
-        // Sync individual donors into donorStats
+        // sync each donor to ram
         initialTopDonors.forEach(donor => {
             if (donor.userId || donor.uniqueId) {
                 upsertDonor(donor.userId, donor.uniqueId, donor.nickname, donor.profilePictureUrl, donor.totalDiamonds, 'Initial Sync');
@@ -502,7 +535,7 @@ app.post('/api/sync-initial', (req, res) => {
     }
 });
 
-// Command Management API
+// command settings api
 app.get('/api/commands', (req, res) => {
     res.json({ success: true, commands: config.giftCommands, followCommand: config.followCommand, likeCommand: config.likeCommand });
 });
@@ -517,12 +550,12 @@ app.post('/api/commands', express.json(), (req, res) => {
         if (action === 'delete') {
             delete config.giftCommands[giftName];
         } else {
-            // Renaming logic
+            // clean up old name if they renamed
             if (oldGiftName && oldGiftName !== giftName) {
                 delete config.giftCommands[oldGiftName];
             }
 
-            // Support detailed objects
+            // save complex obj or simple string
             if (typeof command === 'object') {
                 config.giftCommands[giftName] = command;
             } else {
@@ -540,7 +573,7 @@ app.post('/api/commands', express.json(), (req, res) => {
 });
 
 app.get('/api/gifts', (req, res) => {
-    // Normalize DB format (camelCase) to frontend format (snake_case / nested image)
+    // fix the db format to match what the frontend expects
     const normalized = availableGifts.map(g => ({
         id: g.id,
         name: g.name,
@@ -548,6 +581,44 @@ app.get('/api/gifts', (req, res) => {
         image: { url_list: g.imageUrl ? [g.imageUrl] : (g.image?.url_list || []) }
     }));
     res.json({ success: true, gifts: normalized });
+});
+
+// delete gift from db
+app.delete('/api/gifts/:id', async (req, res) => {
+    try {
+        const giftIdParam = req.params.id;
+        const giftId = parseInt(giftIdParam);
+        let deleted = false;
+
+        // delete by id
+        if (!isNaN(giftId)) {
+            const changes = await db.deleteGift(giftId);
+            if (changes > 0) deleted = true;
+        }
+
+        // fallback find by name
+        const cacheIdx = availableGifts.findIndex(g => String(g.id) === String(giftIdParam));
+        if (cacheIdx !== -1) {
+            // If DB delete didn't work, try by the gift name stored in cache
+            if (!deleted && db) {
+                const giftName = availableGifts[cacheIdx].name;
+                const dbConn = await db.connect();
+                const result = await dbConn.run(`DELETE FROM gifts WHERE name = ?`, [giftName]);
+                if (result.changes > 0) deleted = true;
+            }
+            availableGifts.splice(cacheIdx, 1);
+            deleted = true; // Removed from cache at minimum
+        }
+
+        if (deleted) {
+            res.json({ success: true });
+        } else {
+            res.status(404).json({ success: false, error: 'Gift not found in database or cache' });
+        }
+    } catch (e) {
+        console.error('[DELETE /api/gifts]', e);
+        res.status(500).json({ success: false, error: e.message });
+    }
 });
 
 app.get('/api/config', (req, res) => {
@@ -568,6 +639,15 @@ app.post('/api/config', express.json(), (req, res) => {
 setInterval(() => {
     io.emit('statistic', { globalConnectionCount: getGlobalConnectionCount() });
 }, 5000);
+
+// Homepage (marketing landing page)
+app.get('/', (req, res) => {
+    res.render('index');
+});
+
+// App (tracker tool) — catch-all so /app/* routes work with client-side history API
+app.get('/app', (req, res) => res.render('app'));
+app.get('/app/{*path}', (req, res) => res.render('app'));
 
 app.use(express.static(path.join(__dirname, '../public')));
 

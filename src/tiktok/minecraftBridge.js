@@ -21,7 +21,7 @@ class MinecraftBridge extends EventEmitter {
     }
 
     async connect(host, port, password, autoReconnect) {
-        // Clear any existing reconnect timer to prevent parallel connection loops
+        // clear old timers so we dont double connect
         if (this._reconnectTimer) {
             clearTimeout(this._reconnectTimer);
             this._reconnectTimer = null;
@@ -37,7 +37,7 @@ class MinecraftBridge extends EventEmitter {
         if (autoReconnect !== undefined) this.config.autoReconnect = autoReconnect;
 
         if (this.config.host === 'localhost') {
-            this.config.host = '127.0.0.1'; // Fix potential Node 17+ localhost resolution issues
+            this.config.host = '127.0.0.1'; // fix node 17 localhost bug
         }
 
         this._manualDisconnect = false;
@@ -80,7 +80,7 @@ class MinecraftBridge extends EventEmitter {
                 retries--;
                 if (retries > 0 && !this._manualDisconnect) {
                     console.warn(`⚠️ RCON Connection Failed (${err.message}). Retrying... (${retries} attempts left)`);
-                    await new Promise(res => setTimeout(res, 1500)); // wait 1.5s before retry
+                    await new Promise(res => setTimeout(res, 1500)); // sleep a bit before retry
                 }
             }
         }
@@ -112,7 +112,7 @@ class MinecraftBridge extends EventEmitter {
             try {
                 await this.connect();
             } catch {
-                // connect() already schedules the next attempt on failure
+                // it schedules itself again
             }
         }, delay);
     }
@@ -124,24 +124,30 @@ class MinecraftBridge extends EventEmitter {
             this._reconnectTimer = null;
         }
         if (this.client) {
-            await this.client.end();
+            const clientToClose = this.client;
+            // null out to prevent double calls
             this.client = null;
             this.isConnected = false;
             this.emit('statusChange', false);
+            try {
+                await clientToClose.end();
+            } catch (e) {
+                // ignore double close
+            }
         }
     }
 
-    async sendCommand(command, user, count = 1) {
+    async sendCommand(command) {
         if (!this.isConnected || !this.client) {
-            return false;
+            return null;
         }
 
         try {
-            await this.client.send(command);
-            return true;
+            const response = await this.client.send(command);
+            return response || '(ok)';
         } catch (e) {
             console.error('❌ Failed to send command to Minecraft:', e.message);
-            return false;
+            return null;
         }
     }
 }

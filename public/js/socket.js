@@ -1,7 +1,4 @@
-/**
- * Wrapper for client-side TikTok connection over Socket.IO
- * With reconnect functionality.
- */
+// Wrapper for tiktok connection over socket.io (auto reconnects)
 export class TikTokIOConnection {
     constructor(backendUrl) {
         this.socket = io(backendUrl);
@@ -11,7 +8,7 @@ export class TikTokIOConnection {
         this.socket.on('connect', () => {
             console.info("Socket connected!");
 
-            // Reconnect to streamer if uniqueId already set
+            // reconnect if we already have the id
             if (this.uniqueId) {
                 this.setUniqueId();
             }

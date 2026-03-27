@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('partials/head', { title: 'Donations that change your game' }) %>
+  <link rel="stylesheet" href="/css/homepage.css">
+</head>
+<body>
+
+<%- include('partials/nav') %>
+
+<!-- HERO -->
+<div class="hero-wrap">
+  <div class="glow-blob blob-a"></div>
+  <div class="glow-blob blob-b"></div>
+  <section class="hero">
+
+    <div>
+      <h1 class="hero-title">
+        Your viewers<br>
+        <em>change</em> the game<br>
+        in real time
+      </h1>
+      <p class="hero-sub">
+        Transform your TikTok Live into an interactive gaming experience. TrinyTok bridges viewer donations with real-time, in-game events. They gift, you react, your stream grows.
+      </p>
+      <div class="hero-actions">
+        <a class="btn btn-teal" href="/app">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+          Open App
+        </a>
+        <a class="btn btn-ghost" href="#how-it-works">
+          How it works
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </a>
+      </div>
+    </div>
+
+    <!-- DEMO CARD -->
+    <div class="demo-box">
+      <div class="demo-label">
+        <span class="demo-label-dot"></span>
+        Live Demo
+      </div>
+
+      <div class="gift-item" id="demoDonationItem" style="margin-bottom: 16px;">
+          <img class="miniprofilepicture" id="demoAvatar" src="https://www.tiktok.com/static/images/avatar_default.png">
+          <div style="flex: 1;">
+              <div style="font-size: 0.9rem;">
+                  <b class="usernamelink" id="demoUser">alex_gamer99</b>: <span id="demoMsg">sent Rose</span>
+              </div>
+              <div class="gift-details">
+                  <img class="gifticon" id="demoGiftIcon" src="">
+                  <div class="gift-info-text">
+                      <span>Name: <b id="demoGiftName">Rose</b></span><br>
+                      <span>Repeat: <b id="demoRepeat">x1</b></span><br>
+                      <span>Cost: <b id="demoDiamonds">50 Diamonds</b></span>
+                  </div>
+              </div>
+          </div>
+      </div>
+
+      <div class="demo-arrow">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+      </div>
+
+      <div class="demo-event" id="demoEvent">
+        <div class="event-icon-box">
+          <svg id="demoSvg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+          </svg>
+        </div>
+        <div class="event-info">
+          <div class="event-title" id="demoTitle">Lightning strike on all players</div>
+          <div class="event-desc"  id="demoDesc">Minecraft · Everyone gets struck instantly</div>
+        </div>
+        <div class="event-badge">Triggered</div>
+      </div>
+    </div>
+
+  </section>
+</div>
+
+<!-- HOW IT WORKS -->
+<section class="section reveal" id="how-it-works">
+  <div class="section-tag">How it works</div>
+  <h2 class="section-title">From donation<br>to <em>event</em></h2>
+  <p class="section-sub">Turn passive viewers into active participants in three simple steps.</p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-icon-box">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      </div>
+      <div class="step-title">Setup in Seconds</div>
+      <p class="step-desc">Run TrinyTok locally without latency. Connect directly to Minecraft, The Binding of Isaac, Terraria, and more.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-icon-box">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+      </div>
+      <div class="step-title">Viewers Engage</div>
+      <p class="step-desc">Your audience drops gifts or donations on TikTok Live. TrinyTok instantly captures and authenticates every interaction.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-icon-box">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      </div>
+      <div class="step-title">The Game Reacts</div>
+      <p class="step-desc">Gifts are immediately translated into spectacular in-game events. Spawn bosses, drop items, or unleash pure chaos.</p>
+    </div>
+  </div>
+</section>
+
+<!-- GAMES -->
+<div class="games-section reveal">
+  <div class="games-bg-layer" id="gamesBgLayer"></div>
+  <div class="games-inner">
+    <div class="section-tag">Supported games</div>
+    <h2 class="section-title">Ready for your<br><em>favorite</em> titles</h2>
+
+    <div class="games-grid">
+
+      <!-- Minecraft -->
+      <div class="game-card" data-bg="/images/games/minecraftbackground.png">
+        <div class="game-thumb">
+          <img src="/images/games/Minecraft.png" class="game-cover-img" alt="Minecraft Cover">
+          <div class="featured-badge">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            Featured
+          </div>
+        </div>
+      </div>
+
+      <!-- Binding of Isaac -->
+      <div class="game-card" data-bg="/images/games/isaacbackground.jpg">
+        <div class="game-thumb">
+          <img src="/images/games/isaac.png" class="game-cover-img" alt="Binding of Isaac Cover">
+        </div>
+      </div>
+
+      <!-- Repo -->
+      <div class="game-card" data-bg="/images/games/repobackground.png">
+        <div class="game-thumb">
+          <img src="/images/games/repo.jpg" class="game-cover-img" alt="Repo Cover">
+        </div>
+      </div>
+
+      <!-- Terraria -->
+      <div class="game-card" data-bg="/images/games/terrariabackground.png">
+        <div class="game-thumb">
+          <img src="/images/games/terraria.png" class="game-cover-img" alt="Terraria Cover">
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- CTA -->
+<section class="cta-section reveal">
+  <div class="section-tag">Ready?</div>
+  <h2 class="section-title">Make your stream<br><em>unpredictable</em></h2>
+  <p class="section-sub">Free to start. No complicated setup. Your viewers will love it.</p>
+  <div class="cta-btns">
+    <a class="btn btn-teal" href="/app">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+      Open App
+    </a>
+    <a class="btn btn-ghost" href="#">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      View Documentation
+    </a>
+  </div>
+</section>
+
+<%- include('partials/footer') %>
+
+<script>
+  // ── SCROLL REVEAL ──
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); obs.unobserve(e.target); } });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.reveal').forEach(r => obs.observe(r));
+
+  // ── DEMO CARD CYCLING ──
+  // Base event templates (in-game events that cycle through)
+  const eventTemplates = [
+    { path: '<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>', title: 'Lightning strike on all players', desc: 'Minecraft · Everyone gets struck instantly', user: 'zzflaviusboss', repeat: 5 },
+    { path: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>', title: 'Instant boss spawn', desc: 'Binding of Isaac · Boss room in 5s', user: 'alexnon3', repeat: 1 },
+    { path: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/>', title: 'Blood Moon forced', desc: 'Terraria · Blood moon starts now', user: 'ghinescumarius298', repeat: 1 },
+    { path: '<line x1="1" y1="1" x2="23" y2="23"/><path d="M9 9a3 3 0 0 0 5 0"/><path d="M17.5 17.5A10 10 0 0 1 2 12c0-1.3.25-2.55.7-3.7"/>', title: 'All lights killed', desc: 'Repo · Complete darkness now', user: 'memenorul20', repeat: 1 },
+    { path: '<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9z"/>', title: 'Thunderstorm triggered', desc: 'Minecraft · Weather changed immediately', user: 'gtrap_', repeat: 1 },
+    { path: '<polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/>', title: 'Inventory randomized', desc: 'Minecraft · All items shuffled', user: 'umbrahero', repeat: 1 },
+  ];
+
+  // Fetch real gifts and real demo users from local DB
+  Promise.all([
+    fetch('/api/gifts').then(r => r.json()),
+    fetch('/api/demo-users').then(r => r.json())
+  ])
+  .then(([giftsData, usersData]) => {
+    const gifts = (giftsData.gifts || []).filter(g => g.image?.url_list?.[0]);
+    if (gifts.length === 0) return;
+
+    // Pick 6 gifts spread across tiers
+    const sorted = [...gifts].sort((a, b) => (a.diamond_count || 0) - (b.diamond_count || 0));
+    const total = sorted.length;
+    const picks = [0, Math.floor(total*0.2), Math.floor(total*0.4), Math.floor(total*0.6), Math.floor(total*0.8), total - 1]
+      .map(i => sorted[Math.min(i, total - 1)]);
+
+    // Map the real users from DB
+    const realUsers = {};
+    if (usersData.users) {
+      usersData.users.forEach(u => realUsers[u.uniqueId] = u);
+    }
+
+    demoEvents = eventTemplates.map((tpl, i) => {
+      const g = picks[i] || picks[0];
+      const dbUser = realUsers[tpl.user];
+      const fallbackPic = 'https://www.tiktok.com/static/images/avatar_default.png';
+
+      return {
+        ...tpl,
+        giftName: g.name,
+        giftIcon: g.image.url_list[0],
+        diamonds: g.diamond_count || 1,
+        msg: `sent ${g.name}`,
+        // Use real DB data if exists
+        realNickname: dbUser ? (dbUser.nickname || dbUser.uniqueId) : tpl.user,
+        realAvatar:   (dbUser && dbUser.profilePictureUrl) ? dbUser.profilePictureUrl : fallbackPic
+      };
+    });
+
+    applyDemo(demoEvents[0]);
+  })
+  .catch(err => console.error("Demo load failed:", err));
+
+  let idx = 0;
+  const eventBox = document.getElementById('demoEvent');
+  const itemBox = document.getElementById('demoDonationItem');
+
+  function applyDemo(ev) {
+    if (!ev) return;
+    
+    // Set text immediately while hidden
+    document.getElementById('demoSvg').innerHTML         = ev.path;
+    document.getElementById('demoTitle').textContent      = ev.title;
+    document.getElementById('demoDesc').textContent       = ev.desc;
+
+    document.getElementById('demoAvatar').src             = ev.realAvatar || 'https://www.tiktok.com/static/images/avatar_default.png';
+    document.getElementById('demoUser').textContent       = ev.realNickname || ev.user;
+    document.getElementById('demoMsg').textContent        = ev.msg;
+    document.getElementById('demoGiftName').textContent   = ev.giftName || '';
+    document.getElementById('demoGiftIcon').src           = ev.giftIcon || '';
+    document.getElementById('demoRepeat').textContent     = 'x' + (ev.repeat || 1);
+    document.getElementById('demoDiamonds').textContent   = ((ev.diamonds || 0) * (ev.repeat || 1)).toLocaleString() + ' Diamonds';
+
+    itemBox.style.transition = 'opacity 0.3s, transform 0.3s';
+    eventBox.style.transition = 'opacity 0.3s, transform 0.3s';
+
+    // 1) Fade IN the donation
+    itemBox.style.opacity = '1';
+    itemBox.style.transform = 'none';
+
+    // 2) Wait a bit, then fade IN the in-game event to show causality
+    setTimeout(() => {
+      eventBox.style.opacity = '1';
+      eventBox.style.transform = 'none';
+    }, 500);
+  }
+
+  function nextDemo() {
+    if (demoEvents.length === 0) return;
+    idx = (idx + 1) % demoEvents.length;
+    const ev = demoEvents[idx];
+
+    // Fade OUT both
+    itemBox.style.opacity = '0';
+    itemBox.style.transform = 'translateY(8px)';
+    eventBox.style.opacity = '0';
+    eventBox.style.transform = 'translateY(8px)';
+    
+    // Wait for fade OUT to finish, then apply new demo
+    setTimeout(() => {
+      applyDemo(ev);
+    }, 300);
+  }
+
+  setInterval(nextDemo, 4000);
+  // ── GAMES BACKGROUND HOVER ──
+  const gamesBgLayer = document.getElementById('gamesBgLayer');
+  document.querySelectorAll('.game-card').forEach(card => {
+    card.addEventListener('mouseenter', () => {
+      const bg = card.getAttribute('data-bg');
+      if(bg) {
+        gamesBgLayer.style.backgroundImage = `url('${bg}')`;
+        gamesBgLayer.style.opacity = '0.35';
+      }
+    });
+    card.addEventListener('mouseleave', () => {
+      gamesBgLayer.style.opacity = '0';
+    });
+  });
+</script>
+</body>
+</html>

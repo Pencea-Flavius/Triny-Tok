@@ -118,6 +118,12 @@ class DatabaseManager {
         return await db.all(`SELECT * FROM gifts`);
     }
 
+    async deleteGift(id) {
+        const db = await this.connect();
+        const result = await db.run(`DELETE FROM gifts WHERE id = ?`, [id]);
+        return result.changes;
+    }
+
     // --- Donations ---
     async recordDonation(userId, giftId, count, totalDiamonds) {
         const db = await this.connect();

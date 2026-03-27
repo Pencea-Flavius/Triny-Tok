@@ -1,11 +1,12 @@
 import { TikTokIOConnection } from '../socket.js';
+import { showToast } from './dialog.js';
 
 let socket = null;
 
 export function initMinecraftUI(ioConnection) {
     socket = ioConnection.socket;
 
-    // UI Elements
+    // grab html elements
     const hostInput = $('#minecraftHost');
     const portInput = $('#minecraftPort');
     const connectBtn = $('#mcConnectBtn');
@@ -13,8 +14,24 @@ export function initMinecraftUI(ioConnection) {
     const statusText = $('#mcStatusText');
     const targetPlayersInput = $('#targetPlayersInput');
     const autoConnectCheckbox = $('#autoConnectRcon');
+    const rconLog = $('#rconLog');
+    const rconCmdInput = $('#rconCmdInput');
+    const rconSendBtn = $('#rconSendBtn');
 
-    // Fetch and load generic config (targetPlayers)
+    function logRcon(text, color, subtext = '') {
+        if (!rconLog.length) return;
+        const line = $('<div style="margin-bottom: 4px;"></div>');
+        const ts = new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        line.html(`
+            <span style="color:var(--dim); font-size: 11px;">[${ts}]</span> 
+            <span style="color:${color || 'var(--muted)'};">${text}</span>
+            ${subtext ? `<br><span style="color:var(--dim); font-size: 11px; margin-left: 65px;">└ ${subtext}</span>` : ''}
+        `);
+        rconLog.append(line);
+        rconLog.scrollTop(rconLog[0].scrollHeight);
+    }
+
+    // load previously saved target players
     fetch('/api/config')
         .then(res => res.json())
         .then(data => {
@@ -24,7 +41,7 @@ export function initMinecraftUI(ioConnection) {
         })
         .catch(console.error);
 
-    // Auto-save targetPlayers on blur
+    // save target players when you click away
     targetPlayersInput.on('blur', () => {
         const lines = targetPlayersInput.val().split('\n').map(p => p.trim()).filter(p => p.length > 0);
         fetch('/api/config', {
@@ -34,18 +51,39 @@ export function initMinecraftUI(ioConnection) {
         }).catch(console.error);
     });
 
-    // Socket Events
+    // socket listeners
     socket.on('minecraftStatus', (data) => {
         updateStatus(data.isConnected, data.config);
     });
 
     socket.on('minecraftError', (err) => {
-        alert('Minecraft Error: ' + err);
+        showToast('Minecraft Error: ' + err, 'error', 6000);
         statusText.text('Error: ' + err).css('color', 'var(--danger)');
         statusDot.css('background', 'var(--danger)');
+        logRcon('Connection Error: ' + err, 'var(--danger)');
     });
 
-    // Button Click
+    socket.on('rconLog', (data) => {
+        let color = 'var(--text)';
+        let prefix = '> ';
+        if (data.type === 'gift') {
+            color = 'var(--accent)';
+            prefix = `[Gift: ${data.giftName}] `;
+        } else if (data.type === 'test') {
+            color = 'var(--warning)';
+            prefix = '[Test] ';
+        } else if (data.type === 'error') {
+            color = 'var(--danger)';
+        }
+
+        logRcon(`${prefix}${data.command}`, color, data.response);
+    });
+
+    socket.on('gift', (data) => {
+        // server emits rconLog for gifts so ignore this
+    });
+
+    // handle connect/disconnect click
     connectBtn.click(() => {
         if (connectBtn.text() === 'Connect' || connectBtn.text() === 'Connect Bridge') {
             const host = hostInput.val() || 'localhost';
@@ -54,9 +92,24 @@ export function initMinecraftUI(ioConnection) {
             const autoConnect = autoConnectCheckbox.is(':checked');
             socket.emit('minecraftConnect', { host, port, password, autoConnect });
             connectBtn.text('Connecting...').prop('disabled', true);
+            logRcon(`Connecting to ${host}:${port}...`, 'var(--warning)');
         } else {
             socket.emit('minecraftDisconnect');
+            logRcon('Disconnecting...', 'var(--warning)');
         }
+    });
+
+    // send manual command
+    rconSendBtn.click(() => {
+        const cmd = rconCmdInput.val().trim();
+        if (cmd) {
+            socket.emit('rconCommand', cmd);
+            rconCmdInput.val('');
+        }
+    });
+
+    rconCmdInput.on('keyup', (e) => {
+        if (e.key === 'Enter') rconSendBtn.click();
     });
 }
 
@@ -82,8 +135,8 @@ function updateStatus(isConnected, config) {
 
     if (isConnected) {
         statusText.text('Connected').css('color', 'var(--success)');
-        statusDot.css('background', 'var(--success)');
-        connectBtn.text('Disconnect').prop('disabled', false).removeClass('btn-primary').addClass('btn-danger');
+        statusDot.css({ background: 'var(--success)', boxShadow: '0 0 10px var(--success)' });
+        connectBtn.text('Disconnect').prop('disabled', false).removeClass('btn-primary btn-danger').addClass('btn-secondary');
         hostInput.prop('disabled', true);
         portInput.prop('disabled', true);
         passwordInput.prop('disabled', true);
