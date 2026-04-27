@@ -8,3 +8,4 @@ data/gifts-cache.json
 dist/
 build/
 data/trinytok.db
+streamer_*.db
