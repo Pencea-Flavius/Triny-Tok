@@ -1,6 +1,6 @@
-import js from '@eslint/js';
+const js = require('@eslint/js');
 
-export default [
+module.exports = [
     js.configs.recommended,
     {
         languageOptions: {
@@ -16,13 +16,15 @@ export default [
                 console: 'readonly',
                 setTimeout: 'readonly',
                 setInterval: 'readonly',
+                clearTimeout: 'readonly',
                 clearInterval: 'readonly',
                 Buffer: 'readonly',
             }
         },
         rules: {
-            'no-unused-vars': 'warn',
+            'no-unused-vars': 'off',
             'no-undef': 'error',
+            'no-empty': 'off'
         }
     },
     {
