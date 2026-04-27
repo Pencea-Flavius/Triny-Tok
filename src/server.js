@@ -43,7 +43,7 @@ let availableGifts = [];
 
 async function initDatabase() {
     try {
-        await db.connect();
+        await db.connectGlobal();
         availableGifts = await db.getGifts();
         console.info(`[DB] Loaded ${availableGifts.length} gifts from SQLite.`);
     } catch (e) {
@@ -301,6 +301,13 @@ io.on('connection', (socket) => {
         } else {
             options = {};
         }
+
+        // Initialize user-specific isolated database
+        db.connectStreamer(uniqueId).then(() => {
+            console.log(`[DB] Streamer context switched to @${uniqueId}`);
+        }).catch(err => {
+            console.error(`[DB] Failed switching to streamer @${uniqueId}`);
+        });
 
         // tiktok locked this, disable it so we dont crash
         options.enableExtendedGiftInfo = false;
