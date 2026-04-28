@@ -121,6 +121,8 @@ function updateStatus(isConnected, config) {
     const statusDot = $('#mcStatusDot');
     const statusText = $('#mcStatusText');
     const autoConnectCheckbox = $('#autoConnectRcon');
+    const railDotMC = $('#railDotMinecraft');
+    const sidebarDot = $('#mcStatusSidebarDot');
 
     if (config) {
         hostInput.val(config.host);
@@ -136,6 +138,7 @@ function updateStatus(isConnected, config) {
     if (isConnected) {
         statusText.text('Connected').css('color', 'var(--success)');
         statusDot.css({ background: 'var(--success)', boxShadow: '0 0 10px var(--success)' });
+        sidebarDot.css({ background: '#27ae60', boxShadow: '0 0 4px #27ae60', display: 'block' });
         connectBtn.text('Disconnect').prop('disabled', false).removeClass('btn-primary btn-danger').addClass('btn-secondary');
         hostInput.prop('disabled', true);
         portInput.prop('disabled', true);
@@ -143,6 +146,7 @@ function updateStatus(isConnected, config) {
     } else {
         statusText.text('Disconnected').css('color', 'var(--danger)');
         statusDot.css('background', 'var(--danger)');
+        sidebarDot.css({ background: 'transparent', boxShadow: 'none', display: 'none' });
         connectBtn.text('Connect').prop('disabled', false).removeClass('btn-danger').addClass('btn-primary');
         hostInput.prop('disabled', false);
         portInput.prop('disabled', false);

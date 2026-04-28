@@ -68,6 +68,25 @@ const io = new Server(httpServer, {
     }
 });
 
+const ISAAC_DEFAULT_PROFILES = [
+    { id: 'boss_rush',      name: 'Boss Rush',           desc: 'Spawns 3 random bosses',                    category: 'Chaos' },
+    { id: 'total_chaos',    name: 'Total Chaos',          desc: '5 items + 10 enemies + all curses at once', category: 'Chaos' },
+    { id: 'mob_rush',       name: 'Mob Rush',             desc: '15 random enemies swarm the room',          category: 'Chaos' },
+    { id: 'all_curses',     name: 'All Curses',           desc: 'Every floor curse at once',                 category: 'Curses' },
+    { id: 'curse_roulette', name: 'Curse Roulette',       desc: 'Random curse applied',                      category: 'Curses' },
+    { id: 'labyrinth',      name: 'Curse of the Labyrinth', desc: 'Doubles the current floor',               category: 'Curses' },
+    { id: 'near_death',     name: 'Near Death',           desc: 'Reduces to half a heart',                   category: 'Punishment' },
+    { id: 'item_yoink',     name: 'Item Yoink',           desc: 'Removes a random held item',                category: 'Punishment' },
+    { id: 'nightmare',      name: 'Nightmare',            desc: 'Near death + all curses + enemy wave',      category: 'Punishment' },
+    { id: 'upside_down',    name: 'Upside Down',          desc: 'Reversed controls for 30 seconds',          category: 'Timed' },
+    { id: 'speed_demon',    name: 'Speed Demon',          desc: 'Double speed for 30 seconds',               category: 'Timed' },
+    { id: 'god_mode',       name: 'God Mode',             desc: 'Invincible for 15 seconds',                 category: 'Timed' },
+    { id: 'full_heal',      name: 'Full Heal',            desc: 'Restores all health',                       category: 'Boon' },
+    { id: 'devil_deal',     name: 'Free Devil Deal',      desc: 'Gives a random devil collectible',          category: 'Boon' },
+    { id: 'supply_drop',    name: 'Supply Drop',          desc: '10 coins + 5 bombs + 5 keys',               category: 'Boon' },
+    { id: 'jackpot',        name: 'Jackpot',              desc: 'Random item + full heal + supplies',        category: 'Boon' },
+];
+
 // broadcast mc status to everyone
 minecraftBridge.on('statusChange', (isConnected, errorMsg) => {
     io.emit('minecraftStatus', {
@@ -77,13 +96,34 @@ minecraftBridge.on('statusChange', (isConnected, errorMsg) => {
     });
 });
 
-// broadcast isaac status
+// broadcast isaac status and profiles
 isaacBridge.on('statusChange', (isConnected, errorMsg) => {
-    io.emit('isaacStatus', { isConnected, error: errorMsg || null });
+    io.emit('isaacStatus', { isConnected, serverActive: !!isaacBridge.server, error: errorMsg || null });
 });
 
-isaacBridge.on('response', (data) => {
-    io.emit('isaacResponse', data);
+isaacBridge.on('profilesUpdated', (profiles) => {
+    if (profiles.length > 0) {
+        // Only save if profiles actually changed to avoid unnecessary disk I/O and potential loops
+        const oldProfilesStr = JSON.stringify(config.isaacProfiles || []);
+        const newProfilesStr = JSON.stringify(profiles);
+        
+        if (oldProfilesStr !== newProfilesStr) {
+            console.info(`[Isaac] Profiles changed (${profiles.length}). Saving to config.`);
+            config.isaacProfiles = profiles;
+            setImmediate(() => {
+                try { 
+                    fs.writeFileSync(configPath, JSON.stringify(config, null, 2)); 
+                } catch (e) { 
+                    console.error('[Isaac] Failed to save profiles:', e.message); 
+                }
+            });
+        }
+    }
+    io.emit('isaacProfiles', profiles.length > 0 ? profiles : (config.isaacProfiles || ISAAC_DEFAULT_PROFILES));
+});
+
+isaacBridge.on('result', (data) => {
+    io.emit('isaacResult', data);
 });
 
 
@@ -230,13 +270,13 @@ async function finalizeGift(msg, updateDbAndCommand = true) {
         giftCooldowns.set(msg.giftName, Date.now());
     }
 
-    // Isaac effect trigger
-    const isaacEffectId = config.isaacCommands[msg.giftName];
-    if (isaacEffectId && isaacBridge.isConnected) {
-        const sent = isaacBridge.sendEffect(isaacEffectId, msg.nickname || msg.uniqueId, msg.giftName);
+    // Isaac profile trigger
+    const isaacProfileId = config.isaacCommands[msg.giftName];
+    if (isaacProfileId && isaacBridge.isConnected) {
+        const sent = isaacBridge.activateProfile(isaacProfileId, msg.nickname || msg.uniqueId, msg.giftName);
         if (sent) {
-            console.info(`[Isaac] Triggered effect "${isaacEffectId}" for gift "${msg.giftName}"`);
-            io.emit('isaacLog', { effect: isaacEffectId, giftName: msg.giftName, viewer: msg.nickname || msg.uniqueId });
+            console.info(`[Isaac] Activated profile "${isaacProfileId}" for gift "${msg.giftName}"`);
+            io.emit('isaacLog', { profileId: isaacProfileId, giftName: msg.giftName, viewer: msg.nickname || msg.uniqueId });
         }
     }
 }
@@ -247,7 +287,8 @@ io.on('connection', (socket) => {
     // send current stats over
     socket.emit('statUpdate', { trackedDiamonds, initialDonorsSynced, initialDonorsSum });
     socket.emit('minecraftStatus', { isConnected: minecraftBridge.isConnected, config: config.minecraft });
-    socket.emit('isaacStatus', { isConnected: isaacBridge.isConnected });
+    socket.emit('isaacStatus', { isConnected: isaacBridge.isConnected, serverActive: !!isaacBridge.server });
+    socket.emit('isaacProfiles', isaacBridge.profiles.length > 0 ? isaacBridge.profiles : (config.isaacProfiles || ISAAC_DEFAULT_PROFILES));
 
     // rcon settings
     socket.on('minecraftConnect', (data) => {
@@ -271,6 +312,16 @@ io.on('connection', (socket) => {
         config.minecraft.enabled = false;
         fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
         io.emit('minecraftStatus', { isConnected: false, config: config.minecraft });
+    });
+
+    socket.on('isaacStart', () => {
+        isaacBridge.start(config.isaac?.port || 58430);
+        io.emit('isaacStatus', { isConnected: isaacBridge.isConnected, serverActive: true });
+    });
+
+    socket.on('isaacStop', () => {
+        isaacBridge.stop();
+        io.emit('isaacStatus', { isConnected: false, serverActive: false });
     });
 
     socket.on('testCommand', async (data) => {
@@ -666,8 +717,9 @@ app.post('/api/config', express.json(), (req, res) => {
 });
 
 // Isaac API routes
-app.get('/api/isaac/effects', (req, res) => {
-    res.json({ success: true, effects: isaacBridge.constructor.EFFECTS });
+app.get('/api/isaac/profiles', (req, res) => {
+    const profiles = isaacBridge.profiles.length > 0 ? isaacBridge.profiles : (config.isaacProfiles || ISAAC_DEFAULT_PROFILES);
+    res.json({ success: true, profiles });
 });
 
 app.get('/api/isaac/commands', (req, res) => {
@@ -692,6 +744,31 @@ app.post('/api/isaac/commands', express.json(), (req, res) => {
     }
 });
 
+app.post('/api/isaac/test', express.json(), (req, res) => {
+    const { giftName } = req.body;
+    console.info(`[Isaac] Test requested for gift: "${giftName}"`);
+
+    if (!config.isaacCommands) {
+        console.error('[Isaac] No commands configured in config.json');
+        return res.status(404).json({ success: false, error: 'No Isaac commands configured' });
+    }
+    
+    const effect = config.isaacCommands[giftName];
+    if (effect) {
+        console.info(`[Isaac] Found effect for "${giftName}":`, effect);
+        const success = isaacBridge.activateProfile(effect, 'TestUser', giftName);
+        if (success) {
+            res.json({ success: true });
+        } else {
+            console.error('[Isaac] Isaac mod is not connected!');
+            res.status(503).json({ success: false, error: 'Isaac mod not connected' });
+        }
+    } else {
+        console.error(`[Isaac] Effect not found for gift "${giftName}". Available:`, Object.keys(config.isaacCommands));
+        res.status(404).json({ success: false, error: 'Effect not found for this gift' });
+    }
+});
+
 // Emit global stats
 setInterval(() => {
     io.emit('statistic', { globalConnectionCount: getGlobalConnectionCount() });
@@ -711,9 +788,6 @@ app.use(express.static(path.join(__dirname, '../public')));
 const port = process.env.PORT || 8081;
 httpServer.listen(port, () => {
     console.info(`Server running! Please visit http://localhost:${port}`);
-
-    // Start Isaac TCP bridge (always on, Isaac mod connects when game launches)
-    isaacBridge.start(config.isaac?.port || 58431);
 
     // Auto-connect Minecraft if enabled
     // Auto-connect Minecraft if enabled and if autoConnect is explicitly true

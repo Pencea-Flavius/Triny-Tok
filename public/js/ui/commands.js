@@ -115,9 +115,18 @@ export function initCommandsUI(ioConnection) {
                     <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--text-muted); max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${displayCmd}</td>
                     <td>
                         <div style="display: flex; gap: 8px; justify-content: center;">
-                            <button class="btn-primary btn-sm btn-test" data-gift="${giftName}">Test</button>
-                            <button class="btn-secondary btn-sm btn-edit" data-gift="${giftName}">Edit</button>
-                            <button class="btn-danger btn-sm btn-delete" data-gift="${giftName}">Delete</button>
+                            <button class="btn-primary btn-sm btn-test" data-gift="${giftName}">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                                Test
+                            </button>
+                            <button class="btn-secondary btn-sm btn-edit" data-gift="${giftName}">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                Edit
+                            </button>
+                            <button class="btn-danger btn-sm btn-delete" data-gift="${giftName}">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path></svg>
+                                Delete
+                            </button>
                         </div>
                     </td>
                 </tr>
