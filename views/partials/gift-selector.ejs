@@ -1,0 +1,15 @@
+<div class="field">
+  <label class="field-label">Gift Selection</label>
+  <div style="display:flex;gap:12px;align-items:center;margin-top:6px;">
+    <div id="<%= locals.previewId %>"
+      style="width:48px;height:48px;background:var(--bg3);border-radius:var(--r-md);flex-shrink:0;display:flex;align-items:center;justify-content:center;border:1.5px solid var(--border);overflow:hidden;">
+      <span style="font-size:9px;color:var(--dim);">ICON</span>
+    </div>
+    <div style="flex:1;position:relative;">
+      <input type="text" id="<%= locals.inputId %>" placeholder="Search gift..." autocomplete="off">
+      <div id="<%= locals.resultsId %>" class="glass"
+        style="display:none;position:absolute;top:100%;left:0;right:0;z-index:100;margin-top:6px;max-height:50vh;overflow-y:auto;padding-bottom:10px;">
+      </div>
+    </div>
+  </div>
+</div>
