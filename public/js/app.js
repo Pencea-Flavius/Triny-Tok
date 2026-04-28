@@ -6,6 +6,7 @@ import { setupTabs } from './ui/tabs.js';
 import { loadTopDonors, clearTopDonors } from './ui/topDonors.js';
 import { initMinecraftUI } from './ui/minecraft.js';
 import { initCommandsUI, refreshCommandsData } from './ui/commands.js';
+import { initIsaacUI } from './ui/isaac.js';
 import { showToast } from './ui/dialog.js';
 
 // store stuff here
@@ -72,6 +73,7 @@ $(document).ready(() => {
     // Minecraft & Commands
     initMinecraftUI(connection);
     initCommandsUI(connection);
+    initIsaacUI(connection);
 });
 
 function connect() {

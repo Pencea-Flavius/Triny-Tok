@@ -17,17 +17,18 @@ const SECTIONS = {
     label: 'Game Bridge',
     desc:  'Minecraft RCON & commands',
     body:  'sec-game',
-    first: 'minecraft'
+    first: null
   }
 };
 
 const TAB_LABELS = {
-  connect:   'TikTok Connect',
-  chat:      'Live Chat',
-  tracker:   'Gift Log',
-  topDonors: 'Top Donators',
-  minecraft: 'Minecraft · Settings',
-  commands:  'Minecraft · Gift Commands'
+  connect:       'TikTok Connect',
+  chat:          'Live Chat',
+  tracker:       'Gift Log',
+  topDonors:     'Top Donators',
+  minecraft:     'Minecraft · Settings',
+  commands:      'Minecraft · Gift Commands',
+  isaacEffects:  'TBOI · Gift Effects'
 };
 
 const SECTION_LABELS = {
@@ -38,18 +39,20 @@ const SECTION_LABELS = {
 
 // map tabs to their parent section
 const TAB_SECTION = {
-  connect:   'connect',
-  chat:      'monitor',
-  tracker:   'monitor',
-  topDonors: 'monitor',
-  minecraft: 'game',
-  commands:  'game'
+  connect:      'connect',
+  chat:         'monitor',
+  tracker:      'monitor',
+  topDonors:    'monitor',
+  minecraft:    'game',
+  commands:     'game',
+  isaacEffects: 'game'
 };
 
 // map tabs to their parent console accordion (if any)
 const TAB_CONSOLE = {
-  minecraft: 'consoleMinecraft',
-  commands:  'consoleMinecraft'
+  minecraft:    'consoleMinecraft',
+  commands:     'consoleMinecraft',
+  isaacEffects: 'consoleIsaac'
 };
 
 function updateHash(sectionId, tabId) {
@@ -90,6 +93,8 @@ function activateTab(tabId, { updateUrl = true } = {}) {
   // update the breadcrumb text
   const bp = document.getElementById('breadPage');
   if (bp) bp.textContent = TAB_LABELS[tabId] || tabId;
+
+  document.body.dataset.activeTab = tabId;
 }
 
 function activateSection(sectionId, tabOverride, { updateUrl = true } = {}) {

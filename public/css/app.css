@@ -39,8 +39,11 @@
   --r-sm: 6px;
 }
 
-/* ── Section accent overrides ── */
-.sec-game      { --accent:#4ade80; --accent-rgb:74,222,128;  --accent-dim:rgba(74,222,128,0.1);  --accent-glow:rgba(74,222,128,0.18);  }
+/* ── Tab accent overrides ── */
+body[data-active-tab="minecraft"],
+body[data-active-tab="commands"] { --accent:#4ade80; --accent-rgb:74,222,128;  --accent-dim:rgba(74,222,128,0.1);  --accent-glow:rgba(74,222,128,0.18); }
+
+body[data-active-tab="isaacEffects"] { --accent:#f43f5e; --accent-rgb:244,63,94;  --accent-dim:rgba(244,63,94,0.1);  --accent-glow:rgba(244,63,94,0.18); }
 
 /* ── RESET ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }

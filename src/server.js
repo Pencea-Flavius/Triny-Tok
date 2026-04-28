@@ -7,6 +7,7 @@ const { Server } = require('socket.io');
 const { TikTokConnectionWrapper, getGlobalConnectionCount } = require('./tiktok/connectionWrapper');
 const { clientBlocked } = require('./utils/limiter');
 const minecraftBridge = require('./tiktok/minecraftBridge');
+const isaacBridge = require('./tiktok/isaacBridge');
 const path = require('path');
 const fs = require('fs');
 const db = require('./database/db_manager');
@@ -21,7 +22,9 @@ if (!fs.existsSync(configDir)) {
 
 let config = {
     minecraft: { host: 'localhost', port: 25575, password: '', enabled: false, autoConnect: false },
+    isaac: { port: 58431, enabled: true },
     giftCommands: {},
+    isaacCommands: {},
     followCommand: { command: "", cooldown: 0 },
     likeCommand: { command: "", minLikes: 100 },
     targetPlayers: []
@@ -72,6 +75,15 @@ minecraftBridge.on('statusChange', (isConnected, errorMsg) => {
         config: config.minecraft,
         error: errorMsg || null
     });
+});
+
+// broadcast isaac status
+isaacBridge.on('statusChange', (isConnected, errorMsg) => {
+    io.emit('isaacStatus', { isConnected, error: errorMsg || null });
+});
+
+isaacBridge.on('response', (data) => {
+    io.emit('isaacResponse', data);
 });
 
 
@@ -217,6 +229,16 @@ async function finalizeGift(msg, updateDbAndCommand = true) {
         }
         giftCooldowns.set(msg.giftName, Date.now());
     }
+
+    // Isaac effect trigger
+    const isaacEffectId = config.isaacCommands[msg.giftName];
+    if (isaacEffectId && isaacBridge.isConnected) {
+        const sent = isaacBridge.sendEffect(isaacEffectId, msg.nickname || msg.uniqueId, msg.giftName);
+        if (sent) {
+            console.info(`[Isaac] Triggered effect "${isaacEffectId}" for gift "${msg.giftName}"`);
+            io.emit('isaacLog', { effect: isaacEffectId, giftName: msg.giftName, viewer: msg.nickname || msg.uniqueId });
+        }
+    }
 }
 
 io.on('connection', (socket) => {
@@ -225,6 +247,7 @@ io.on('connection', (socket) => {
     // send current stats over
     socket.emit('statUpdate', { trackedDiamonds, initialDonorsSynced, initialDonorsSum });
     socket.emit('minecraftStatus', { isConnected: minecraftBridge.isConnected, config: config.minecraft });
+    socket.emit('isaacStatus', { isConnected: isaacBridge.isConnected });
 
     // rcon settings
     socket.on('minecraftConnect', (data) => {
@@ -642,6 +665,33 @@ app.post('/api/config', express.json(), (req, res) => {
     }
 });
 
+// Isaac API routes
+app.get('/api/isaac/effects', (req, res) => {
+    res.json({ success: true, effects: isaacBridge.constructor.EFFECTS });
+});
+
+app.get('/api/isaac/commands', (req, res) => {
+    res.json({ success: true, commands: config.isaacCommands || {} });
+});
+
+app.post('/api/isaac/commands', express.json(), (req, res) => {
+    const { giftName, effectId, action } = req.body;
+    if (!config.isaacCommands) config.isaacCommands = {};
+
+    if (action === 'delete' && giftName) {
+        delete config.isaacCommands[giftName];
+    } else if (giftName && effectId) {
+        config.isaacCommands[giftName] = effectId;
+    }
+
+    try {
+        fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+        res.json({ success: true, commands: config.isaacCommands });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
 // Emit global stats
 setInterval(() => {
     io.emit('statistic', { globalConnectionCount: getGlobalConnectionCount() });
@@ -661,6 +711,9 @@ app.use(express.static(path.join(__dirname, '../public')));
 const port = process.env.PORT || 8081;
 httpServer.listen(port, () => {
     console.info(`Server running! Please visit http://localhost:${port}`);
+
+    // Start Isaac TCP bridge (always on, Isaac mod connects when game launches)
+    isaacBridge.start(config.isaac?.port || 58431);
 
     // Auto-connect Minecraft if enabled
     // Auto-connect Minecraft if enabled and if autoConnect is explicitly true
