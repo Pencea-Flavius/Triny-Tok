@@ -955,3 +955,156 @@ code {
   padding: 2px 6px;
   border-radius: 4px;
 }
+
+/* ── ISAAC MODAL COMPONENTS ── */
+
+.isaac-mode-btn {
+  padding: 9px 0;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: .82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .18s, color .18s;
+  font-family: inherit;
+}
+.isaac-mode-btn.active {
+  background: rgba(var(--accent-rgb), 0.15);
+  color: var(--accent);
+}
+.isaac-mode-btn:hover:not(.active) {
+  background: rgba(255,255,255,0.05);
+  color: var(--text);
+}
+
+.isaac-action-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 12px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg3);
+  color: var(--muted);
+  font-size: .75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .18s;
+  font-family: inherit;
+  line-height: 1.2;
+}
+.isaac-action-tab:hover:not(.active) {
+  background: var(--bg4);
+  color: var(--text);
+  border-color: var(--border2);
+}
+.isaac-action-tab.active {
+  background: rgba(var(--accent-rgb), 0.12);
+  color: var(--accent);
+  border-color: rgba(var(--accent-rgb), 0.4);
+  box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.1);
+}
+
+/* Item search dropdown item */
+.isaac-item-result {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background .12s;
+  border-bottom: 1px solid var(--border);
+}
+.isaac-item-result:last-child { border-bottom: none; }
+.isaac-item-result:hover { background: rgba(var(--accent-rgb), 0.07); }
+.isaac-item-result img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  border-radius: 4px;
+  background: var(--bg3);
+  flex-shrink: 0;
+}
+.isaac-item-result .item-name {
+  font-size: .85rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.isaac-item-result .item-meta {
+  font-size: .72rem;
+  color: var(--muted);
+}
+.isaac-item-quality-4 { color: #fbbf24; }
+
+/* Isaac Sprite Sheets */
+.isaac-sprite {
+  width: 44px;
+  height: 44px;
+  background-image: url('/images/Isaac/ItemeIsaac.png');
+  background-size: 880px auto; /* 20 columns * 44px */
+  background-repeat: no-repeat;
+  display: inline-block;
+  vertical-align: middle;
+  image-rendering: pixelated;
+}
+
+.isaac-item-result .item-img-container {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--bg3);
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.isaac-item-result .isaac-sprite {
+  transform: scale(0.65); /* Even smaller search results */
+  margin: -5px;
+}
+.input-ghost {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-family: inherit;
+  font-size: .9rem;
+  width: 100%;
+}
+
+.isaac-item-result {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background .15s;
+  border-bottom: 1px solid var(--border);
+}
+
+.isaac-item-result:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.isaac-item-result:last-child {
+  border-bottom: none;
+}
+
+.isaac-effect-card {
+  transition: transform 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.isaac-effect-card:hover:not(.selected) {
+  border-color: var(--border2) !important;
+  background: var(--bg4) !important;
+  transform: translateY(-1px);
+}
+
+.isaac-effect-card.selected {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}

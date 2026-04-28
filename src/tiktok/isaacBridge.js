@@ -7,8 +7,9 @@ class IsaacBridge extends EventEmitter {
         this.server = null;
         this.socket = null;
         this.isConnected = false;
-        this.port = 58431;
+        this.port = 58430;
         this._buffer = '';
+        this.profiles = [];  // populated when Isaac mod connects and sends profile list
     }
 
     start(port) {
@@ -17,7 +18,7 @@ class IsaacBridge extends EventEmitter {
 
         this.server = net.createServer((socket) => {
             if (this.socket) {
-                console.warn('[Isaac] Second mod connection rejected — only one allowed');
+                console.warn('[Isaac] Second mod connection rejected');
                 socket.destroy();
                 return;
             }
@@ -38,8 +39,10 @@ class IsaacBridge extends EventEmitter {
                     if (!msg) return;
                     try {
                         const parsed = JSON.parse(msg);
-                        this.emit('response', parsed);
-                    } catch (e) { }
+                        this._handleMessage(parsed);
+                    } catch (e) {
+                        console.error('[Isaac] JSON Parse Error:', e.message, 'Raw:', msg);
+                    }
                 });
             });
 
@@ -48,7 +51,9 @@ class IsaacBridge extends EventEmitter {
                 this.isConnected = false;
                 this.socket = null;
                 this._buffer = '';
+                this.profiles = [];
                 this.emit('statusChange', false);
+                this.emit('profilesUpdated', []);
             });
 
             socket.on('error', (err) => {
@@ -56,12 +61,14 @@ class IsaacBridge extends EventEmitter {
                 this.isConnected = false;
                 this.socket = null;
                 this._buffer = '';
+                this.profiles = [];
                 this.emit('statusChange', false, err.message);
+                this.emit('profilesUpdated', []);
             });
         });
 
-        this.server.listen(this.port, '127.0.0.1', () => {
-            console.info(`[Isaac] TCP server listening on 127.0.0.1:${this.port}`);
+        this.server.listen(this.port, '0.0.0.0', () => {
+            console.info(`[Isaac] TCP server listening on 0.0.0.0:${this.port}`);
         });
 
         this.server.on('error', (err) => {
@@ -69,14 +76,38 @@ class IsaacBridge extends EventEmitter {
         });
     }
 
-    sendEffect(effectId, viewer, giftName) {
+    _handleMessage(msg) {
+        if (msg.type === 'profiles') {
+            this.profiles = Array.isArray(msg.profiles) ? msg.profiles : [];
+            console.info(`[Isaac] Received ${this.profiles.length} profiles from mod`);
+            this.emit('profilesUpdated', this.profiles);
+        } else if (msg.type === 'result') {
+            this.emit('result', msg);
+        }
+    }
+
+    activateProfile(effectConfig, viewer, giftName) {
         if (!this.isConnected || !this.socket) return false;
-        const payload = JSON.stringify({ effect: effectId, viewer: viewer || 'Unknown', giftName: giftName || '' }) + '\0';
+        
+        let payloadObj = {
+            viewer: viewer || 'Unknown',
+            giftName: giftName || ''
+        };
+        
+        if (typeof effectConfig === 'string') {
+            payloadObj.type = 'activate'; // Legacy behavior
+            payloadObj.profileId = effectConfig;
+        } else if (typeof effectConfig === 'object') {
+            Object.assign(payloadObj, effectConfig);
+        }
+        
+        const payload = JSON.stringify(payloadObj) + '\n';
         try {
+            console.info(`[Isaac] Sending to mod: ${payload.trim()}`);
             this.socket.write(payload);
             return true;
         } catch (e) {
-            console.error('[Isaac] Failed to send effect:', e.message);
+            console.error('[Isaac] Failed to send activate:', e.message);
             return false;
         }
     }
@@ -85,100 +116,8 @@ class IsaacBridge extends EventEmitter {
         if (this.socket) { this.socket.destroy(); this.socket = null; }
         if (this.server) { this.server.close(); this.server = null; }
         this.isConnected = false;
+        this.profiles = [];
     }
 }
-
-IsaacBridge.EFFECTS = {
-    // ── Chaos ───────────────────────────────────────
-    boss_wave: {
-        label: 'Boss Wave',
-        desc: 'Spawns 3 random bosses in the current room',
-        category: 'Chaos'
-    },
-    enemy_wave: {
-        label: 'Enemy Wave',
-        desc: 'Spawns 15 random enemies',
-        category: 'Chaos'
-    },
-    chaos_mode: {
-        label: 'Chaos Mode',
-        desc: 'Spawns 5 random items AND 10 enemies at once',
-        category: 'Chaos'
-    },
-    // ── Curses ──────────────────────────────────────
-    all_curses: {
-        label: 'All Curses',
-        desc: 'Applies every floor curse simultaneously',
-        category: 'Curses'
-    },
-    random_curse: {
-        label: 'Random Curse',
-        desc: 'Applies one random curse to the floor',
-        category: 'Curses'
-    },
-    curse_labyrinth: {
-        label: 'Curse of the Labyrinth',
-        desc: 'Doubles the current floor length',
-        category: 'Curses'
-    },
-    // ── Player punishment ───────────────────────────
-    near_death: {
-        label: 'Near Death',
-        desc: 'Reduces player to half a heart',
-        category: 'Punishment'
-    },
-    remove_item: {
-        label: 'Item Yoink',
-        desc: 'Removes a random held collectible',
-        category: 'Punishment'
-    },
-    controls_reversed: {
-        label: 'Reverse Controls',
-        desc: 'Flips player controls for 30 seconds',
-        category: 'Timed'
-    },
-    inverse_screen: {
-        label: 'Flip Screen',
-        desc: 'Inverts the screen for 20 seconds',
-        category: 'Timed'
-    },
-    // ── Player boons ────────────────────────────────
-    full_heal: {
-        label: 'Full Heal',
-        desc: 'Completely fills player health',
-        category: 'Boon'
-    },
-    give_devil_item: {
-        label: 'Devil Deal',
-        desc: 'Gives a random devil-pool collectible for free',
-        category: 'Boon'
-    },
-    give_random_item: {
-        label: 'Random Item',
-        desc: 'Gives a random collectible',
-        category: 'Boon'
-    },
-    add_resources: {
-        label: 'Supply Drop',
-        desc: 'Gives 10 coins, 5 bombs, 5 keys',
-        category: 'Boon'
-    },
-    // ── Timed buffs ─────────────────────────────────
-    speed_boost: {
-        label: 'Speed Boost',
-        desc: 'Doubles movement speed for 30 seconds',
-        category: 'Timed'
-    },
-    damage_boost: {
-        label: 'Damage Boost',
-        desc: 'Doubles damage for 30 seconds',
-        category: 'Timed'
-    },
-    god_mode: {
-        label: 'God Mode',
-        desc: 'Player is invincible for 15 seconds',
-        category: 'Timed'
-    },
-};
 
 module.exports = new IsaacBridge();

@@ -170,6 +170,7 @@
                     d="M12,10 L16,10 L16,6 L12,6 L12,10 Z M4,10 L8,10 L8,6 L4,6 L4,10 Z M18,18 L14,18 L14,12 L12,12 L12,10 L8,10 L8,12 L6,12 L6,18 L2,18 L2,2 L18,2 L18,18 Z M8,18 L12,18 L12,16 L8,16 L8,18 Z M0,20 L20,20 L20,0 L0,0 L0,20 Z" />
                 </svg>
                 <span>Minecraft</span>
+                <div id="mcStatusSidebarDot" style="width:7px;height:7px;border-radius:50%;background:#444;margin-left:6px;flex-shrink:0;"></div>
               </div>
               <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -811,6 +812,12 @@
                 <div id="isaacStatusBadgeDot" style="width:8px;height:8px;border-radius:50%;background:#444;"></div>
                 <span id="isaacStatusText">Waiting for TBOI mod...</span>
               </div>
+              <button class="btn-secondary btn-sm" id="isaacSetupBtn">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                Setup Guide
+              </button>
               <button class="btn-primary btn-sm" id="addIsaacEffectBtn">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -821,44 +828,190 @@
           </div>
           <hr class="accent-rule">
 
-          <!-- Log of recent Isaac triggers -->
-          <div id="isaacLogWrap" style="margin-bottom:18px;display:none;">
-            <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Recent Triggers</div>
-            <div id="isaacLog" style="font-size:0.8rem;color:var(--text-muted);max-height:80px;overflow-y:auto;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:'JetBrains Mono',monospace;"></div>
-          </div>
+          <div style="display:flex;flex-direction:column;gap:16px;flex:1;min-height:0;">
+            <!-- Bridge Control -->
+            <div class="card">
+              <div style="font-size:10.5px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-bottom:18px;">Bridge Control</div>
+              
+              <div style="display:flex;align-items:center;justify-content:space-between;padding-top:10px;">
+                <div class="mc-status">
+                  <div class="status-dot" id="isaacSidebarStatusDot" style="width:10px;height:10px;margin-right:8px;display:none;box-shadow: 0 0 10px var(--success);"></div>
+                  <span id="isaacStatusTextLarge" style="font-weight:700;color:var(--danger);font-size:13px;text-transform:uppercase;letter-spacing:0.5px;">Server Stopped</span>
+                </div>
+                <button class="btn-primary" id="isaacConnectBtn">Start Bridge</button>
+              </div>
+            </div>
 
-          <div class="table-wrap">
-            <div class="data-table-container">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>TikTok Gift</th>
-                    <th>TBOI Effect</th>
-                    <th style="width:80px;text-align:center;">Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="isaacEffectsTableBody">
-                  <tr><td colspan="3" style="text-align:center;padding:20px;">No effects added yet</td></tr>
-                </tbody>
-              </table>
+            <!-- Mapped Effects -->
+            <div class="card" style="flex:1;">
+              <div style="font-size:10.5px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-bottom:14px;">Mapped Effects</div>
+              <div class="table-wrap" style="margin:0;border:none;background:transparent;">
+                <div class="data-table-container">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>TikTok Gift</th>
+                        <th>TBOI Effect</th>
+                        <th style="width:80px;text-align:center;">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="isaacEffectsTableBody">
+                      <tr><td colspan="3" style="text-align:center;padding:20px;">No effects added</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
         <!-- Isaac Effect Modal -->
         <div id="isaacEffectModal" class="modal-overlay" style="display:none;">
-          <div class="modal-content glass">
-            <h3 id="isaacModalTitle" style="margin-bottom:22px;font-size:1.3rem;font-weight:800;">Add TBOI Effect</h3>
-            <div style="display:flex;flex-direction:column;gap:18px;">
+          <div class="modal-content glass" style="max-width:580px;width:100%;">
+            <h3 id="isaacModalTitle" style="margin-bottom:18px;font-size:1.2rem;font-weight:800;letter-spacing:-.02em;">Add TBOI Effect</h3>
+            <div style="display:flex;flex-direction:column;gap:14px;">
+
+              <!-- Gift Selector -->
               <%- include('partials/gift-selector', { previewId: 'isaacGiftImagePreview', inputId: 'isaacGiftInput', resultsId: 'isaacGiftResults' }) %>
-              <div class="field">
-                <label class="field-label">TBOI Effect</label>
-                <div id="isaacEffectCards" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;max-height:320px;overflow-y:auto;padding:2px;"></div>
+
+              <!-- Mode Toggle -->
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;background:rgba(0,0,0,0.25);padding:4px;border-radius:10px;border:1px solid var(--border);">
+                 <button id="isaacModeCustomBtn" class="isaac-mode-btn active" onclick="">Custom Action</button>
+                 <button id="isaacModeProfileBtn" class="isaac-mode-btn" onclick="">Rules Profile</button>
               </div>
-              <div style="display:flex;gap:10px;margin-top:4px;">
+
+              <!-- ══ CUSTOM ACTION PANEL ══ -->
+              <div id="isaacCustomActionView" style="display:flex;flex-direction:column;gap:12px;">
+
+                <!-- Action Type tabs -->
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;">
+                  <button class="isaac-action-tab active" data-action="spawn_item">
+                    <div class="isaac-sprite" style="background-position: 0px 0px; transform: scale(0.9);"></div>
+                    <span>Spawn Item</span>
+                  </button>
+                  <button class="isaac-action-tab" data-action="spawn_entity">
+                    <div class="isaac-sprite" style="background-position: -396px -352px; transform: scale(0.9);"></div>
+                    <span>Spawn Entity</span>
+                  </button>
+                  <button class="isaac-action-tab" data-action="set_health">
+                    <div class="isaac-sprite" style="background-position: -792px -352px; transform: scale(0.9);"></div>
+                    <span>Set Health</span>
+                  </button>
+                </div>
+
+                <!-- spawn_item fields -->
+                <div class="isaac-action-fields" id="fields_spawn_item">
+                  <div style="display:flex;flex-direction:column;gap:8px;">
+                    <label class="field-label">Search Item</label>
+                    <div style="position:relative;">
+                      <div style="display:flex;align-items:center;gap:10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;transition:border-color .15s;" id="isaacItemSearchWrapper">
+                        <div id="isaacItemPreview" style="width:48px;height:48px;border-radius:6px;background:var(--bg2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
+                          <span style="font-size:9px;color:var(--text-muted);">ITEM</span>
+                        </div>
+                        <div style="flex:1;">
+                          <input type="text" id="isaacItemSearchInput" class="input-ghost" placeholder="Search items... (e.g. Magic Mushroom, Mom's Knife)" style="width:100%;background:none;border:none;outline:none;color:var(--text);font-size:.9rem;" autocomplete="off">
+                          <div id="isaacItemNameLabel" style="font-size:.7rem;color:var(--text-muted);margin-top:1px;display:none;"></div>
+                        </div>
+                        <div id="isaacItemQualityBadge" style="display:none;padding:2px 8px;border-radius:4px;font-size:.7rem;font-weight:700;white-space:nowrap;"></div>
+                      </div>
+                      <!-- Dropdown -->
+                      <div id="isaacItemSearchResults" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--bg2);border:1px solid var(--border);border-radius:10px;max-height:220px;overflow-y:auto;z-index:999;box-shadow:0 8px 24px rgba(0,0,0,.5);">
+                      </div>
+                    </div>
+                    <input type="hidden" id="isaacSelectedItemId">
+                  </div>
+                  <div style="margin-top:4px;">
+                    <label class="field-label">Amount</label>
+                    <input type="number" min="1" max="99" class="input-base" id="isaacItemAmountInput" value="1" style="width:100px;">
+                  </div>
+                </div>
+
+                <!-- spawn_entity fields -->
+                <div class="isaac-action-fields" id="fields_spawn_entity" style="display:none;">
+                  <div style="display:flex;gap:10px;">
+                    <div style="flex:2;">
+                      <label class="field-label">Entity ID <span style="color:var(--text-muted);font-weight:400;">(Type.Variant.Subtype)</span></label>
+                      <input type="text" class="input-base" id="isaacEntityIdInput" placeholder="e.g. 5.10.0 for Monstro">
+                    </div>
+                    <div style="flex:1;">
+                      <label class="field-label">Amount</label>
+                      <input type="number" min="1" max="99" class="input-base" id="isaacEntityAmountInput" value="1">
+                    </div>
+                  </div>
+                  <div style="margin-top:8px;padding:10px 12px;background:rgba(52,152,219,.08);border:1px solid rgba(52,152,219,.25);border-radius:8px;font-size:.78rem;color:var(--text-muted);">
+                    💡 Common entity IDs: <b style="color:var(--accent)">5.10.0</b> Monstro · <b style="color:var(--accent)">5.28.0</b> Larry Jr. · <b style="color:var(--accent)">5.43.0</b> Gemini
+                  </div>
+                </div>
+
+                <!-- set_health fields -->
+                <div class="isaac-action-fields" id="fields_set_health" style="display:none;">
+                  <label class="field-label">Hearts <span style="color:var(--text-muted);font-weight:400;">(1 = half heart, 2 = full heart)</span></label>
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <input type="number" class="input-base" id="isaacHealthInput" placeholder="e.g. 6" style="width:120px;">
+                    <span style="color:var(--text-muted);font-size:.82rem;" id="isaacHealthPreview"></span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ══ RULES PROFILE PANEL ══ -->
+              <div id="isaacProfileView" style="display:none;">
+                <label class="field-label" style="margin-bottom:8px;display:block;">Select Profile</label>
+                <div id="isaacEffectCards" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;max-height:240px;overflow-y:auto;padding:2px;"></div>
+              </div>
+
+              <!-- Save/Cancel -->
+              <div style="display:flex;gap:10px;margin-top:2px;">
                 <button class="btn-primary" id="saveIsaacEffectBtn" style="flex:2;">Save Effect</button>
                 <button class="btn-secondary" id="cancelIsaacModalBtn" style="flex:1;">Cancel</button>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Isaac Setup Guide Modal -->
+        <div id="isaacSetupModal" class="modal-overlay" style="display:none;">
+          <div class="modal-content glass" style="max-width:550px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+              <h3 style="font-size:1.3rem;font-weight:800;margin:0;">Isaac Mod Setup</h3>
+              <button class="btn-secondary btn-sm" id="closeIsaacSetupBtn" style="padding:4px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+            </div>
+            
+            <div style="display:flex;flex-direction:column;gap:16px;font-size:0.95rem;line-height:1.6;">
+              <div class="card-tip" style="background:rgba(52,152,219,0.1);border-left-color:var(--accent);">
+                <div class="tip-icon" style="color:var(--accent);">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                </div>
+                <div>
+                  <div class="tip-title">Steam Launch Argument</div>
+                  <div class="tip-desc">For the mod to communicate with this dashboard, you <b>must</b> enable the Lua debug flag.</div>
+                </div>
+              </div>
+
+              <div style="background:var(--bg3);padding:15px;border-radius:10px;border:1px solid var(--border);">
+                <div style="font-weight:700;margin-bottom:8px;font-size:0.8rem;text-transform:uppercase;color:var(--dim);">Step 1: Steam Settings</div>
+                <p style="margin-bottom:10px;">Right-click <b>The Binding of Isaac: Rebirth</b> in Steam → <b>Properties</b> → <b>General</b> → <b>Launch Options</b>.</p>
+                <div style="background:black;padding:10px 14px;border-radius:6px;font-family:'JetBrains Mono',monospace;color:#4ade80;font-size:0.85rem;display:flex;justify-content:space-between;align-items:center;">
+                  <code>--luadebug</code>
+                  <button onclick="navigator.clipboard.writeText('--luadebug');alert('Copied!')" style="background:none;border:none;color:var(--dim);cursor:pointer;padding:2px;" title="Copy">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                  </button>
+                </div>
+              </div>
+
+              <div style="background:var(--bg3);padding:15px;border-radius:10px;border:1px solid var(--border);">
+                <div style="font-weight:700;margin-bottom:8px;font-size:0.8rem;text-transform:uppercase;color:var(--dim);">Step 2: Install Mod</div>
+                <p>Copy the <code>trinytokisaac</code> folder into your Isaac mods directory:</p>
+                <code style="font-size:0.8rem;color:var(--accent);">Documents/My Games/Binding of Isaac Repentance/mods/</code>
+              </div>
+
+              <div style="background:var(--bg3);padding:15px;border-radius:10px;border:1px solid var(--border);">
+                <div style="font-weight:700;margin-bottom:8px;font-size:0.8rem;text-transform:uppercase;color:var(--dim);">Step 3: Connect</div>
+                <p>Start the game. Once you are in a run, the status indicator in this dashboard will turn <b style="color:var(--success);">GREEN</b>.</p>
+              </div>
+
+              <button class="btn-primary" id="gotItBtn" style="margin-top:10px;">Got it, let's play!</button>
             </div>
           </div>
         </div>

@@ -1,0 +1,9 @@
+{
+  "ignore": [
+    "config/config.json",
+    "data/*.db",
+    "data/*.db-journal",
+    "public/data/*.json"
+  ],
+  "delay": 1000
+}

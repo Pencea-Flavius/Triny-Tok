@@ -290,18 +290,40 @@
   }
 
   setInterval(nextDemo, 4000);
-  // ── GAMES BACKGROUND HOVER ──
+  // ── GAMES BACKGROUND HOVER CROSSFADE ──
   const gamesBgLayer = document.getElementById('gamesBgLayer');
+  gamesBgLayer.style.opacity = '1';
+  gamesBgLayer.style.backgroundImage = 'none';
+
+  const bgWrapper = document.createElement('div');
+  Object.assign(bgWrapper.style, { position: 'absolute', inset: '0', zIndex: '-1' });
+  gamesBgLayer.appendChild(bgWrapper);
+
+  const bgLayers = [document.createElement('div'), document.createElement('div')];
+  let activeBgIdx = 0;
+
+  bgLayers.forEach(layer => {
+    Object.assign(layer.style, {
+      position: 'absolute', inset: '0',
+      backgroundSize: 'cover', backgroundPosition: 'center',
+      opacity: '0', transition: 'opacity 0.45s ease'
+    });
+    bgWrapper.appendChild(layer);
+  });
+
   document.querySelectorAll('.game-card').forEach(card => {
     card.addEventListener('mouseenter', () => {
       const bg = card.getAttribute('data-bg');
-      if(bg) {
-        gamesBgLayer.style.backgroundImage = `url('${bg}')`;
-        gamesBgLayer.style.opacity = '0.35';
+      if (bg) {
+        activeBgIdx = 1 - activeBgIdx;
+        bgLayers[activeBgIdx].style.backgroundImage = `url('${bg}')`;
+        bgLayers[activeBgIdx].style.opacity = '0.35';
+        bgLayers[1 - activeBgIdx].style.opacity = '0';
       }
     });
     card.addEventListener('mouseleave', () => {
-      gamesBgLayer.style.opacity = '0';
+      bgLayers[0].style.opacity = '0';
+      bgLayers[1].style.opacity = '0';
     });
   });
 </script>
