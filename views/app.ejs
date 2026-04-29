@@ -99,6 +99,7 @@
                 d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.42C2 2.19 2.95 2 3.71 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
             </svg>
             TikTok Connect
+            <div id="tiktokStatusDot" style="width:7px;height:7px;border-radius:50%;background:var(--success);margin-left:auto;display:none;box-shadow:0 0 5px var(--success);"></div>
           </button>
         </div>
 
@@ -279,14 +280,26 @@
                   <label class="field-label">Streamer Username</label>
                   <div style="display:flex;gap:10px;margin-top:6px;">
                     <input type="text" id="uniqueIdInput" placeholder="@username" style="flex:1;">
-                    <button class="btn-primary" id="connectButton" style="min-width:120px;">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-                      </svg>
-                      Connect
-                    </button>
+                    <div class="connection-action-wrapper">
+                      <button class="btn-primary" id="connectButton">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                          stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M9 17H7A5 5 0 0 1 7 7H9" />
+                          <path d="M15 7h2a5 5 0 0 1 0 10h-2" />
+                          <line x1="8" y1="12" x2="16" y2="12" />
+                        </svg>
+                        <span>Connect</span>
+                      </button>
+                      <button class="btn-danger" id="disconnectButton" style="display:none;">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                          stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M9 17H7A5 5 0 0 1 7 7H9" />
+                          <path d="M15 7h2a5 5 0 0 1 0 10h-2" />
+                          <line x1="2" y1="2" x2="22" y2="22" />
+                        </svg>
+                        <span>Disconnect</span>
+                      </button>
+                    </div>
                   </div>
                   <p style="font-size:12px;color:var(--dim);margin-top:8px;">The streamer must be currently <strong
                       style="color:var(--danger)">LIVE</strong> on TikTok.</p>
@@ -575,13 +588,17 @@
                     <span id="mcStatusText"
                       style="font-weight:700;color:var(--danger);font-size:13px;text-transform:uppercase;letter-spacing:0.5px;">Disconnected</span>
                   </div>
-                  <div style="display:flex;align-items:center;gap:12px;">
+                  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
                     <label
                       style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px;font-weight:500;color:var(--muted);">
                       <input type="checkbox" id="autoConnectRcon"
                         style="width:15px;height:15px;accent-color:var(--accent);">
                       Auto-Connect
                     </label>
+                    <button class="btn-secondary btn-sm" id="mcSaveSettingsBtn">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                      Save
+                    </button>
                     <button class="btn-primary" id="mcConnectBtn">Connect Bridge</button>
                   </div>
                 </div>
@@ -661,12 +678,12 @@
 
           <div class="table-wrap">
             <div class="data-table-container">
-              <table class="data-table">
+              <table class="data-table" style="table-layout:fixed;width:100%;">
                 <thead>
                   <tr>
-                    <th>TikTok Gift</th>
+                    <th style="width:200px;">TikTok Gift</th>
                     <th>Minecraft Command</th>
-                    <th style="width:100px;text-align:center;">Actions</th>
+                    <th style="width:280px;text-align:center;">Actions</th>
                   </tr>
                 </thead>
                 <tbody id="commandsTableBody">
@@ -808,10 +825,6 @@
               <p class="page-sub">Map TikTok gifts to TBOI effects.</p>
             </div>
             <div class="page-actions">
-              <div id="isaacStatusBadge" style="display:flex;align-items:center;gap:8px;font-size:0.8rem;color:var(--text-muted);">
-                <div id="isaacStatusBadgeDot" style="width:8px;height:8px;border-radius:50%;background:#444;"></div>
-                <span id="isaacStatusText">Waiting for TBOI mod...</span>
-              </div>
               <button class="btn-secondary btn-sm" id="isaacSetupBtn">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
@@ -847,12 +860,12 @@
               <div style="font-size:10.5px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-bottom:14px;">Mapped Effects</div>
               <div class="table-wrap" style="margin:0;border:none;background:transparent;">
                 <div class="data-table-container">
-                  <table class="data-table">
+                  <table class="data-table" style="table-layout:fixed;width:100%;">
                     <thead>
                       <tr>
-                        <th>TikTok Gift</th>
+                        <th style="width:200px;">TikTok Gift</th>
                         <th>TBOI Effect</th>
-                        <th style="width:80px;text-align:center;">Actions</th>
+                        <th style="width:280px;text-align:center;">Actions</th>
                       </tr>
                     </thead>
                     <tbody id="isaacEffectsTableBody">
@@ -902,7 +915,9 @@
                 <!-- spawn_item fields -->
                 <div class="isaac-action-fields" id="fields_spawn_item">
                   <div style="display:flex;flex-direction:column;gap:8px;">
-                    <label class="field-label">Search Item</label>
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                      <label class="field-label">Search Item</label>
+                    </div>
                     <div style="position:relative;">
                       <div style="display:flex;align-items:center;gap:10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;transition:border-color .15s;" id="isaacItemSearchWrapper">
                         <div id="isaacItemPreview" style="width:48px;height:48px;border-radius:6px;background:var(--bg2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
@@ -915,14 +930,22 @@
                         <div id="isaacItemQualityBadge" style="display:none;padding:2px 8px;border-radius:4px;font-size:.7rem;font-weight:700;white-space:nowrap;"></div>
                       </div>
                       <!-- Dropdown -->
-                      <div id="isaacItemSearchResults" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--bg2);border:1px solid var(--border);border-radius:10px;max-height:220px;overflow-y:auto;z-index:999;box-shadow:0 8px 24px rgba(0,0,0,.5);">
+                      <div id="isaacItemSearchResults" class="glass search-results-list" style="display:none;">
                       </div>
                     </div>
                     <input type="hidden" id="isaacSelectedItemId">
                   </div>
-                  <div style="margin-top:4px;">
-                    <label class="field-label">Amount</label>
-                    <input type="number" min="1" max="99" class="input-base" id="isaacItemAmountInput" value="1" style="width:100px;">
+                  <div style="margin-top:12px; display:flex; align-items:flex-end; gap:20px;">
+                    <div style="flex:1;">
+                      <label class="field-label">Amount</label>
+                      <input type="number" min="1" max="99" class="input-base" id="isaacItemAmountInput" value="1" style="width:100%;">
+                    </div>
+                    <div style="flex:2; padding-bottom:10px;">
+                      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.75rem;color:var(--dim);font-weight:800;text-transform:uppercase;letter-spacing:0.5px;">
+                        <input type="checkbox" id="isaacItemAutoCollect" style="width:16px;height:16px;accent-color:var(--accent);margin:0;">
+                        Auto-Collect
+                      </label>
+                    </div>
                   </div>
                 </div>
 
@@ -957,6 +980,14 @@
               <div id="isaacProfileView" style="display:none;">
                 <label class="field-label" style="margin-bottom:8px;display:block;">Select Profile</label>
                 <div id="isaacEffectCards" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;max-height:240px;overflow-y:auto;padding:2px;"></div>
+              </div>
+
+              <!-- Global Settings -->
+              <div style="margin-top:4px; padding-top:12px; border-top:1px solid var(--border); display:flex; justify-content:flex-end;">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;">
+                  <input type="checkbox" id="isaacWaitStreak" checked style="width:16px;height:16px;accent-color:var(--accent);">
+                  Wait for Streak End
+                </label>
               </div>
 
               <!-- Save/Cancel -->
@@ -1002,8 +1033,8 @@
 
               <div style="background:var(--bg3);padding:15px;border-radius:10px;border:1px solid var(--border);">
                 <div style="font-weight:700;margin-bottom:8px;font-size:0.8rem;text-transform:uppercase;color:var(--dim);">Step 2: Install Mod</div>
-                <p>Copy the <code>trinytokisaac</code> folder into your Isaac mods directory:</p>
-                <code style="font-size:0.8rem;color:var(--accent);">Documents/My Games/Binding of Isaac Repentance/mods/</code>
+                <p style="margin-bottom:10px;">Copy the <code>trinytokisaac</code> folder into your Isaac mods directory.</p>
+                <p style="font-size:0.85rem;color:var(--muted);">Find it by right-clicking the game in Steam → <b>Manage</b> → <b>Browse local files</b> and open the <b>mods</b> folder.</p>
               </div>
 
               <div style="background:var(--bg3);padding:15px;border-radius:10px;border:1px solid var(--border);">

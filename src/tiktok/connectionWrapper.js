@@ -32,13 +32,16 @@ class TikTokConnectionWrapper extends EventEmitter {
         });
 
         this.connection.on('error', (err) => {
-            this.log(`Error event triggered: ${err.info}, ${err.exception}`);
-            console.error(err);
+            // Only log if it's not a known fallback error that the library handles internally
+            if (err && err.info && !err.info.includes('falling back')) {
+                this.log(`Error: ${err.info}`);
+            }
         })
     }
 
     connect(isReconnect) {
         this.connection.connect().then((state) => {
+            this.connectTime = Date.now();
             this.log(`${isReconnect ? 'Reconnected' : 'Connected'} to roomId ${state.roomId}, websocket: ${state.upgradedToWebsocket}`);
 
             globalConnectionCount += 1;

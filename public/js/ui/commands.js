@@ -1,5 +1,6 @@
 import { showToast, showAlert, showConfirm } from './dialog.js';
 import { GiftDropdown } from './components/GiftDropdown.js';
+import { makeGiftCell, makeActionCell } from './components/GiftActionButtons.js';
 
 export let refreshCommandsData = () => { };
 
@@ -102,54 +103,23 @@ export function initCommandsUI(ioConnection) {
             const displayCmd = cmdText.split('\n').join(' | ');
 
             const gift = availableGifts.find(g => g.name === giftName);
-            const imgSrc = gift?.image?.url_list?.[0] || 'https://p16-webcast.tiktokcdn.com/img/maliva/webcast-va/eba3a9bb85c33e017f3648eaf88d7189~tplv-obj.png';
 
-            const row = $(`
-                <tr>
-                    <td>
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <img src="${imgSrc}" style="width: 32px; height: 32px; border-radius: 6px; border: 1px solid var(--border);">
-                            <b style="font-weight: 600;">${giftName}</b>
-                        </div>
-                    </td>
-                    <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--text-muted); max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${displayCmd}</td>
-                    <td>
-                        <div style="display: flex; gap: 8px; justify-content: center;">
-                            <button class="btn-primary btn-sm btn-test" data-gift="${giftName}">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                                Test
-                            </button>
-                            <button class="btn-secondary btn-sm btn-edit" data-gift="${giftName}">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                                Edit
-                            </button>
-                            <button class="btn-danger btn-sm btn-delete" data-gift="${giftName}">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path></svg>
-                                Delete
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `);
+            const cmdTd = $('<td class="command-cell"></td>');
+            $('<div></div>')
+                .text(displayCmd)
+                .appendTo(cmdTd);
+
+            const row = $('<tr></tr>');
+            row.append(
+                makeGiftCell(giftName, gift),
+                cmdTd,
+                makeActionCell(giftName, {
+                    onTest: (g) => { if (socket) socket.emit('testCommand', { giftName: g }); },
+                    onEdit: (g) => openModal(g, commands[g]),
+                    onDelete: (g) => openDeleteModal(g)
+                })
+            );
             tableBody.append(row);
-        });
-
-        $('.btn-edit').off().click(function () {
-            const gift = $(this).data('gift');
-            const cmdObj = commands[gift];
-            openModal(gift, cmdObj);
-        });
-
-        $('.btn-delete').off().click(function () {
-            const gift = $(this).data('gift');
-            openDeleteModal(gift);
-        });
-
-        $('.btn-test').off().click(function () {
-            const gift = $(this).data('gift');
-            if (socket) {
-                socket.emit('testCommand', { giftName: gift });
-            }
         });
     }
 

@@ -6,9 +6,9 @@ const fs = require('fs');
 class DatabaseManager {
     constructor() {
         if (!DatabaseManager.instance) {
-            this.globalDbPromise = null;
-            this.streamerDbPromise = null;
-            this.currentStreamer = null;
+            this.globalDbPromise = null; // global.db — gifts (pushable)
+            this.localDbPromise = null;  // trinytok.db — streamers/users/donations (gitignored)
+            this.currentStreamerId = null;
             DatabaseManager.instance = this;
         }
         return DatabaseManager.instance;
@@ -25,7 +25,6 @@ class DatabaseManager {
             filename: dbPath,
             driver: sqlite3.Database
         }).then(async (db) => {
-            console.log('[DB] Connected to Global SQLite database (gifts).');
             await db.exec(`
                 CREATE TABLE IF NOT EXISTS gifts (
                     id INTEGER PRIMARY KEY,
@@ -34,9 +33,10 @@ class DatabaseManager {
                     imageUrl TEXT
                 );
             `);
+            console.log('[DB] Connected to global.db (gifts).');
             return db;
         }).catch(err => {
-            console.error('[DB] Global connection error:', err);
+            console.error('[DB] global.db connection error:', err);
             this.globalDbPromise = null;
             throw err;
         });
@@ -44,101 +44,113 @@ class DatabaseManager {
         return this.globalDbPromise;
     }
 
-    async connectStreamer(uniqueId) {
-        // If already connected to this streamer, return
-        if (this.currentStreamer === uniqueId && this.streamerDbPromise) {
-            return this.streamerDbPromise;
-        }
+    async connectLocal() {
+        if (this.localDbPromise) return this.localDbPromise;
 
-        // Close previous if different
-        if (this.streamerDbPromise) {
-            try {
-                const oldDb = await this.streamerDbPromise;
-                await oldDb.close();
-            } catch (e) {
-                console.error('[DB] Failed closing previous streamer DB', e);
-            }
-        }
+        const dbPath = path.join(__dirname, '../../data/trinytok.db');
+        const dataDir = path.dirname(dbPath);
+        if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 
-        const safeId = uniqueId.replace(/[^a-zA-Z0-9_-]/g, '_');
-        const dbPath = path.join(__dirname, `../../data/streamer_${safeId}.db`);
-        this.currentStreamer = uniqueId;
-
-        this.streamerDbPromise = open({
+        this.localDbPromise = open({
             filename: dbPath,
             driver: sqlite3.Database
         }).then(async (db) => {
-            console.log(`[DB] Connected to Streamer DB for @${uniqueId}`);
+            await db.exec(`PRAGMA foreign_keys = ON;`);
             await db.exec(`
+                CREATE TABLE IF NOT EXISTS streamers (
+                    id INTEGER PRIMARY KEY,
+                    uniqueId TEXT UNIQUE NOT NULL
+                );
+
                 CREATE TABLE IF NOT EXISTS users (
-                    userId TEXT PRIMARY KEY,
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    streamerId INTEGER NOT NULL,
+                    userId TEXT NOT NULL,
                     uniqueId TEXT,
                     nickname TEXT,
                     profilePictureUrl TEXT,
                     totalDiamonds INTEGER DEFAULT 0,
-                    lastSeen DATETIME DEFAULT CURRENT_TIMESTAMP
+                    lastSeen DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(streamerId, userId),
+                    FOREIGN KEY(streamerId) REFERENCES streamers(id)
                 );
 
                 CREATE TABLE IF NOT EXISTS donations (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    streamerId INTEGER NOT NULL,
                     userId TEXT,
                     giftId INTEGER,
                     count INTEGER DEFAULT 1,
                     totalDiamonds INTEGER DEFAULT 0,
                     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY(userId) REFERENCES users(userId)
+                    FOREIGN KEY(streamerId) REFERENCES streamers(id)
                 );
             `);
+            console.log('[DB] Connected to trinytok.db (users/donations).');
             return db;
         }).catch(err => {
-            console.error(`[DB] Streamer connection error for @${uniqueId}:`, err);
-            this.streamerDbPromise = null;
-            this.currentStreamer = null;
+            console.error('[DB] trinytok.db connection error:', err);
+            this.localDbPromise = null;
             throw err;
         });
 
-        return this.streamerDbPromise;
+        return this.localDbPromise;
     }
 
-    // --- Users (Streamer DB) ---
+    async setCurrentStreamer(uniqueId) {
+        const normalized = uniqueId.replace(/^@/, '').trim().toLowerCase();
+        const db = await this.connectLocal();
+        await db.run(`INSERT OR IGNORE INTO streamers (uniqueId) VALUES (?)`, [normalized]);
+        const row = await db.get(`SELECT id FROM streamers WHERE uniqueId = ?`, [normalized]);
+        this.currentStreamerId = row.id;
+        console.log(`[DB] Streamer context: @${normalized} (id=${this.currentStreamerId})`);
+    }
+
+    // --- Users (trinytok.db) ---
     async upsertUser(user) {
-        if (!this.streamerDbPromise) return;
-        const db = await this.streamerDbPromise;
+        if (!this.currentStreamerId) return;
+        const db = await this.connectLocal();
         const { userId, uniqueId, nickname, profilePictureUrl, addedDiamonds = 0 } = user;
-        
+
         await db.run(`
-            INSERT INTO users (userId, uniqueId, nickname, profilePictureUrl, totalDiamonds, lastSeen)
-            VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-            ON CONFLICT(userId) DO UPDATE SET 
+            INSERT INTO users (streamerId, userId, uniqueId, nickname, profilePictureUrl, totalDiamonds, lastSeen)
+            VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(streamerId, userId) DO UPDATE SET
                 uniqueId = excluded.uniqueId,
                 nickname = excluded.nickname,
                 profilePictureUrl = excluded.profilePictureUrl,
                 totalDiamonds = totalDiamonds + excluded.totalDiamonds,
                 lastSeen = CURRENT_TIMESTAMP
-        `, [userId, uniqueId, nickname, profilePictureUrl, addedDiamonds]);
+        `, [this.currentStreamerId, userId, uniqueId, nickname, profilePictureUrl, addedDiamonds]);
     }
 
     async getTopDonors(limit = 50) {
-        if (!this.streamerDbPromise) return [];
-        const db = await this.streamerDbPromise;
-        return await db.all(`SELECT * FROM users ORDER BY totalDiamonds DESC LIMIT ?`, [limit]);
+        if (!this.currentStreamerId) return [];
+        const db = await this.connectLocal();
+        return db.all(
+            `SELECT * FROM users WHERE streamerId = ? ORDER BY totalDiamonds DESC LIMIT ?`,
+            [this.currentStreamerId, limit]
+        );
     }
 
     async getTotalDiamonds() {
-        if (!this.streamerDbPromise) return 0;
-        const db = await this.streamerDbPromise;
-        const result = await db.get(`SELECT SUM(totalDiamonds) as sum FROM users`);
+        if (!this.currentStreamerId) return 0;
+        const db = await this.connectLocal();
+        const result = await db.get(
+            `SELECT SUM(totalDiamonds) as sum FROM users WHERE streamerId = ?`,
+            [this.currentStreamerId]
+        );
         return result.sum || 0;
     }
 
-    // --- Gifts (Global DB) ---
+    // --- Gifts (global.db) ---
     async upsertGift(gift) {
         const db = await this.connectGlobal();
         const { id, name, diamondCount, imageUrl } = gift;
         await db.run(`
             INSERT INTO gifts (id, name, diamondCount, imageUrl)
             VALUES (?, ?, ?, ?)
-            ON CONFLICT(id) DO UPDATE SET 
+            ON CONFLICT(id) DO UPDATE SET
                 name = excluded.name,
                 diamondCount = excluded.diamondCount,
                 imageUrl = excluded.imageUrl
@@ -147,7 +159,7 @@ class DatabaseManager {
 
     async getGifts() {
         const db = await this.connectGlobal();
-        return await db.all(`SELECT * FROM gifts`);
+        return db.all(`SELECT * FROM gifts`);
     }
 
     async deleteGift(id) {
@@ -156,14 +168,14 @@ class DatabaseManager {
         return result.changes;
     }
 
-    // --- Donations (Streamer DB) ---
+    // --- Donations (trinytok.db) ---
     async recordDonation(userId, giftId, count, totalDiamonds) {
-        if (!this.streamerDbPromise) return;
-        const db = await this.streamerDbPromise;
+        if (!this.currentStreamerId) return;
+        const db = await this.connectLocal();
         await db.run(`
-            INSERT INTO donations (userId, giftId, count, totalDiamonds)
-            VALUES (?, ?, ?, ?)
-        `, [userId, giftId, count, totalDiamonds]);
+            INSERT INTO donations (streamerId, userId, giftId, count, totalDiamonds)
+            VALUES (?, ?, ?, ?, ?)
+        `, [this.currentStreamerId, userId, giftId, count, totalDiamonds]);
     }
 }
 
