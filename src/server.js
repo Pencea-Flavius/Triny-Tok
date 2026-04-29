@@ -69,22 +69,22 @@ const io = new Server(httpServer, {
 });
 
 const ISAAC_DEFAULT_PROFILES = [
-    { id: 'boss_rush',      name: 'Boss Rush',           desc: 'Spawns 3 random bosses',                    category: 'Chaos' },
-    { id: 'total_chaos',    name: 'Total Chaos',          desc: '5 items + 10 enemies + all curses at once', category: 'Chaos' },
-    { id: 'mob_rush',       name: 'Mob Rush',             desc: '15 random enemies swarm the room',          category: 'Chaos' },
-    { id: 'all_curses',     name: 'All Curses',           desc: 'Every floor curse at once',                 category: 'Curses' },
-    { id: 'curse_roulette', name: 'Curse Roulette',       desc: 'Random curse applied',                      category: 'Curses' },
-    { id: 'labyrinth',      name: 'Curse of the Labyrinth', desc: 'Doubles the current floor',               category: 'Curses' },
-    { id: 'near_death',     name: 'Near Death',           desc: 'Reduces to half a heart',                   category: 'Punishment' },
-    { id: 'item_yoink',     name: 'Item Yoink',           desc: 'Removes a random held item',                category: 'Punishment' },
-    { id: 'nightmare',      name: 'Nightmare',            desc: 'Near death + all curses + enemy wave',      category: 'Punishment' },
-    { id: 'upside_down',    name: 'Upside Down',          desc: 'Reversed controls for 30 seconds',          category: 'Timed' },
-    { id: 'speed_demon',    name: 'Speed Demon',          desc: 'Double speed for 30 seconds',               category: 'Timed' },
-    { id: 'god_mode',       name: 'God Mode',             desc: 'Invincible for 15 seconds',                 category: 'Timed' },
-    { id: 'full_heal',      name: 'Full Heal',            desc: 'Restores all health',                       category: 'Boon' },
-    { id: 'devil_deal',     name: 'Free Devil Deal',      desc: 'Gives a random devil collectible',          category: 'Boon' },
-    { id: 'supply_drop',    name: 'Supply Drop',          desc: '10 coins + 5 bombs + 5 keys',               category: 'Boon' },
-    { id: 'jackpot',        name: 'Jackpot',              desc: 'Random item + full heal + supplies',        category: 'Boon' },
+    { id: 'boss_rush', name: 'Boss Rush', desc: 'Spawns 3 random bosses', category: 'Chaos' },
+    { id: 'total_chaos', name: 'Total Chaos', desc: '5 items + 10 enemies + all curses at once', category: 'Chaos' },
+    { id: 'mob_rush', name: 'Mob Rush', desc: '15 random enemies swarm the room', category: 'Chaos' },
+    { id: 'all_curses', name: 'All Curses', desc: 'Every floor curse at once', category: 'Curses' },
+    { id: 'curse_roulette', name: 'Curse Roulette', desc: 'Random curse applied', category: 'Curses' },
+    { id: 'labyrinth', name: 'Curse of the Labyrinth', desc: 'Doubles the current floor', category: 'Curses' },
+    { id: 'near_death', name: 'Near Death', desc: 'Reduces to half a heart', category: 'Punishment' },
+    { id: 'item_yoink', name: 'Item Yoink', desc: 'Removes a random held item', category: 'Punishment' },
+    { id: 'nightmare', name: 'Nightmare', desc: 'Near death + all curses + enemy wave', category: 'Punishment' },
+    { id: 'upside_down', name: 'Upside Down', desc: 'Reversed controls for 30 seconds', category: 'Timed' },
+    { id: 'speed_demon', name: 'Speed Demon', desc: 'Double speed for 30 seconds', category: 'Timed' },
+    { id: 'god_mode', name: 'God Mode', desc: 'Invincible for 15 seconds', category: 'Timed' },
+    { id: 'full_heal', name: 'Full Heal', desc: 'Restores all health', category: 'Boon' },
+    { id: 'devil_deal', name: 'Free Devil Deal', desc: 'Gives a random devil collectible', category: 'Boon' },
+    { id: 'supply_drop', name: 'Supply Drop', desc: '10 coins + 5 bombs + 5 keys', category: 'Boon' },
+    { id: 'jackpot', name: 'Jackpot', desc: 'Random item + full heal + supplies', category: 'Boon' },
 ];
 
 // broadcast mc status to everyone
@@ -106,15 +106,15 @@ isaacBridge.on('profilesUpdated', (profiles) => {
         // Only save if profiles actually changed to avoid unnecessary disk I/O and potential loops
         const oldProfilesStr = JSON.stringify(config.isaacProfiles || []);
         const newProfilesStr = JSON.stringify(profiles);
-        
+
         if (oldProfilesStr !== newProfilesStr) {
             console.info(`[Isaac] Profiles changed (${profiles.length}). Saving to config.`);
             config.isaacProfiles = profiles;
             setImmediate(() => {
-                try { 
-                    fs.writeFileSync(configPath, JSON.stringify(config, null, 2)); 
-                } catch (e) { 
-                    console.error('[Isaac] Failed to save profiles:', e.message); 
+                try {
+                    fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+                } catch (e) {
+                    console.error('[Isaac] Failed to save profiles:', e.message);
                 }
             });
         }
@@ -271,13 +271,20 @@ async function finalizeGift(msg, updateDbAndCommand = true) {
     }
 
     // Isaac profile trigger
-    const isaacProfileId = config.isaacCommands[msg.giftName];
-    if (isaacProfileId && isaacBridge.isConnected) {
-        const sent = isaacBridge.activateProfile(isaacProfileId, msg.nickname || msg.uniqueId, msg.giftName);
-        if (sent) {
-            console.info(`[Isaac] Activated profile "${isaacProfileId}" for gift "${msg.giftName}"`);
-            io.emit('isaacLog', { profileId: isaacProfileId, giftName: msg.giftName, viewer: msg.nickname || msg.uniqueId });
+    const isaacEffect = config.isaacCommands[msg.giftName];
+    if (isaacEffect && isaacBridge.isConnected) {
+        const waitForStreak = (typeof isaacEffect === 'object' && isaacEffect.waitForStreak !== undefined) ? isaacEffect.waitForStreak : true;
+        const executions = waitForStreak === false ? (msg.repeatCount || 1) : 1;
+
+        for (let i = 0; i < executions; i++) {
+            isaacBridge.activateProfile(isaacEffect, msg.nickname || msg.uniqueId, msg.giftName);
+            if (executions > 1 && i < executions - 1) {
+                await new Promise(resolve => setTimeout(resolve, 200)); // Fixed delay for Isaac
+            }
         }
+        
+        console.info(`[Isaac] Triggered effect for ${msg.giftName} (Exec: ${executions})`);
+        io.emit('isaacLog', { effect: isaacEffect, giftName: msg.giftName, viewer: msg.nickname || msg.uniqueId });
     }
 }
 
@@ -376,15 +383,21 @@ io.on('connection', (socket) => {
             options = {};
         }
 
-        // Initialize user-specific isolated database
-        db.connectStreamer(uniqueId).then(() => {
-            console.log(`[DB] Streamer context switched to @${uniqueId}`);
-        }).catch(err => {
-            console.error(`[DB] Failed switching to streamer @${uniqueId}`);
+        // Switch streamer context in shared DB
+        db.setCurrentStreamer(uniqueId).catch(err => {
+            console.error(`[DB] Failed switching to streamer @${uniqueId}`, err);
         });
 
         // tiktok locked this, disable it so we dont crash
         options.enableExtendedGiftInfo = false;
+        options.disableEulerFallbacks = true;
+        
+        // Add browser-like headers to avoid 200 (HTML) responses
+        options.requestOptions = {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+            }
+        };
 
         if (process.env.SESSIONID) {
             options.sessionId = process.env.SESSIONID;
@@ -442,7 +455,7 @@ io.on('connection', (socket) => {
             */
 
             // NOTE: Extended gift info is disabled to prevent 403 on connection.
-            // Gifts are loaded from local data/gifts-cache.json instead.
+            // Gifts are loaded from local data
 
             // grab top donors
             const roomData = state.roomInfo?.data || state.roomInfo || state.data || state;
@@ -563,6 +576,15 @@ io.on('connection', (socket) => {
         });
     });
 
+    socket.on('tiktokDisconnect', () => {
+        if (tiktokConnectionWrapper) {
+            tiktokConnectionWrapper.disconnect();
+            tiktokConnectionWrapper = null;
+            tiktokOwnerSocketId = null;
+            socket.emit('tiktokDisconnected', 'Disconnected by user');
+        }
+    });
+
     // only the owner socket can kill the connection
     socket.on('disconnect', () => {
         if (socket.id === tiktokOwnerSocketId && tiktokConnectionWrapper) {
@@ -583,13 +605,13 @@ app.get('/api/top-donors', (req, res) => {
 
 app.get('/api/demo-users', async (req, res) => {
     try {
-        const dbInstance = await db.connect();
+        const dbInstance = await db.connectLocal();
         const users = await dbInstance.all(
             `SELECT * FROM users WHERE uniqueId IN ("zzflaviusboss", "alexnon3", "ghinescumarius298", "memenorul20", "gtrap_", "umbrahero")`
         );
         res.json({ success: true, users });
     } catch (e) {
-        res.json({ success: false, users: [] });
+        res.json({ success: false, users: [], error: e.message });
     }
 });
 
@@ -683,7 +705,7 @@ app.delete('/api/gifts/:id', async (req, res) => {
             // If DB delete didn't work, try by the gift name stored in cache
             if (!deleted && db) {
                 const giftName = availableGifts[cacheIdx].name;
-                const dbConn = await db.connect();
+                const dbConn = await db.connectGlobal();
                 const result = await dbConn.run(`DELETE FROM gifts WHERE name = ?`, [giftName]);
                 if (result.changes > 0) deleted = true;
             }
@@ -752,7 +774,7 @@ app.post('/api/isaac/test', express.json(), (req, res) => {
         console.error('[Isaac] No commands configured in config.json');
         return res.status(404).json({ success: false, error: 'No Isaac commands configured' });
     }
-    
+
     const effect = config.isaacCommands[giftName];
     if (effect) {
         console.info(`[Isaac] Found effect for "${giftName}":`, effect);
@@ -789,7 +811,6 @@ const port = process.env.PORT || 8081;
 httpServer.listen(port, () => {
     console.info(`Server running! Please visit http://localhost:${port}`);
 
-    // Auto-connect Minecraft if enabled
     // Auto-connect Minecraft if enabled and if autoConnect is explicitly true
     if (config.minecraft.autoConnect) {
         // we can set config.minecraft.enabled back to true since it automatically tried.

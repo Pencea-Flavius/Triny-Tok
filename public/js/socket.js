@@ -51,6 +51,11 @@ export class TikTokIOConnection {
         this.socket.emit('setUniqueId', this.uniqueId, this.options);
     }
 
+    disconnect() {
+        this.socket.emit('tiktokDisconnect');
+        this.uniqueId = null;
+    }
+
     on(eventName, eventHandler) {
         this.socket.on(eventName, eventHandler);
     }

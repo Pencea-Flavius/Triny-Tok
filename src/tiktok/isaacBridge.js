@@ -99,6 +99,9 @@ class IsaacBridge extends EventEmitter {
             payloadObj.profileId = effectConfig;
         } else if (typeof effectConfig === 'object') {
             Object.assign(payloadObj, effectConfig);
+            if (!payloadObj.type && payloadObj.action) {
+                payloadObj.type = 'custom_action';
+            }
         }
         
         const payload = JSON.stringify(payloadObj) + '\n';

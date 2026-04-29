@@ -2,6 +2,7 @@ import { TikTokIOConnection } from '../socket.js';
 import { showToast } from './dialog.js';
 
 let socket = null;
+let mcIsConnected = false;
 
 export function initMinecraftUI(ioConnection) {
     socket = ioConnection.socket;
@@ -17,6 +18,7 @@ export function initMinecraftUI(ioConnection) {
     const rconLog = $('#rconLog');
     const rconCmdInput = $('#rconCmdInput');
     const rconSendBtn = $('#rconSendBtn');
+    const saveSettingsBtn = $('#mcSaveSettingsBtn');
 
     function logRcon(text, color, subtext = '') {
         if (!rconLog.length) return;
@@ -85,7 +87,7 @@ export function initMinecraftUI(ioConnection) {
 
     // handle connect/disconnect click
     connectBtn.click(() => {
-        if (connectBtn.text() === 'Connect' || connectBtn.text() === 'Connect Bridge') {
+        if (!mcIsConnected) {
             const host = hostInput.val() || 'localhost';
             const port = parseInt(portInput.val()) || 25575;
             const password = $('#minecraftPassword').val() || '';
@@ -96,6 +98,24 @@ export function initMinecraftUI(ioConnection) {
         } else {
             socket.emit('minecraftDisconnect');
             logRcon('Disconnecting...', 'var(--warning)');
+        }
+    });
+
+    // save settings without connecting
+    saveSettingsBtn.click(async () => {
+        const host = hostInput.val() || 'localhost';
+        const port = parseInt(portInput.val()) || 25575;
+        const password = $('#minecraftPassword').val() || '';
+        const autoConnect = autoConnectCheckbox.is(':checked');
+        try {
+            await fetch('/api/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ minecraft: { host, port, password, autoConnect, enabled: mcIsConnected } })
+            });
+            showToast('RCON settings saved!', 'success');
+        } catch (e) {
+            showToast('Failed to save settings', 'error');
         }
     });
 
@@ -114,6 +134,7 @@ export function initMinecraftUI(ioConnection) {
 }
 
 function updateStatus(isConnected, config) {
+    mcIsConnected = !!isConnected;
     const hostInput = $('#minecraftHost');
     const portInput = $('#minecraftPort');
     const passwordInput = $('#minecraftPassword');

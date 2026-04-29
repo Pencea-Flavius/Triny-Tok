@@ -1,5 +1,6 @@
 import { showToast, showConfirm } from './dialog.js';
 import { GiftDropdown } from './components/GiftDropdown.js';
+import { makeGiftCell, makeActionCell } from './components/GiftActionButtons.js';
 
 const QUALITY_COLORS = ['#888', '#a3e4a3', '#5bb8ff', '#c084fc', '#fbbf24'];
 const CATEGORY_COLORS = {
@@ -26,8 +27,6 @@ export function initIsaacUI(ioConnection) {
     const tableBody       = $('#isaacEffectsTableBody');
     const modal           = $('#isaacEffectModal');
     const addBtn          = $('#addIsaacEffectBtn');
-    const statusText      = $('#isaacStatusText');
-    const statusBadgeDot  = $('#isaacStatusBadgeDot');
     const sidebarDot      = $('#isaacStatusDot');
     const statusTextLarge = $('#isaacStatusTextLarge');
     const sidebarStatusDot = $('#isaacSidebarStatusDot');
@@ -53,28 +52,39 @@ export function initIsaacUI(ioConnection) {
 
     function renderItemSuggestions(query) {
         itemSearchResults.empty();
-        const filtered = isaacItems.filter(it => it.name.toLowerCase().includes(query)).slice(0, 50);
-        if (filtered.length === 0) { itemSearchResults.hide(); return; }
+        
+        // Add Random Item at the top if it matches the query
+        if (!query || 'random item'.includes(query)) {
+            const randomItem = { id: -1, name: 'Random Item', quality: 0, description: 'Spawns a random collectible item' };
+            itemSearchResults.append(createItemElement(randomItem));
+        }
 
+        const filtered = isaacItems.filter(it => it.name.toLowerCase().includes(query)).slice(0, 50);
         filtered.forEach(it => {
-            const sprite = getItemSprite(it.id);
-            const item = $(`
-                <div class="isaac-item-result" style="display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--border-light);">
-                    <div class="isaac-sprite" style="background-position:${sprite.x}px ${sprite.y}px;transform:scale(0.5);margin:-10px;"></div>
-                    <div style="flex:1;">
-                        <div style="font-weight:600;font-size:0.9rem;">${it.name}</div>
-                        <div style="font-size:0.7rem;color:var(--text-muted);">${it.description || ''}</div>
-                    </div>
-                    <div style="background:${QUALITY_COLORS[it.quality] || '#888'};color:white;padding:1px 6px;border-radius:4px;font-size:0.7rem;font-weight:800;">Q${it.quality}</div>
-                </div>
-            `);
-            item.on('click', () => {
-                selectItem(it);
-                itemSearchResults.hide();
-            });
-            itemSearchResults.append(item);
+            itemSearchResults.append(createItemElement(it));
         });
+        
+        if (itemSearchResults.children().length === 0) { itemSearchResults.hide(); return; }
         itemSearchResults.show();
+    }
+
+    function createItemElement(it) {
+        const sprite = getItemSprite(it.id);
+        const item = $(`
+            <div class="isaac-item-result">
+                <div class="isaac-sprite" style="background-position:${sprite ? sprite.x + 'px ' + sprite.y + 'px' : '0 0'};transform:scale(0.5);margin:-10px;"></div>
+                <div class="gift-search-info">
+                    <div class="item-name">${it.name}</div>
+                    <div class="item-meta">${it.description || ''}</div>
+                </div>
+                <div class="isaac-item-quality-badge" style="background:${QUALITY_COLORS[it.quality] || '#888'};">Q${it.quality}</div>
+            </div>
+        `);
+        item.on('click', () => {
+            selectItem(it);
+            itemSearchResults.hide();
+        });
+        return item;
     }
 
     function selectItem(it) {
@@ -82,7 +92,7 @@ export function initIsaacUI(ioConnection) {
         itemSearchInput.val(it.name);
         itemNameLabel.text(it.name).show();
         const sprite = getItemSprite(it.id);
-        itemPreview.html(`<div class="isaac-sprite" style="background-position:${sprite.x}px ${sprite.y}px;transform:scale(0.9);"></div>`);
+        itemPreview.html(`<div class="isaac-sprite" style="background-position:${sprite ? sprite.x + 'px ' + sprite.y + 'px' : '0 0'};transform:scale(0.9);"></div>`);
         itemQualityBadge.text(`Quality ${it.quality}`).css('background', QUALITY_COLORS[it.quality] || '#888').show();
     }
 
@@ -142,9 +152,7 @@ export function initIsaacUI(ioConnection) {
             sidebarStatusDot.toggle(isConnected).css('background', 'var(--success)');
         }
 
-        sidebarDot.toggle(isConnected);
-        statusBadgeDot.css('background', isConnected ? '#27ae60' : '#444');
-        statusText.text(isConnected ? 'TBOI mod connected' : (serverActive ? 'Listening...' : 'Bridge stopped'));
+        sidebarDot.toggle(isConnected).css('background', 'var(--success)');
     }
 
     if (socket) {
@@ -173,7 +181,18 @@ export function initIsaacUI(ioConnection) {
     }
 
     function getItemSprite(id) {
-        const idx = isaacItems.findIndex(it => it.id === parseInt(id));
+        id = parseInt(id);
+        if (id === -1) {
+            // Random Item icon (the one after Mom's Ring)
+            const momsRingIdx = isaacItems.findIndex(it => it.id === 732);
+            let gIdx = (momsRingIdx !== -1 ? momsRingIdx : 731) + 1;
+            // Offsets for ID 733 (next one)
+            gIdx++; // for id >= 475
+            gIdx++; // for id >= 649
+            if (gIdx >= 548) gIdx += 12;
+            return { x: -( (gIdx % 20) * 44), y: -(Math.floor(gIdx / 20) * 44) };
+        }
+        const idx = isaacItems.findIndex(it => it.id === id);
         if (idx === -1) return null;
         let gIdx = idx;
         if (id >= 475) gIdx++; if (id >= 649) gIdx++; if (gIdx >= 548) gIdx += 12;
@@ -188,17 +207,15 @@ export function initIsaacUI(ioConnection) {
         keys.forEach(giftName => {
             const effect = currentCommands[giftName];
             const gift = availableGifts.find(g => g.name === giftName);
-            const isProfile = typeof effect === 'string';
 
-            let title = '', icon = '';
-            if (isProfile) {
+            let title = '', icon = null;
+            if (typeof effect === 'string') {
                 const p = profiles.find(x => x.id === effect) || { name: effect };
                 title = p.name;
             } else if (effect && effect.action === 'spawn_item') {
-                const it = isaacItems.find(x => x.id === effect.itemId);
-                title = it ? it.name : `Item #${effect.itemId}`;
-                const s = it ? getItemSprite(it.id) : null;
-                if (s) icon = `<div class="isaac-sprite" style="background-position:${s.x}px ${s.y}px;transform:scale(0.5);margin:-12px;"></div>`;
+                title = effect.itemId === -1 ? 'Random Item' : (isaacItems.find(x => x.id === effect.itemId)?.name || `Item #${effect.itemId}`);
+                const s = getItemSprite(effect.itemId);
+                if (s) icon = $(`<div class="isaac-sprite" style="background-position:${s.x}px ${s.y}px;transform:scale(0.5);margin:-12px;"></div>`);
             } else if (effect && effect.action === 'spawn_entity') {
                 title = `Spawn Entity ${effect.entityId || ''}`;
             } else if (effect && effect.action === 'set_health') {
@@ -207,40 +224,23 @@ export function initIsaacUI(ioConnection) {
                 title = JSON.stringify(effect);
             }
 
-            const row = $(`
-                <tr>
-                    <td><div style="display:flex;align-items:center;gap:10px;">
-                        <img src="${gift?.image?.url_list?.[0] || ''}" style="width:24px;height:24px;border-radius:4px;background:var(--bg3);">
-                        <b>${giftName}</b>
-                    </div></td>
-                    <td><div style="display:flex;align-items:center;gap:8px;">${icon}<span>${title}</span></div></td>
-                    <td style="text-align:center;"><div style="display:flex;gap:5px;justify-content:center;">
-                        <button class="btn-primary btn-sm btn-isaac-test" data-gift="${giftName}">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                            Test
-                        </button>
-                        <button class="btn-secondary btn-sm btn-isaac-edit" data-gift="${giftName}">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                            Edit
-                        </button>
-                        <button class="btn-danger btn-sm btn-isaac-delete" data-gift="${giftName}">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path></svg>
-                            Delete
-                        </button>
-                    </div></td>
-                </tr>
-            `);
-            tableBody.append(row);
-        });
+            const effectTd = $('<td class="command-cell"></td>');
+            const effectInner = $('<div style="display:flex;align-items:center;gap:8px;"></div>');
+            if (icon) effectInner.append(icon);
+            effectInner.append($('<span></span>').text(title));
+            effectTd.append(effectInner);
 
-        $('.btn-isaac-test').off().click(function () {
-            window.testIsaac($(this).data('gift'));
-        });
-        $('.btn-isaac-edit').off().click(function () {
-            openModal($(this).data('gift'));
-        });
-        $('.btn-isaac-delete').off().click(function () {
-            window.deleteIsaacMapping($(this).data('gift'));
+            const row = $('<tr></tr>');
+            row.append(
+                makeGiftCell(giftName, gift),
+                effectTd,
+                makeActionCell(giftName, {
+                    onTest:   (g) => window.testIsaac(g),
+                    onEdit:   (g) => openModal(g),
+                    onDelete: (g) => window.deleteIsaacMapping(g)
+                })
+            );
+            tableBody.append(row);
         });
     }
 
@@ -254,6 +254,8 @@ export function initIsaacUI(ioConnection) {
         $('#fields_spawn_item').show();
         itemSelectedId.val('');
         itemSearchInput.val('');
+        $('#isaacItemAutoCollect').prop('checked', false);
+        $('#isaacWaitStreak').prop('checked', true);
         itemPreview.html('<span style="font-size:9px;color:var(--text-muted);">ITEM</span>');
         itemNameLabel.hide();
         itemQualityBadge.hide();
@@ -271,9 +273,12 @@ export function initIsaacUI(ioConnection) {
                 renderProfileCards(effect);
                 window.selectedIsaacProfile = effect;
             } else if (effect && effect.action === 'spawn_item') {
-                const it = isaacItems.find(x => x.id === effect.itemId);
+                const it = effect.itemId === -1 
+                    ? { id: -1, name: 'Random Item', quality: 0, description: 'Spawns a random collectible item' }
+                    : isaacItems.find(x => x.id === effect.itemId);
                 if (it) selectItem(it);
                 $('#isaacItemAmountInput').val(effect.amount || 1);
+                $('#isaacItemAutoCollect').prop('checked', !!effect.autoCollect);
             } else if (effect && effect.action === 'spawn_entity') {
                 $('.isaac-action-tab[data-action="spawn_entity"]').trigger('click');
                 $('#isaacEntityIdInput').val(effect.entityId || '');
@@ -281,6 +286,10 @@ export function initIsaacUI(ioConnection) {
             } else if (effect && effect.action === 'set_health') {
                 $('.isaac-action-tab[data-action="set_health"]').trigger('click');
                 $('#isaacHealthInput').val(effect.hearts || '');
+            }
+            
+            if (effect && typeof effect === 'object') {
+                $('#isaacWaitStreak').prop('checked', effect.waitForStreak !== false);
             }
         } else {
             giftDropdown.setValue('');
@@ -334,21 +343,47 @@ export function initIsaacUI(ioConnection) {
         let isProfileMode = $('#isaacModeProfileBtn').hasClass('active');
 
         if (isProfileMode) {
-            payload = window.selectedIsaacProfile;
+            if (window.selectedIsaacProfile) {
+                payload = {
+                    type: 'activate',
+                    profileId: window.selectedIsaacProfile,
+                    waitForStreak: $('#isaacWaitStreak').is(':checked')
+                };
+            }
         } else {
             const action = $('.isaac-action-tab.active').data('action') || 'spawn_item';
+            const waitForStreak = $('#isaacWaitStreak').is(':checked');
+            
             if (action === 'spawn_item') {
                 const itemId = parseInt($('#isaacSelectedItemId').val());
-                if (itemId) {
-                    payload = { action: 'spawn_item', itemId, amount: parseInt($('#isaacItemAmountInput').val()) || 1 };
+                if (itemId || itemId === -1) {
+                    payload = { 
+                        type: 'custom_action',
+                        action: 'spawn_item', 
+                        itemId, 
+                        amount: parseInt($('#isaacItemAmountInput').val()) || 1,
+                        autoCollect: $('#isaacItemAutoCollect').is(':checked'),
+                        waitForStreak
+                    };
                 }
             } else if (action === 'spawn_entity') {
                 const entityId = $('#isaacEntityIdInput').val().trim();
                 if (entityId) {
-                    payload = { action: 'spawn_entity', entityId, amount: parseInt($('#isaacEntityAmountInput').val()) || 1 };
+                    payload = { 
+                        type: 'custom_action', 
+                        action: 'spawn_entity', 
+                        entityId, 
+                        amount: parseInt($('#isaacEntityAmountInput').val()) || 1,
+                        waitForStreak
+                    };
                 }
             } else if (action === 'set_health') {
-                payload = { action: 'set_health', hearts: parseInt($('#isaacHealthInput').val()) || 6 };
+                payload = { 
+                    type: 'custom_action', 
+                    action: 'set_health', 
+                    hearts: parseInt($('#isaacHealthInput').val()) || 6,
+                    waitForStreak
+                };
             }
         }
 

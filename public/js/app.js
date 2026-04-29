@@ -29,6 +29,7 @@ function updateSessionPanel() {
     $('#sessionChats').text(sessionChatCount.toLocaleString());
     $('#sessionFollows').text(sessionFollowCount.toLocaleString());
     $('#sessionFollowsBadge').text(sessionFollowCount.toLocaleString());
+    $('#tiktokStatusDot').toggle(isConnected);
 }
 
 function renderRecentFollowers() {
@@ -62,6 +63,7 @@ $(document).ready(() => {
     $('#uniqueIdInput').val(localStorage.getItem('tiktokUsername') || '');
 
     $('#connectButton').click(connect);
+    $('#disconnectButton').click(disconnect);
     $('#syncInitialBtn').click(syncInitial);
     $('#topDonorsTab').click(() => { if (isConnected) loadTopDonors(); });
     $('#refreshTopDonorsBtn').click(() => { if (isConnected) loadTopDonors(); });
@@ -83,6 +85,10 @@ function connect() {
         $('#statusDot').removeClass('success error').addClass('loading');
         $('#statusText').text('Connecting...');
         $('#sessionStatus').text('Connecting...').css('color', 'var(--dim)');
+        
+        // Disable UI during connection to prevent spam
+        $('#connectButton').prop('disabled', true).find('span').text('Connecting...');
+        $('#uniqueIdInput').prop('disabled', true);
 
         // clear old data
         isConnected = false;
@@ -104,15 +110,54 @@ function connect() {
             $('#statusDot').removeClass('loading error').addClass('connected');
             $('#statusText').text(`Connected: @${uniqueId}`);
             $('#sessionStatus').text('Connected').css('color', 'var(--success)');
+
+            // Switch buttons
+            $('#connectButton').addClass('hide').prop('disabled', false).find('span').text('Connect');
+            $('#disconnectButton').addClass('show');
+            $('#uniqueIdInput').prop('disabled', true);
+            
+            // Update panel (this might show the sync button if it checks isConnected)
+            updateSessionPanel();
         }).catch(err => {
             isConnected = false;
             $('#statusDot').removeClass('loading success connected').addClass('error');
             $('#statusText').text(err.toString());
             $('#sessionStatus').text('Error').css('color', 'var(--danger)');
+            
+            // Re-enable UI on error
+            $('#connectButton').prop('disabled', false).find('span').text('Connect');
+            $('#uniqueIdInput').prop('disabled', false);
         });
     } else {
         showToast('Please enter a TikTok username', 'warning');
     }
+}
+
+function disconnect() {
+    connection.disconnect();
+    isConnected = false;
+
+    // Reset session variables
+    viewerCount = 0;
+    likeCount = 0;
+    sessionGiftCount = 0;
+    sessionChatCount = 0;
+    sessionFollowCount = 0;
+    recentFollowers = [];
+
+    // Reset UI panels
+    updateSessionPanel();
+    renderRecentFollowers();
+    resetStats();
+
+    $('#statusDot').removeClass('connected loading success').addClass('error');
+    $('#statusText').text('Disconnected');
+    $('#sessionStatus').text('Disconnected').css('color', 'var(--danger)');
+
+    // Reset buttons
+    $('#connectButton').removeClass('hide');
+    $('#disconnectButton').removeClass('show');
+    $('#uniqueIdInput').prop('disabled', false);
 }
 
 // listen to backend events
@@ -194,6 +239,6 @@ connection.on('social', (data) => {
 });
 
 connection.on('streamEnd', () => {
-    $('#statusDot').removeClass('loading success').addClass('error');
+    disconnect();
     $('#statusText').text('Stream ended.');
 });
