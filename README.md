@@ -36,7 +36,6 @@ The dashboard will be available at http://localhost:3000
 
 1. TikTok Setup: Enter your username (e.g. @yourusername) in the dashboard and connect.
 2. Game Bridge: Set up the connection to your game or server directly from the interface.
-3. Commands: Head to the commands tab to map gifts to in-game actions. You can use {username} as a placeholder in your commands.
 
 ## Supported Games
 
