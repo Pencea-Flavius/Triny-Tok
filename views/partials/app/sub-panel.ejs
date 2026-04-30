@@ -1,0 +1,135 @@
+<aside class="sub-panel" id="subPanel">
+
+  <div class="sub-header">
+    <div class="sub-section-label" id="subSectionLabel">Connection</div>
+    <div class="sub-section-desc" id="subSectionDesc">TikTok stream &amp; status</div>
+  </div>
+
+  <nav class="sub-nav">
+
+    <!-- Connect group -->
+    <div class="sub-group visible" data-section="connect">
+      <button class="sub-item active" data-tab="connect" id="connectTab">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path
+            d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.42C2 2.19 2.95 2 3.71 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+        </svg>
+        TikTok Connect
+        <div id="tiktokStatusDot" style="width:7px;height:7px;border-radius:50%;background:var(--success);margin-left:auto;display:none;box-shadow:0 0 5px var(--success);"></div>
+      </button>
+    </div>
+
+    <!-- Monitor group -->
+    <div class="sub-group" data-section="monitor">
+      <button class="sub-item" data-tab="chat" id="chatTab">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
+        Live Chat
+      </button>
+      <button class="sub-item" data-tab="tracker" id="trackerTab">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 12 20 22 4 22 4 12" />
+          <rect x="2" y="7" width="20" height="5" />
+          <line x1="12" y1="22" x2="12" y2="7" />
+          <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" />
+          <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" />
+        </svg>
+        Gift Log
+      </button>
+      <button class="sub-item" data-tab="topDonors" id="topDonorsTab">
+        <svg width="14" height="14" viewBox="0 0 640 640" fill="currentColor"
+          style="margin-right: 6px; opacity: 0.85;">
+          <path
+            d="M232.5 136L320 229L407.5 136L232.5 136zM447.9 163.1L375.6 240L504.6 240L448 163.1zM497.9 288L142.1 288L320 484.3L497.9 288zM135.5 240L264.5 240L192.2 163.1L135.6 240zM569.8 280.1L337.8 536.1C333.3 541.1 326.8 544 320 544C313.2 544 306.8 541.1 302.2 536.1L70.2 280.1C62.5 271.6 61.9 258.9 68.7 249.7L180.7 97.7C185.2 91.6 192.4 87.9 200 87.9L440 87.9C447.6 87.9 454.8 91.5 459.3 97.7L571.3 249.7C578.1 258.9 577.4 271.6 569.8 280.1z" />
+        </svg>
+        Top Donators
+      </button>
+    </div>
+
+    <!-- Game group — console accordion -->
+    <div class="sub-group" data-section="game">
+
+      <!-- Isaac console accordion -->
+      <div class="sub-console" id="consoleIsaac">
+        <button class="sub-console-header" id="consoleIsaacBtn">
+          <div class="sub-console-header-left">
+            <svg width="18" height="18" viewBox="0 0 96 96" fill="currentColor" xmlns="http://www.w3.org/2000/svg" style="opacity: 0.85;">
+              <path d="M0 0 C7.07644273 5.3992339 13.46287638 11.88655757 15.625 20.75 C16.91362535 31.38396046 15.89036744 39.70463509 9.625 48.75 C2.51726125 57.72994033 -7.22191864 62.65599778 -18.375 64.75 C-33.13859734 66.21709388 -47.02925591 64.9168015 -59.15625 55.6640625 C-66.47308433 49.35200472 -71.63975054 42.81740645 -72.82421875 33.04296875 C-73.45104511 22.73391383 -71.22313503 14.87514962 -64.69921875 6.6328125 C-48.66433577 -10.54478627 -19.3381091 -12.65082885 0 0 Z M-58.1640625 13.80859375 C-62.02339869 18.79280755 -63.52260337 22.22558058 -63.5625 28.625 C-63.57667969 29.65367188 -63.59085938 30.68234375 -63.60546875 31.7421875 C-63.37081369 34.80463488 -62.66684572 36.98248861 -61.375 39.75 C-61.045 39.75 -60.715 39.75 -60.375 39.75 C-60.28412109 38.28626953 -60.28412109 38.28626953 -60.19140625 36.79296875 C-60.10761719 35.52066406 -60.02382813 34.24835937 -59.9375 32.9375 C-59.85628906 31.67292969 -59.77507813 30.40835938 -59.69140625 29.10546875 C-59.375 25.75 -59.375 25.75 -58.375 22.75 C-55.42673237 21.76724412 -53.44847496 21.61585275 -50.375 21.625 C-49.50875 21.62242188 -48.6425 21.61984375 -47.75 21.6171875 C-45.375 21.75 -45.375 21.75 -42.375 22.75 C-41.25316292 26.11551123 -41.16699032 28.84060232 -41.05859375 32.38671875 C-41.01669922 33.68544922 -40.97480469 34.98417969 -40.93164062 36.32226562 C-40.89183013 37.69400761 -40.85211784 39.06575244 -40.8125 40.4375 C-40.76929165 41.82097645 -40.72567661 43.20444027 -40.68164062 44.58789062 C-40.57541972 47.97515719 -40.47337642 51.36249799 -40.375 54.75 C-37.65448714 55.65683762 -36.04766994 55.87842547 -33.25 55.8828125 C-32.46109375 55.88410156 -31.6721875 55.88539062 -30.859375 55.88671875 C-30.03953125 55.88285156 -29.2196875 55.87898438 -28.375 55.875 C-27.14523438 55.88080078 -27.14523438 55.88080078 -25.890625 55.88671875 C-25.10171875 55.88542969 -24.3128125 55.88414063 -23.5 55.8828125 C-22.78070313 55.88168457 -22.06140625 55.88055664 -21.3203125 55.87939453 C-19.15737639 55.81777378 -19.15737639 55.81777378 -16.375 54.75 C-16.33741577 53.45582153 -16.33741577 53.45582153 -16.29907227 52.13549805 C-16.20388615 48.93176231 -16.10465556 45.72818463 -16.00268555 42.5246582 C-15.95939782 41.13864017 -15.91771836 39.75257094 -15.87768555 38.36645508 C-15.81983416 36.37308202 -15.75570224 34.37989435 -15.69140625 32.38671875 C-15.65474854 31.18748779 -15.61809082 29.98825684 -15.58032227 28.75268555 C-15.375 25.75 -15.375 25.75 -14.375 22.75 C-11.50677682 21.79392561 -9.43255254 21.52307293 -6.4375 21.4375 C-5.58285156 21.40011719 -4.72820312 21.36273438 -3.84765625 21.32421875 C-0.43414451 21.91201145 0.62524568 22.93770443 2.625 25.75 C3.234375 29.203125 3.234375 29.203125 3.375 33 C3.43171875 34.26328125 3.4884375 35.5265625 3.546875 36.828125 C3.57265625 37.79234375 3.5984375 38.7565625 3.625 39.75 C6.84893501 36.52606499 6.83111516 33.43547677 6.9375 29.0625 C6.83562696 22.00779197 5.4415093 17.81436211 0.671875 12.625 C-9.32804918 3.1145826 -19.43015274 1.25509879 -32.80859375 1.47265625 C-42.86431077 1.88760167 -51.56966411 6.22071613 -58.1640625 13.80859375 Z M-54.375 25.75 C-54.705 27.4 -55.035 29.05 -55.375 30.75 C-52.9 31.245 -52.9 31.245 -50.375 31.75 C-50.045 30.1 -49.715 28.45 -49.375 26.75 C-51.025 26.42 -52.675 26.09 -54.375 25.75 Z M-10.375 25.75 C-10.705 27.4 -11.035 29.05 -11.375 30.75 C-8.9 31.245 -8.9 31.245 -6.375 31.75 C-6.045 30.1 -5.715 28.45 -5.375 26.75 C-7.025 26.42 -8.675 26.09 -10.375 25.75 Z" transform="translate(76.375,19.25)"/>
+              <path d="M0 0 C2.5 1.75 2.5 1.75 4 4 C4 5.32 4 6.64 4 8 C-1.28 8 -6.56 8 -12 8 C-11.67 6.02 -11.34 4.04 -11 2 C-7.32316242 -0.45122505 -4.27282747 -0.70497355 0 0 Z" transform="translate(52,52)"/>
+            </svg>
+            <span>TBOI</span>
+            <div id="isaacStatusDot" style="width:7px;height:7px;border-radius:50%;background:#444;margin-left:6px;flex-shrink:0;"></div>
+          </div>
+          <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </button>
+        <div class="sub-console-items">
+          <button class="sub-item sub-console-item" data-tab="isaacEffects" id="isaacEffectsTab">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            </svg>
+            Gift Effects
+          </button>
+        </div>
+      </div>
+
+      <!-- Minecraft console accordion -->
+      <div class="sub-console" id="consoleMinecraft">
+        <button class="sub-console-header" id="consoleMinecraftBtn">
+          <div class="sub-console-header-left">
+            <svg width="15" height="15" viewBox="0 0 20 20" fill="currentColor" fill-rule="evenodd"
+              xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M12,10 L16,10 L16,6 L12,6 L12,10 Z M4,10 L8,10 L8,6 L4,6 L4,10 Z M18,18 L14,18 L14,12 L12,12 L12,10 L8,10 L8,12 L6,12 L6,18 L2,18 L2,2 L18,2 L18,18 Z M8,18 L12,18 L12,16 L8,16 L8,18 Z M0,20 L20,20 L20,0 L0,0 L0,20 Z" />
+            </svg>
+            <span>Minecraft</span>
+            <div id="mcStatusSidebarDot" style="width:7px;height:7px;border-radius:50%;background:#444;margin-left:6px;flex-shrink:0;"></div>
+          </div>
+          <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </button>
+        <div class="sub-console-items">
+          <button class="sub-item sub-console-item" data-tab="minecraft" id="minecraftTab">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="3" width="7" height="7" rx="1" />
+              <rect x="15" y="3" width="7" height="7" rx="1" />
+              <rect x="15" y="14" width="7" height="7" rx="1" />
+              <rect x="2" y="14" width="7" height="7" rx="1" />
+            </svg>
+            Settings
+          </button>
+          <button class="sub-item sub-console-item" data-tab="commands" id="commandsTab">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="4 17 10 11 4 5" />
+              <line x1="12" y1="19" x2="20" y2="19" />
+            </svg>
+            Gift Commands
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+  </nav>
+
+  <div class="sub-footer">
+    <a href="/">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+        <polyline points="9 22 9 12 15 12 15 22" />
+      </svg>
+      Back to Homepage
+    </a>
+  </div>
+
+</aside>

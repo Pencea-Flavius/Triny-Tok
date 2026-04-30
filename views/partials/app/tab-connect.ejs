@@ -1,0 +1,153 @@
+<div id="connectContent" class="tab-content active">
+  <div class="page-header">
+    <div>
+      <div class="page-eyebrow"><span class="eyebrow-dot"></span>TikTok Live</div>
+      <h1 class="page-h1">Connection</h1>
+      <p class="page-sub">Link TrinyTok to a live TikTok stream.</p>
+    </div>
+  </div>
+
+  <hr class="accent-rule">
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;flex:1;min-height:0;">
+
+    <!-- Left: form -->
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div class="card">
+        <div class="field">
+          <label class="field-label">Streamer Username</label>
+          <div style="display:flex;gap:10px;margin-top:6px;">
+            <input type="text" id="uniqueIdInput" placeholder="@username" style="flex:1;">
+            <div class="connection-action-wrapper">
+              <button class="btn-primary" id="connectButton">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 17H7A5 5 0 0 1 7 7H9" />
+                  <path d="M15 7h2a5 5 0 0 1 0 10h-2" />
+                  <line x1="8" y1="12" x2="16" y2="12" />
+                </svg>
+                <span>Connect</span>
+              </button>
+              <button class="btn-danger" id="disconnectButton" style="display:none;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 17H7A5 5 0 0 1 7 7H9" />
+                  <path d="M15 7h2a5 5 0 0 1 0 10h-2" />
+                  <line x1="2" y1="2" x2="22" y2="22" />
+                </svg>
+                <span>Disconnect</span>
+              </button>
+            </div>
+          </div>
+          <p style="font-size:12px;color:var(--dim);margin-top:8px;">The streamer must be currently <strong
+              style="color:var(--danger)">LIVE</strong> on TikTok.</p>
+        </div>
+      </div>
+
+      <div class="card-tip">
+        <div class="tip-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+            stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent);">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="16" x2="12" y2="12" />
+            <line x1="12" y1="8" x2="12.01" y2="8" />
+          </svg>
+        </div>
+        <div>
+          <div class="tip-title">How it works</div>
+          <div class="tip-desc">Enter a TikTok username and click Connect. TrinyTok will listen to all gifts,
+            chat, and engagement events in real time — no cloud required.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: live session stats -->
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="card">
+        <div
+          style="font-size:10.5px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-bottom:18px;">
+          Live Session</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div
+            style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-md);padding:16px;">
+            <div
+              style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--dim);margin-bottom:6px;">
+              Viewers</div>
+            <div style="font-size:26px;font-weight:900;letter-spacing:-1px;color:var(--accent);"
+              id="sessionViewers">0</div>
+          </div>
+          <div
+            style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-md);padding:16px;">
+            <div
+              style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--dim);margin-bottom:6px;">
+              Likes</div>
+            <div style="font-size:26px;font-weight:900;letter-spacing:-1px;color:var(--accent);"
+              id="sessionLikes">0</div>
+          </div>
+          <div
+            style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-md);padding:16px;">
+            <div
+              style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--dim);margin-bottom:6px;">
+              Diamonds</div>
+            <div style="font-size:26px;font-weight:900;letter-spacing:-1px;color:var(--accent);"
+              id="sessionDiamonds">0</div>
+          </div>
+          <div
+            style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-md);padding:16px;">
+            <div
+              style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--dim);margin-bottom:6px;">
+              Est. USD</div>
+            <div style="font-size:26px;font-weight:900;letter-spacing:-1px;color:var(--accent);"
+              id="sessionUSD">$0.00</div>
+          </div>
+        </div>
+
+        <div
+          style="margin-top:18px;padding-top:16px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:12.5px;">
+            <span style="color:var(--dim);">Connection status</span>
+            <span id="sessionStatus" style="font-weight:700;color:var(--danger);">Disconnected</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:12.5px;">
+            <span style="color:var(--dim);">Gifts received</span>
+            <span id="sessionGifts" style="font-weight:700;color:var(--text);">0</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:12.5px;">
+            <span style="color:var(--dim);">Chat messages</span>
+            <span id="sessionChats" style="font-weight:700;color:var(--text);">0</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:12.5px;">
+            <span style="color:var(--dim);">Follows this session</span>
+            <span id="sessionFollows" style="font-weight:700;color:var(--accent);">0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Followers -->
+      <div class="card" style="margin-top: 0; margin-bottom: 24px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <div
+            style="font-size:10.5px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">
+            Recent Followers</div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--accent)"
+              stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <line x1="19" y1="8" x2="19" y2="14" />
+              <line x1="22" y1="11" x2="16" y2="11" />
+            </svg>
+            <span id="sessionFollowsBadge" style="font-size:11px;font-weight:800;color:var(--accent);">0</span>
+            <span style="font-size:11px;color:var(--dim);">this session</span>
+          </div>
+        </div>
+
+        <div id="recentFollowersList" style="display:flex;flex-direction:column;gap:10px;">
+          <div class="follower-placeholder"
+            style="text-align:center;padding:16px 0;font-size:12px;color:var(--dim);">No new followers yet</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
