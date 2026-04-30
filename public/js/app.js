@@ -8,6 +8,7 @@ import { initMinecraftUI } from './ui/minecraft.js';
 import { initCommandsUI, refreshCommandsData } from './ui/commands.js';
 import { initIsaacUI } from './ui/isaac.js';
 import { showToast } from './ui/dialog.js';
+window.showToast = showToast;
 
 // store stuff here
 let viewerCount = 0;

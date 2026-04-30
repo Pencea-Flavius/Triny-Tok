@@ -8,7 +8,8 @@ const CATEGORY_COLORS = {
     'Curses':     '#9b59b6',
     'Punishment': '#e07c2a',
     'Timed':      '#3498db',
-    'Boon':       '#27ae60',
+    'Buff':       '#27ae60',
+    'Glitch':     '#00d2d3',
     'Other':      '#888888',
 };
 
@@ -17,6 +18,7 @@ let availableGifts   = [];
 let profiles         = [];
 let currentCommands  = {};
 let isaacItems       = [];
+let isaacBosses      = [];
 let giftDropdown     = null;
 let serverActive     = false;
 let isConnected      = false;
@@ -46,38 +48,84 @@ export function initIsaacUI(ioConnection) {
     const itemQualityBadge = $('#isaacItemQualityBadge');
 
     itemSearchInput.on('input focus', function() {
-        const query = $(this).val().toLowerCase();
-        renderItemSuggestions(query);
+        const query = $(this).val();
+        updateItemSuggestions(query);
     });
 
-    function renderItemSuggestions(query) {
-        itemSearchResults.empty();
+    const bossSearchInput = $('#isaacBossSearchInput');
+    const bossSearchResults = $('#isaacBossSearchResults');
+    const bossSelectedId = $('#isaacSelectedBossId');
+    const bossPreview = $('#isaacBossPreview');
+    const bossNameLabel = $('#isaacBossNameLabel');
+
+    bossSearchInput.on('input focus', function() {
+        const query = $(this).val();
+        updateBossSuggestions(query);
+    });
+
+    function populateFilters(meta) {
+        const typeSelect = $('#isaacFilterType');
+        const poolSelect = $('#isaacFilterPool');
         
+        typeSelect.find('option:not(:first)').remove();
+        poolSelect.find('option:not(:first)').remove();
+        
+        if (meta.types) {
+            meta.types.forEach(t => typeSelect.append(`<option value="${t}">${t}</option>`));
+        }
+        if (meta.pools) {
+            meta.pools.forEach(p => poolSelect.append(`<option value="${p}">${p}</option>`));
+        }
+    }
+
+    function updateItemSuggestions(query = '') {
+        const results = $('#isaacItemSearchResults');
+        results.empty();
+
+        const qualityFilter = $('#isaacFilterQuality').val();
+        const typeFilter = $('#isaacFilterType').val();
+        const poolFilter = $('#isaacFilterPool').val();
+
+        const filtered = isaacItems.filter(item => {
+            const matchesQuery = item.name.toLowerCase().includes(query.toLowerCase());
+            const matchesQuality = !qualityFilter || item.quality === parseInt(qualityFilter);
+            const matchesType = !typeFilter || (item.type && item.type.includes(typeFilter));
+            const matchesPool = !poolFilter || (item.pool && item.pool.includes(poolFilter));
+            
+            return matchesQuery && matchesQuality && matchesType && matchesPool;
+        });
+
         // Add Random Item at the top if it matches the query
-        if (!query || 'random item'.includes(query)) {
+        if (!query || 'random item'.includes(query.toLowerCase())) {
             const randomItem = { id: -1, name: 'Random Item', quality: 0, description: 'Spawns a random collectible item' };
-            itemSearchResults.append(createItemElement(randomItem));
+            results.append(createItemElement(randomItem));
         }
 
-        const filtered = isaacItems.filter(it => it.name.toLowerCase().includes(query)).slice(0, 50);
-        filtered.forEach(it => {
-            itemSearchResults.append(createItemElement(it));
+        filtered.slice(0, 50).forEach(it => {
+            results.append(createItemElement(it));
         });
         
-        if (itemSearchResults.children().length === 0) { itemSearchResults.hide(); return; }
-        itemSearchResults.show();
+        if (results.children().length === 0) { results.hide(); return; }
+        results.show();
     }
 
     function createItemElement(it) {
-        const sprite = getItemSprite(it.id);
+        const s = getItemSprite(it.id);
+        const iconHtml = s
+            ? `<div class="isaac-sprite" style="background-position:${s.x}px ${s.y}px;"></div>`
+            : `<span style="font-size:9px;color:var(--dim);">?</span>`;
+
         const item = $(`
             <div class="isaac-item-result">
-                <div class="isaac-sprite" style="background-position:${sprite ? sprite.x + 'px ' + sprite.y + 'px' : '0 0'};transform:scale(0.5);margin:-10px;"></div>
-                <div class="gift-search-info">
+                <div class="isaac-item-icon">${iconHtml}</div>
+                <div class="item-info">
                     <div class="item-name">${it.name}</div>
-                    <div class="item-meta">${it.description || ''}</div>
+                    <div class="item-meta">
+                        ${it.pool ? `<span class="pool-tag">${it.pool}</span>` : ''}
+                        ${it.type ? `<span class="type-tag">${it.type}</span>` : ''}
+                    </div>
                 </div>
-                <div class="isaac-item-quality-badge" style="background:${QUALITY_COLORS[it.quality] || '#888'};">Q${it.quality}</div>
+                <div class="item-quality" style="border-left: 3px solid ${QUALITY_COLORS[it.quality] || '#888'};">Q${it.quality}</div>
             </div>
         `);
         item.on('click', () => {
@@ -91,14 +139,104 @@ export function initIsaacUI(ioConnection) {
         itemSelectedId.val(it.id);
         itemSearchInput.val(it.name);
         itemNameLabel.text(it.name).show();
-        const sprite = getItemSprite(it.id);
-        itemPreview.html(`<div class="isaac-sprite" style="background-position:${sprite ? sprite.x + 'px ' + sprite.y + 'px' : '0 0'};transform:scale(0.9);"></div>`);
+
+        const s = getItemSprite(it.id);
+        if (s) {
+            itemPreview.html(`<div class="isaac-sprite" style="background-position:${s.x}px ${s.y}px; filter:drop-shadow(0 0 6px var(--accent-glow));"></div>`);
+        } else {
+            itemPreview.html(`<span style="font-size:9px;color:var(--dim);">?</span>`);
+        }
         itemQualityBadge.text(`Quality ${it.quality}`).css('background', QUALITY_COLORS[it.quality] || '#888').show();
+
+        const isActive = it.type && it.type.toLowerCase().includes('active');
+        if (isActive) {
+            $('#isaacUseEffectRow').show();
+        } else {
+            $('#isaacUseEffectRow').hide();
+            $('#isaacUseEffectOnly').prop('checked', false);
+        }
+        updateSpawnOptionsVisibility();
+    }
+
+    function updateBossSuggestions(query = '') {
+        bossSearchResults.empty();
+        const filtered = isaacBosses.filter(b => b.name.toLowerCase().includes(query.toLowerCase()));
+        
+        filtered.slice(0, 30).forEach(b => {
+            const img = getBossImage(b.name);
+            const bossEl = $(`
+                <div class="isaac-item-result">
+                    <div class="isaac-item-icon">
+                        <img src="${img}" style="width:32px;height:32px;object-fit:contain;" onerror="this.src='/images/Isaac/boss.png'">
+                    </div>
+                    <div class="item-info">
+                        <div class="item-name">${b.name}</div>
+                        <div class="item-meta">
+                            <span class="type-tag">ID: ${b.id}</span>
+                        </div>
+                    </div>
+                    <div class="item-quality" style="border-left:3px solid var(--accent);font-size:0.6rem;">BOSS</div>
+                </div>
+            `);
+            bossEl.on('click', () => {
+                selectBoss(b);
+                bossSearchResults.hide();
+            });
+            bossSearchResults.append(bossEl);
+        });
+
+        if (bossSearchResults.children().length === 0) { bossSearchResults.hide(); return; }
+        bossSearchResults.show();
+    }
+
+    function selectBoss(b) {
+        bossSelectedId.val(b.id);
+        bossSearchInput.val(b.name);
+        bossNameLabel.text(b.name).show();
+        
+        const img = getBossImage(b.name);
+        bossPreview.html(`<img src="${img}" style="width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 0 6px var(--accent-glow));" onerror="this.src='/images/Isaac/boss.png'">`);
+        
+        $('#isaacBossBaseHp').text(b.base_hp || '???');
+        $('#isaacBossHpInfo').show();
+    }
+
+    function getBossImage(name) {
+        if (!name) return null;
+        let cleanName = name.replace(' (Boss)', '');
+        
+        // Handle special character encoding for URLs (especially for ???)
+        cleanName = cleanName.replace(/\?/g, '%3F');
+        cleanName = cleanName.replace(/'/g, '%27');
+        cleanName = cleanName.replace(/ /g, '_');
+
+        // Suffix mapping
+        let suffix = '_portrait.webp';
+        
+        const ingameBosses = ["Ultra_Death", "Ultra_Famine", "Ultra_Pestilence", "Ultra_War", "The_Beast", "Ultra_Greedier"];
+        if (ingameBosses.includes(cleanName)) {
+            suffix = '_ingame.webp';
+        }
+
+        // Special cases for filenames with extra suffixes
+        if (cleanName === "Lil_Blub" || cleanName === "Wormwood") {
+            cleanName += "_29";
+        }
+
+        return `/images/Isaac/Bosses/Boss_${cleanName}${suffix}`;
+    }
+
+    function updateSpawnOptionsVisibility() {
+        const useEffectOnly = $('#isaacUseEffectOnly').is(':checked');
+        $('#isaacItemSpawnOptions').toggle(!useEffectOnly);
     }
 
     $(document).on('click', (e) => {
         if (!$(e.target).closest('#isaacItemSearchWrapper, #isaacItemSearchResults').length) {
             itemSearchResults.hide();
+        }
+        if (!$(e.target).closest('#isaacBossSearchWrapper, #isaacBossSearchResults').length) {
+            bossSearchResults.hide();
         }
     });
 
@@ -122,6 +260,8 @@ export function initIsaacUI(ioConnection) {
         renderProfileCards(window.selectedIsaacProfile || null);
     });
 
+    $('#isaacUseEffectOnly').off('change').on('change', updateSpawnOptionsVisibility);
+
     $('.isaac-action-tab').off('click').on('click', function () {
         $('.isaac-action-tab').removeClass('active');
         $(this).addClass('active');
@@ -141,15 +281,35 @@ export function initIsaacUI(ioConnection) {
         isConnected = !!connected;
         serverActive = !!active;
 
-        connectBtn.text(serverActive ? 'Stop Bridge' : 'Start Bridge');
+        const bridgeCard = $('#isaacBridgeCard');
+        const statusIndicator = $('#isaacStatusIndicator');
+        const btnText = $('#isaacBtnText');
+        const btnIcon = $('#isaacBtnIcon');
+
+        // Update Button
+        btnText.text(serverActive ? 'Stop Bridge' : 'Start Bridge');
         connectBtn.removeClass('btn-primary btn-secondary').addClass(serverActive ? 'btn-secondary' : 'btn-primary');
+        
+        btnIcon.html(serverActive 
+            ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12"></rect></svg>`
+            : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`
+        );
 
         if (!serverActive) {
-            statusTextLarge.text('Server Stopped').css('color', 'var(--danger)');
-            sidebarStatusDot.hide();
+            statusTextLarge.text('Offline').css('color', 'var(--dim)');
+            statusIndicator.css({
+                'background': 'var(--danger)',
+                'box-shadow': '0 0 12px var(--danger)'
+            });
+            bridgeCard.css('border-left-color', 'var(--danger)');
         } else {
-            statusTextLarge.text(isConnected ? 'Connected' : 'Listening...').css('color', isConnected ? 'var(--success)' : 'var(--warning)');
-            sidebarStatusDot.toggle(isConnected).css('background', 'var(--success)');
+            const statusColor = isConnected ? 'var(--success)' : 'var(--warning)';
+            statusTextLarge.text(isConnected ? 'Connected' : 'Listening...').css('color', statusColor);
+            statusIndicator.css({
+                'background': statusColor,
+                'box-shadow': `0 0 12px ${statusColor}`
+            });
+            bridgeCard.css('border-left-color', statusColor);
         }
 
         sidebarDot.toggle(isConnected).css('background', 'var(--success)');
@@ -163,14 +323,18 @@ export function initIsaacUI(ioConnection) {
     // ── Data & Rendering ───────────────────────────────────────────────────────
     async function loadAllData() {
         try {
-            const [itemsRes, cmdsRes, giftsRes, profsRes] = await Promise.all([
-                fetch('/data/isaac-items.json').then(r => r.json()),
+            const [itemsRes, bossesRes, cmdsRes, giftsRes, profsRes, metaRes] = await Promise.all([
+                fetch('/api/isaac/items').then(r => r.json()),
+                fetch('/api/isaac/bosses').then(r => r.json()),
                 fetch('/api/isaac/commands').then(r => r.json()),
                 fetch('/api/gifts').then(r => r.json()),
-                fetch('/api/isaac/profiles').then(r => r.json())
+                fetch('/api/isaac/profiles').then(r => r.json()),
+                fetch('/api/isaac/metadata').then(r => r.json())
             ]);
 
             isaacItems = itemsRes;
+            isaacBosses = bossesRes;
+            populateFilters(metaRes);
             currentCommands = cmdsRes.commands || {};
             availableGifts = giftsRes.gifts || [];
             profiles = profsRes.profiles || [];
@@ -199,6 +363,40 @@ export function initIsaacUI(ioConnection) {
         return { x: -( (gIdx % 20) * 44), y: -(Math.floor(gIdx / 20) * 44) };
     }
 
+    const ISAAC_DEFAULT_PROFILES = [
+        { id: 'boss_rush', name: 'Boss Rush' },
+        { id: 'total_chaos', name: 'Total Chaos' },
+        { id: 'mob_rush', name: 'Mob Rush' },
+        { id: 'all_curses', name: 'All Curses' },
+        { id: 'curse_roulette', name: 'Curse Roulette' },
+        { id: 'near_death', name: 'Near Death' },
+        { id: 'item_yoink', name: 'Item Yoink' },
+        { id: 'nightmare', name: 'Nightmare' },
+        { id: 'upside_down', name: 'Upside Down' },
+        { id: 'speed_demon', name: 'Speed Demon' },
+        { id: 'god_mode', name: 'God Mode' },
+        { id: 'full_heal', name: 'Full Heal' },
+        { id: 'devil_deal', name: 'Free Devil Deal' },
+        { id: 'supply_drop', name: 'Supply Drop' },
+        { id: 'jackpot', name: 'Jackpot' },
+        { id: 'sacrifice', name: 'Sacrifice' },
+        { id: 'chaos_reroll', name: 'Chaos Reroll' },
+        { id: 'cursed_blessing', name: 'Cursed Blessing' },
+        { id: 'worm_trio', name: 'Worm Trio' },
+        { id: 'trapdoor', name: 'Trapdoor' },
+        { id: 'item_drain', name: 'Item Drain' },
+        { id: 'health_scare', name: 'Health Scare' },
+        { id: 'absolute_trade', name: 'The Trade' },
+        { id: 'retro_vision', name: 'Retro Vision' },
+        { id: 'glitch_storm', name: 'Glitch Storm' }
+    ];
+
+    function getEffectName(id) {
+        if (!id) return 'Unknown';
+        const p = profiles.find(x => x.id === id) || ISAAC_DEFAULT_PROFILES.find(x => x.id === id);
+        return p ? p.name : id;
+    }
+
     function renderTable() {
         tableBody.empty();
         const keys = Object.keys(currentCommands);
@@ -210,16 +408,23 @@ export function initIsaacUI(ioConnection) {
 
             let title = '', icon = null;
             if (typeof effect === 'string') {
-                const p = profiles.find(x => x.id === effect) || { name: effect };
-                title = p.name;
-            } else if (effect && effect.action === 'spawn_item') {
-                title = effect.itemId === -1 ? 'Random Item' : (isaacItems.find(x => x.id === effect.itemId)?.name || `Item #${effect.itemId}`);
+                title = getEffectName(effect);
+            } else if (effect && effect.type === 'activate') {
+                title = getEffectName(effect.profileId);
+            } else if (effect && effect.profileId) {
+                title = getEffectName(effect.profileId);
+            } else if (effect && (effect.action === 'spawn_item' || effect.action === 'use_item')) {
+                const iname = effect.itemId === -1 ? 'Random Item' : (isaacItems.find(x => x.id === effect.itemId)?.name || `Item #${effect.itemId}`);
+                title = effect.action === 'use_item' ? `⚡ ${iname}` : iname;
                 const s = getItemSprite(effect.itemId);
                 if (s) icon = $(`<div class="isaac-sprite" style="background-position:${s.x}px ${s.y}px;transform:scale(0.5);margin:-12px;"></div>`);
+            } else if (effect && effect.action === 'spawn_boss') {
+                const boss = isaacBosses.find(b => b.id === String(effect.bossId));
+                title = boss ? boss.name : `Boss ID: ${effect.bossId}`;
+                const img = getBossImage(title);
+                icon = $(`<img src="${img}" style="width:24px;height:24px;object-fit:contain;" onerror="this.src='/images/Isaac/boss.png'">`);
             } else if (effect && effect.action === 'spawn_entity') {
-                title = `Spawn Entity ${effect.entityId || ''}`;
-            } else if (effect && effect.action === 'set_health') {
-                title = `Set Health: ${effect.hearts || '?'} hearts`;
+                title = `Summon ID: ${effect.entityId || ''}`;
             } else {
                 title = JSON.stringify(effect);
             }
@@ -254,11 +459,30 @@ export function initIsaacUI(ioConnection) {
         $('#fields_spawn_item').show();
         itemSelectedId.val('');
         itemSearchInput.val('');
+        
+        $('#isaacFilterQuality, #isaacFilterType, #isaacFilterPool').on('change', () => {
+            updateItemSuggestions($('#isaacItemSearchInput').val());
+            $('#isaacItemSearchResults').show();
+        });
+
         $('#isaacItemAutoCollect').prop('checked', false);
+        $('#isaacUseEffectOnly').prop('checked', false);
+        $('#isaacUseEffectRow').hide();
+        $('#isaacItemSpawnOptions').show();
         $('#isaacWaitStreak').prop('checked', true);
+        $('#isaacEntityIdInput').val('');
+        $('#isaacEntityAmountInput').val(1);
         itemPreview.html('<span style="font-size:9px;color:var(--text-muted);">ITEM</span>');
         itemNameLabel.hide();
         itemQualityBadge.hide();
+
+        bossSelectedId.val('');
+        bossSearchInput.val('');
+        bossPreview.html('<span style="font-size:9px;color:var(--text-muted);">BOSS</span>');
+        bossNameLabel.hide();
+        $('#isaacBossHpInfo').hide();
+        $('#isaacBossAmountInput').val(1);
+
         window.selectedIsaacProfile = null;
     }
 
@@ -272,20 +496,27 @@ export function initIsaacUI(ioConnection) {
                 $('#isaacModeProfileBtn').trigger('click');
                 renderProfileCards(effect);
                 window.selectedIsaacProfile = effect;
-            } else if (effect && effect.action === 'spawn_item') {
-                const it = effect.itemId === -1 
+            } else if (effect && (effect.action === 'spawn_item' || effect.action === 'use_item')) {
+                const it = effect.itemId === -1
                     ? { id: -1, name: 'Random Item', quality: 0, description: 'Spawns a random collectible item' }
                     : isaacItems.find(x => x.id === effect.itemId);
                 if (it) selectItem(it);
-                $('#isaacItemAmountInput').val(effect.amount || 1);
-                $('#isaacItemAutoCollect').prop('checked', !!effect.autoCollect);
+                if (effect.action === 'use_item') {
+                    $('#isaacUseEffectOnly').prop('checked', true);
+                    updateSpawnOptionsVisibility();
+                } else {
+                    $('#isaacItemAmountInput').val(effect.amount || 1);
+                    $('#isaacItemAutoCollect').prop('checked', !!effect.autoCollect);
+                }
             } else if (effect && effect.action === 'spawn_entity') {
                 $('.isaac-action-tab[data-action="spawn_entity"]').trigger('click');
                 $('#isaacEntityIdInput').val(effect.entityId || '');
                 $('#isaacEntityAmountInput').val(effect.amount || 1);
-            } else if (effect && effect.action === 'set_health') {
-                $('.isaac-action-tab[data-action="set_health"]').trigger('click');
-                $('#isaacHealthInput').val(effect.hearts || '');
+            } else if (effect && effect.action === 'spawn_boss') {
+                $('.isaac-action-tab[data-action="spawn_boss"]').trigger('click');
+                const b = isaacBosses.find(x => x.id === String(effect.bossId));
+                if (b) selectBoss(b);
+                $('#isaacBossAmountInput').val(effect.amount || 1);
             }
             
             if (effect && typeof effect === 'object') {
@@ -309,7 +540,7 @@ export function initIsaacUI(ioConnection) {
             byCategory[cat].push(p);
         });
 
-        const catOrder = ['Chaos', 'Curses', 'Punishment', 'Timed', 'Boon', 'Other'];
+        const catOrder = ['Chaos', 'Curses', 'Punishment', 'Timed', 'Buff', 'Glitch', 'Other'];
         catOrder.forEach(cat => {
             if (!byCategory[cat]) return;
             const catColor = CATEGORY_COLORS[cat] || '#888';
@@ -357,12 +588,33 @@ export function initIsaacUI(ioConnection) {
             if (action === 'spawn_item') {
                 const itemId = parseInt($('#isaacSelectedItemId').val());
                 if (itemId || itemId === -1) {
-                    payload = { 
+                    const useEffectOnly = $('#isaacUseEffectOnly').is(':checked');
+                    if (useEffectOnly) {
+                        payload = {
+                            type: 'custom_action',
+                            action: 'use_item',
+                            itemId,
+                            waitForStreak
+                        };
+                    } else {
+                        payload = {
+                            type: 'custom_action',
+                            action: 'spawn_item',
+                            itemId,
+                            amount: parseInt($('#isaacItemAmountInput').val()) || 1,
+                            autoCollect: $('#isaacItemAutoCollect').is(':checked'),
+                            waitForStreak
+                        };
+                    }
+                }
+            } else if (action === 'spawn_boss') {
+                const bossId = $('#isaacSelectedBossId').val();
+                if (bossId) {
+                    payload = {
                         type: 'custom_action',
-                        action: 'spawn_item', 
-                        itemId, 
-                        amount: parseInt($('#isaacItemAmountInput').val()) || 1,
-                        autoCollect: $('#isaacItemAutoCollect').is(':checked'),
+                        action: 'spawn_boss',
+                        bossId,
+                        amount: parseInt($('#isaacBossAmountInput').val()) || 1,
                         waitForStreak
                     };
                 }
@@ -377,13 +629,6 @@ export function initIsaacUI(ioConnection) {
                         waitForStreak
                     };
                 }
-            } else if (action === 'set_health') {
-                payload = { 
-                    type: 'custom_action', 
-                    action: 'set_health', 
-                    hearts: parseInt($('#isaacHealthInput').val()) || 6,
-                    waitForStreak
-                };
             }
         }
 

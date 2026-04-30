@@ -32,6 +32,45 @@ class DatabaseManager {
                     diamondCount INTEGER NOT NULL,
                     imageUrl TEXT
                 );
+
+                CREATE TABLE IF NOT EXISTS isaac_items (
+                    id INTEGER PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    quality INTEGER
+                );
+
+                CREATE TABLE IF NOT EXISTS isaac_types (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT UNIQUE NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS isaac_item_types (
+                    item_id INTEGER,
+                    type_id INTEGER,
+                    PRIMARY KEY (item_id, type_id),
+                    FOREIGN KEY (item_id) REFERENCES isaac_items(id) ON DELETE CASCADE,
+                    FOREIGN KEY (type_id) REFERENCES isaac_types(id) ON DELETE CASCADE
+                );
+
+                CREATE TABLE IF NOT EXISTS isaac_pools (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT UNIQUE NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS isaac_item_pools (
+                    item_id INTEGER,
+                    pool_id INTEGER,
+                    PRIMARY KEY (item_id, pool_id),
+                    FOREIGN KEY (item_id) REFERENCES isaac_items(id) ON DELETE CASCADE,
+                    FOREIGN KEY (pool_id) REFERENCES isaac_pools(id) ON DELETE CASCADE
+                );
+
+                CREATE TABLE IF NOT EXISTS isaac_bosses (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    base_hp INTEGER,
+                    stage_hp INTEGER
+                );
             `);
             console.log('[DB] Connected to global.db (gifts).');
             return db;
@@ -176,6 +215,88 @@ class DatabaseManager {
             INSERT INTO donations (streamerId, userId, giftId, count, totalDiamonds)
             VALUES (?, ?, ?, ?, ?)
         `, [this.currentStreamerId, userId, giftId, count, totalDiamonds]);
+    }
+
+    // --- Isaac Items (global.db) ---
+    async upsertIsaacItem(item) {
+        const db = await this.connectGlobal();
+        const { id, name, quality, type, pool } = item;
+
+        // Upsert item
+        await db.run(`
+            INSERT INTO isaac_items (id, name, quality)
+            VALUES (?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+                name = excluded.name,
+                quality = excluded.quality
+        `, [id, name, quality]);
+
+        // Handle types
+        if (type) {
+            const typeNames = type.split(',').map(t => t.trim()).filter(t => t);
+            await db.run(`DELETE FROM isaac_item_types WHERE item_id = ?`, [id]);
+
+            for (const typeName of typeNames) {
+                await db.run(`INSERT OR IGNORE INTO isaac_types (name) VALUES (?)`, [typeName]);
+                const typeRow = await db.get(`SELECT id FROM isaac_types WHERE name = ?`, [typeName]);
+                await db.run(`INSERT OR IGNORE INTO isaac_item_types (item_id, type_id) VALUES (?, ?)`, [id, typeRow.id]);
+            }
+        }
+
+        // Handle pools
+        if (pool) {
+            const poolNames = pool.split(',').map(p => p.trim()).filter(p => p);
+            
+            // Clear existing pool mappings for this item
+            await db.run(`DELETE FROM isaac_item_pools WHERE item_id = ?`, [id]);
+
+            for (const poolName of poolNames) {
+                // Ensure pool exists
+                await db.run(`INSERT OR IGNORE INTO isaac_pools (name) VALUES (?)`, [poolName]);
+                const poolRow = await db.get(`SELECT id FROM isaac_pools WHERE name = ?`, [poolName]);
+                
+                // Map item to pool
+                await db.run(`
+                    INSERT OR IGNORE INTO isaac_item_pools (item_id, pool_id)
+                    VALUES (?, ?)
+                `, [id, poolRow.id]);
+            }
+        }
+    }
+
+    async getIsaacItems() {
+        const db = await this.connectGlobal();
+        // Join with pools and types
+        const rows = await db.all(`
+            SELECT 
+                i.*, 
+                GROUP_CONCAT(DISTINCT p.name) as pool,
+                GROUP_CONCAT(DISTINCT t.name) as type
+            FROM isaac_items i
+            LEFT JOIN isaac_item_pools ip ON i.id = ip.item_id
+            LEFT JOIN isaac_pools p ON ip.pool_id = p.id
+            LEFT JOIN isaac_item_types it ON i.id = it.item_id
+            LEFT JOIN isaac_types t ON it.type_id = t.id
+            GROUP BY i.id
+            ORDER BY i.id
+        `);
+        return rows;
+    }
+
+    async getIsaacPools() {
+        const db = await this.connectGlobal();
+        return db.all(`SELECT name FROM isaac_pools ORDER BY name`);
+    }
+
+    async getIsaacTypes() {
+        const db = await this.connectGlobal();
+        return db.all(`SELECT name FROM isaac_types ORDER BY name`);
+    }
+
+    // --- Isaac Bosses (global.db) ---
+    async getIsaacBosses() {
+        const db = await this.connectGlobal();
+        return db.all(`SELECT * FROM isaac_bosses ORDER BY name`);
     }
 }
 

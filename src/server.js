@@ -74,17 +74,26 @@ const ISAAC_DEFAULT_PROFILES = [
     { id: 'mob_rush', name: 'Mob Rush', desc: '15 random enemies swarm the room', category: 'Chaos' },
     { id: 'all_curses', name: 'All Curses', desc: 'Every floor curse at once', category: 'Curses' },
     { id: 'curse_roulette', name: 'Curse Roulette', desc: 'Random curse applied', category: 'Curses' },
-    { id: 'labyrinth', name: 'Curse of the Labyrinth', desc: 'Doubles the current floor', category: 'Curses' },
     { id: 'near_death', name: 'Near Death', desc: 'Reduces to half a heart', category: 'Punishment' },
     { id: 'item_yoink', name: 'Item Yoink', desc: 'Removes a random held item', category: 'Punishment' },
     { id: 'nightmare', name: 'Nightmare', desc: 'Near death + all curses + enemy wave', category: 'Punishment' },
     { id: 'upside_down', name: 'Upside Down', desc: 'Reversed controls for 30 seconds', category: 'Timed' },
     { id: 'speed_demon', name: 'Speed Demon', desc: 'Double speed for 30 seconds', category: 'Timed' },
     { id: 'god_mode', name: 'God Mode', desc: 'Invincible for 15 seconds', category: 'Timed' },
-    { id: 'full_heal', name: 'Full Heal', desc: 'Restores all health', category: 'Boon' },
-    { id: 'devil_deal', name: 'Free Devil Deal', desc: 'Gives a random devil collectible', category: 'Boon' },
-    { id: 'supply_drop', name: 'Supply Drop', desc: '10 coins + 5 bombs + 5 keys', category: 'Boon' },
-    { id: 'jackpot', name: 'Jackpot', desc: 'Random item + full heal + supplies', category: 'Boon' },
+    { id: 'full_heal', name: 'Full Heal', desc: 'Restores all health', category: 'Buff' },
+    { id: 'devil_deal', name: 'Free Devil Deal', desc: 'Gives a random devil collectible', category: 'Buff' },
+    { id: 'supply_drop', name: 'Supply Drop', desc: '10 coins + 5 bombs + 5 keys', category: 'Buff' },
+    { id: 'jackpot', name: 'Jackpot', desc: 'Random item + full heal + supplies', category: 'Buff' },
+    { id: 'sacrifice', name: 'Sacrifice', desc: 'Drops to half heart — then immediately gives a devil item', category: 'Buff' },
+    { id: 'chaos_reroll', name: 'Chaos Reroll', desc: 'Spawns 5 item pedestals + enemies, then D6s them all 3 times', category: 'Chaos' },
+    { id: 'cursed_blessing', name: 'Cursed Blessing', desc: '3 random items directly into inventory — but every floor curse activates', category: 'Chaos' },
+    { id: 'worm_trio', name: 'Worm Trio', desc: 'Spawns Pin, Scolex, and The Frail', category: 'Chaos' },
+    { id: 'trapdoor', name: 'Trapdoor', desc: 'Spawns a trapdoor under you', category: 'Chaos' },
+    { id: 'item_drain', name: 'Item Drain', desc: 'Removes 3 random held items', category: 'Punishment' },
+    { id: 'health_scare', name: 'Health Scare', desc: 'Near death + reversed controls for 30s', category: 'Punishment' },
+    { id: 'absolute_trade', name: 'The Trade', desc: 'Removes 2 held items, gives a devil item + full heal', category: 'Punishment' },
+    { id: 'retro_vision', name: 'Retro Vision', desc: 'Adds intense pixelation to the screen', category: 'Glitch' },
+    { id: 'glitch_storm', name: 'Glitch Storm', desc: 'Spawns 3 TMTRAINER items', category: 'Glitch' },
 ];
 
 // broadcast mc status to everyone
@@ -739,6 +748,36 @@ app.post('/api/config', express.json(), (req, res) => {
 });
 
 // Isaac API routes
+app.get('/api/isaac/items', async (req, res) => {
+    try {
+        const items = await db.getIsaacItems();
+        res.json(items);
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+app.get('/api/isaac/bosses', async (req, res) => {
+    try {
+        const bosses = await db.getIsaacBosses();
+        res.json(bosses);
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+app.get('/api/isaac/metadata', async (req, res) => {
+    try {
+        const [pools, types] = await Promise.all([
+            db.getIsaacPools(),
+            db.getIsaacTypes()
+        ]);
+        res.json({ pools: pools.map(p => p.name), types: types.map(t => t.name) });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
 app.get('/api/isaac/profiles', (req, res) => {
     const profiles = isaacBridge.profiles.length > 0 ? isaacBridge.profiles : (config.isaacProfiles || ISAAC_DEFAULT_PROFILES);
     res.json({ success: true, profiles });

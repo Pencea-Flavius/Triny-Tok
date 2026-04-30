@@ -1157,6 +1157,9 @@ code {
   font-family: inherit;
   line-height: 1.2;
 }
+.isaac-action-tab:hover img {
+  transform: scale(1.1);
+}
 .isaac-action-tab:hover:not(.active) {
   background: var(--bg4);
   color: var(--text);
@@ -1204,12 +1207,13 @@ code {
 .isaac-sprite {
   width: 44px;
   height: 44px;
-  background-image: url('/images/Isaac/ItemeIsaac.png');
-  background-size: 880px auto; /* 20 columns * 44px */
+  background-image: url('/images/Isaac/items.png');
+  background-size: 880px auto;
   background-repeat: no-repeat;
   display: inline-block;
   vertical-align: middle;
   image-rendering: pixelated;
+  flex-shrink: 0;
 }
 
 .isaac-item-result .item-img-container {
@@ -1225,8 +1229,8 @@ code {
 }
 
 .isaac-item-result .isaac-sprite {
-  transform: scale(0.65); /* Even smaller search results */
-  margin: -5px;
+  transform: scale(0.75);
+  transform-origin: center;
 }
 .input-ghost {
   background: transparent;
@@ -1286,8 +1290,9 @@ code {
   right: 0;
   z-index: 1000;
   margin-top: 6px;
-  max-height: 250px;
+  max-height: 220px;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 4px;
   display: flex;
   flex-direction: column;
@@ -1306,4 +1311,162 @@ code {
 
 .isaac-effect-card.selected {
   box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+/* Isaac Search Results */
+.isaac-item-result {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    border: 1px solid transparent;
+    margin-bottom: 4px;
+}
+
+.isaac-item-result:hover {
+    background: rgba(var(--accent-rgb), 0.1);
+    border-color: rgba(var(--accent-rgb), 0.2);
+}
+
+.isaac-sprite-wrapper {
+    width: 36px;
+    height: 36px;
+    background: var(--bg3);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+.item-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.item-name {
+    font-weight: 700;
+    color: var(--text);
+    font-size: 0.95rem;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.item-meta {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.pool-tag, .type-tag {
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.pool-tag {
+    background: rgba(var(--accent-rgb), 0.15);
+    color: var(--accent);
+}
+
+.type-tag {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--muted);
+}
+
+.item-quality {
+    font-size: 0.75rem;
+    font-weight: 900;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    flex-shrink: 0;
+}
+
+/* Isaac Item Selection Improvements */
+.isaac-item-icon {
+    width: 44px;
+    height: 44px;
+    background: var(--bg4);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border2);
+    flex-shrink: 0;
+    transition: all 0.3s ease;
+}
+
+.isaac-item-icon img {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    image-rendering: pixelated;
+    transition: transform 0.3s ease;
+}
+
+.isaac-item-result:hover .isaac-item-icon {
+    border-color: var(--accent);
+    box-shadow: 0 0 15px var(--accent-glow);
+}
+
+.isaac-item-result:hover .isaac-item-icon img {
+    transform: scale(1.15) rotate(5deg);
+}
+
+.item-quality {
+    font-size: 0.75rem;
+    font-weight: 900;
+    color: var(--text);
+    padding: 2px 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 4px;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+}
+
+/* Filter Selects */
+select.input-base {
+  appearance: none;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: var(--r-sm);
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 5px 26px 5px 10px;
+  height: 30px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%238896ae' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+}
+
+select.input-base:hover {
+  border-color: var(--accent);
+  color: var(--text);
+  background-color: var(--bg4);
+}
+
+select.input-base:focus {
+  outline: none;
+  border-color: var(--accent);
+  color: var(--text);
+  box-shadow: 0 0 0 2px var(--accent-dim);
+}
+
+select.input-base option {
+  background: var(--bg3);
+  color: var(--text);
 }
