@@ -119,13 +119,13 @@ isaacBridge.on('profilesUpdated', (profiles) => {
         if (oldProfilesStr !== newProfilesStr) {
             console.info(`[Isaac] Profiles changed (${profiles.length}). Saving to config.`);
             config.isaacProfiles = profiles;
-            setImmediate(() => {
+            setTimeout(() => {
                 try {
                     fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
                 } catch (e) {
                     console.error('[Isaac] Failed to save profiles:', e.message);
                 }
-            });
+            }, 0);
         }
     }
     io.emit('isaacProfiles', profiles.length > 0 ? profiles : (config.isaacProfiles || ISAAC_DEFAULT_PROFILES));
