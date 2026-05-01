@@ -107,11 +107,16 @@ export function initMinecraftUI(ioConnection) {
         const port = parseInt(portInput.val()) || 25575;
         const password = $('#minecraftPassword').val() || '';
         const autoConnect = autoConnectCheckbox.is(':checked');
+        const targetPlayers = targetPlayersInput.val().split('\n').map(p => p.trim()).filter(p => p.length > 0);
+        
         try {
             await fetch('/api/config', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ minecraft: { host, port, password, autoConnect, enabled: mcIsConnected } })
+                body: JSON.stringify({ 
+                    minecraft: { host, port, password, autoConnect, enabled: mcIsConnected },
+                    targetPlayers: targetPlayers
+                })
             });
             showToast('RCON settings saved!', 'success');
         } catch (e) {

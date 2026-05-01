@@ -250,12 +250,12 @@ async function finalizeGift(msg, updateDbAndCommand = true) {
         const countPlaceholder = giftCmd.waitForStreak === false ? 1 : (msg.repeatCount || 1);
         const delayMs = (giftCmd.executeDelay || 0.2) * 1000;
 
+        const targets = config.targetPlayers || [];
+        const randomPlayer = targets.length > 0 ? targets[Math.floor(Math.random() * targets.length)] : 'Player';
+
         for (let i = 0; i < executions; i++) {
             for (const cmd of cmds) {
                 if (!cmd.trim()) continue;
-
-                const targets = config.targetPlayers || [];
-                const randomPlayer = targets.length > 0 ? targets[Math.floor(Math.random() * targets.length)] : 'Player';
 
                 const finalCmd = cmd
                     .replace(/\{username\}/g, msg.uniqueId || 'Unknown')
@@ -352,9 +352,19 @@ io.on('connection', (socket) => {
             else if (giftCmd.command) cmds = [giftCmd.command];
 
             const sender = 'Tester';
+            const targets = config.targetPlayers || [];
+            const randomPlayer = targets.length > 0 ? targets[Math.floor(Math.random() * targets.length)] : 'Player';
+
             for (const cmd of cmds) {
                 if (!cmd.trim()) continue;
-                const finalCmd = cmd.replace('{username}', sender);
+
+                const finalCmd = cmd
+                    .replace(/\{username\}/g, sender)
+                    .replace(/\{nickname\}/g, sender)
+                    .replace(/\{giftname\}/g, giftName)
+                    .replace(/\{playername\}/g, randomPlayer)
+                    .replace(/\{count\}/g, 1);
+                    
                 const response = await minecraftBridge.sendCommand(finalCmd);
                 if (response !== null) {
                     socket.emit('rconLog', { command: finalCmd, response: response, type: 'test' });
@@ -532,11 +542,11 @@ io.on('connection', (socket) => {
                 if (followCmd && followCmd.command && minecraftBridge.isConnected) {
                     const sender = msg.nickname || msg.uniqueId;
                     let cmds = typeof followCmd.command === 'string' ? followCmd.command.split('\n') : [followCmd.command];
+                    const targets = config.targetPlayers || [];
+                    const randomPlayer = targets.length > 0 ? targets[Math.floor(Math.random() * targets.length)] : 'Player';
+
                     cmds.forEach(cmd => {
                         if (!cmd.trim()) return;
-
-                        const targets = config.targetPlayers || [];
-                        const randomPlayer = targets.length > 0 ? targets[Math.floor(Math.random() * targets.length)] : 'Player';
 
                         const finalCmd = cmd
                             .replace(/\{username\}/g, msg.uniqueId || 'Unknown')
@@ -562,12 +572,12 @@ io.on('connection', (socket) => {
                     currentLikes %= likeCmd.minLikes;
                     const sender = msg.nickname || msg.uniqueId;
                     let cmds = typeof likeCmd.command === 'string' ? likeCmd.command.split('\n') : [likeCmd.command];
+                    const targets = config.targetPlayers || [];
+                    const randomPlayer = targets.length > 0 ? targets[Math.floor(Math.random() * targets.length)] : 'Player';
+
                     for (let i = 0; i < triggerCount; i++) {
                         cmds.forEach(cmd => {
                             if (!cmd.trim()) return;
-
-                            const targets = config.targetPlayers || [];
-                            const randomPlayer = targets.length > 0 ? targets[Math.floor(Math.random() * targets.length)] : 'Player';
 
                             const finalCmd = cmd
                                 .replace(/\{username\}/g, msg.uniqueId || 'Unknown')
