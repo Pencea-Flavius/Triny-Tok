@@ -28,7 +28,8 @@ const TAB_LABELS = {
   topDonors:     'Top Donators',
   minecraft:     'Minecraft · Settings',
   commands:      'Minecraft · Gift Commands',
-  isaacEffects:  'TBOI · Gift Effects'
+  isaacEffects:  'TBOI · Gift Effects',
+  repoEffects:   'R.E.P.O. · Gift Effects'
 };
 
 const SECTION_LABELS = {
@@ -45,14 +46,16 @@ const TAB_SECTION = {
   topDonors:    'monitor',
   minecraft:    'game',
   commands:     'game',
-  isaacEffects: 'game'
+  isaacEffects: 'game',
+  repoEffects:  'game'
 };
 
 // map tabs to their parent console accordion (if any)
 const TAB_CONSOLE = {
   minecraft:    'consoleMinecraft',
   commands:     'consoleMinecraft',
-  isaacEffects: 'consoleIsaac'
+  isaacEffects: 'consoleIsaac',
+  repoEffects:  'consoleRepo'
 };
 
 function updateHash(sectionId, tabId) {

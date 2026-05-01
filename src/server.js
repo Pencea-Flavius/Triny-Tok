@@ -8,6 +8,7 @@ const { TikTokConnectionWrapper, getGlobalConnectionCount } = require('./tiktok/
 const { clientBlocked } = require('./utils/limiter');
 const minecraftBridge = require('./tiktok/minecraftBridge');
 const isaacBridge = require('./tiktok/isaacBridge');
+const repoBridge = require('./tiktok/repoBridge');
 const path = require('path');
 const fs = require('fs');
 const db = require('./database/db_manager');
@@ -23,8 +24,10 @@ if (!fs.existsSync(configDir)) {
 let config = {
     minecraft: { host: 'localhost', port: 25575, password: '', enabled: false, autoConnect: false },
     isaac: { port: 58431, enabled: true },
+    repo: { port: 51337, enabled: false },
     giftCommands: {},
     isaacCommands: {},
+    repoCommands: {},
     followCommand: { command: "", cooldown: 0 },
     likeCommand: { command: "", minLikes: 100 },
     targetPlayers: []
@@ -133,6 +136,14 @@ isaacBridge.on('profilesUpdated', (profiles) => {
 
 isaacBridge.on('result', (data) => {
     io.emit('isaacResult', data);
+});
+
+repoBridge.on('statusChange', (isConnected, errorMsg) => {
+    io.emit('repoStatus', { isConnected, serverActive: !!repoBridge.server, error: errorMsg || null });
+});
+
+repoBridge.on('response', (data) => {
+    io.emit('repoResponse', data);
 });
 
 
@@ -295,6 +306,24 @@ async function finalizeGift(msg, updateDbAndCommand = true) {
         console.info(`[Isaac] Triggered effect for ${msg.giftName} (Exec: ${executions})`);
         io.emit('isaacLog', { effect: isaacEffect, giftName: msg.giftName, viewer: msg.nickname || msg.uniqueId });
     }
+
+    const repoEffect = config.repoCommands && config.repoCommands[msg.giftName];
+    if (repoEffect && repoBridge.isConnected) {
+        const code = typeof repoEffect === 'string' ? repoEffect : repoEffect.code;
+        const duration = (typeof repoEffect === 'object' && repoEffect.duration) ? repoEffect.duration : 0;
+        const waitForStreak = (typeof repoEffect === 'object' && repoEffect.waitForStreak !== undefined) ? repoEffect.waitForStreak : true;
+        const executions = waitForStreak === false ? (msg.repeatCount || 1) : 1;
+
+        for (let i = 0; i < executions; i++) {
+            repoBridge.sendEffect(code, msg.nickname || msg.uniqueId, duration);
+            if (executions > 1 && i < executions - 1) {
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+        }
+
+        console.info(`[Repo] Triggered effect ${code} for ${msg.giftName}`);
+        io.emit('repoLog', { code, giftName: msg.giftName, viewer: msg.nickname || msg.uniqueId });
+    }
 }
 
 io.on('connection', (socket) => {
@@ -305,6 +334,7 @@ io.on('connection', (socket) => {
     socket.emit('minecraftStatus', { isConnected: minecraftBridge.isConnected, config: config.minecraft });
     socket.emit('isaacStatus', { isConnected: isaacBridge.isConnected, serverActive: !!isaacBridge.server });
     socket.emit('isaacProfiles', isaacBridge.profiles.length > 0 ? isaacBridge.profiles : (config.isaacProfiles || ISAAC_DEFAULT_PROFILES));
+    socket.emit('repoStatus', { isConnected: repoBridge.isConnected, serverActive: !!repoBridge.server });
 
     // rcon settings
     socket.on('minecraftConnect', (data) => {
@@ -338,6 +368,16 @@ io.on('connection', (socket) => {
     socket.on('isaacStop', () => {
         isaacBridge.stop();
         io.emit('isaacStatus', { isConnected: false, serverActive: false });
+    });
+
+    socket.on('repoStart', () => {
+        repoBridge.start(config.repo?.port || 51337);
+        io.emit('repoStatus', { isConnected: repoBridge.isConnected, serverActive: true });
+    });
+
+    socket.on('repoStop', () => {
+        repoBridge.stop();
+        io.emit('repoStatus', { isConnected: false, serverActive: false });
     });
 
     socket.on('testCommand', async (data) => {
@@ -813,6 +853,46 @@ app.post('/api/isaac/commands', express.json(), (req, res) => {
     } catch (e) {
         res.status(500).json({ success: false, error: e.message });
     }
+});
+
+// REPO API routes
+app.get('/api/repo/commands', (req, res) => {
+    res.json({ success: true, commands: config.repoCommands || {} });
+});
+
+app.post('/api/repo/commands', express.json(), (req, res) => {
+    const { giftName, effect, action } = req.body;
+    if (!config.repoCommands) config.repoCommands = {};
+
+    if (action === 'delete' && giftName) {
+        delete config.repoCommands[giftName];
+    } else if (giftName && effect) {
+        config.repoCommands[giftName] = effect;
+    }
+
+    try {
+        fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+        res.json({ success: true, commands: config.repoCommands });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+app.post('/api/repo/test', express.json(), (req, res) => {
+    const { giftName } = req.body;
+    if (!config.repoCommands) return res.status(404).json({ success: false, error: 'No REPO commands configured' });
+
+    const effect = config.repoCommands[giftName];
+    if (!effect) return res.status(404).json({ success: false, error: 'Effect not found for this gift' });
+
+    const code = typeof effect === 'string' ? effect : effect.code;
+    const duration = (typeof effect === 'object' && effect.duration) ? effect.duration : 0;
+
+    if (!repoBridge.isConnected) return res.status(503).json({ success: false, error: 'REPO mod not connected' });
+
+    repoBridge.sendEffect(code, 'TestUser', duration)
+        .then(r => res.json({ success: r.status === 0, response: r }))
+        .catch(e => res.status(500).json({ success: false, error: e.message }));
 });
 
 app.post('/api/isaac/test', express.json(), (req, res) => {

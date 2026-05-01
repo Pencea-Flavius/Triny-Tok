@@ -1,0 +1,73 @@
+<div id="repoEffectsContent" class="tab-content">
+  <div class="page-header">
+    <div>
+      <div class="page-eyebrow"><span class="eyebrow-dot"></span>Game Bridge</div>
+      <h1 class="page-h1">R.E.P.O. Gift Effects</h1>
+      <p class="page-sub">Map TikTok gifts to R.E.P.O. effects.</p>
+    </div>
+    <div class="page-actions">
+      <button class="btn-secondary btn-sm" id="repoSetupBtn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        Setup Guide
+      </button>
+      <button class="btn-primary btn-sm" id="addRepoEffectBtn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+        Add Effect
+      </button>
+    </div>
+  </div>
+  <hr class="accent-rule">
+
+  <div style="display:flex;flex-direction:column;gap:16px;flex:1;min-height:0;">
+    <!-- Bridge Control -->
+    <div class="card glass" style="border-left: 4px solid var(--danger); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); padding: 22px 26px;" id="repoBridgeCard">
+      <div style="display:flex; align-items:center; justify-content:space-between;">
+        <div>
+          <div style="font-size:10px; font-weight:800; letter-spacing:1.5px; text-transform:uppercase; color:var(--dim); margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+            Bridge Status
+          </div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div id="repoStatusIndicator" style="width:10px; height:10px; border-radius:50%; background:var(--danger); box-shadow: 0 0 12px var(--danger); transition: all 0.3s;"></div>
+            <span id="repoStatusTextLarge" style="font-weight:900; color:var(--text); font-size:18px; letter-spacing:-0.5px; transition: color 0.3s;">Server Stopped</span>
+          </div>
+        </div>
+
+        <button class="btn-primary" id="repoConnectBtn" style="min-width:145px; height:42px; justify-content:center; gap:8px; font-size:13px;">
+          <span id="repoBtnIcon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+          </span>
+          <span id="repoBtnText">Start Bridge</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mapped Effects -->
+    <div class="card" style="flex:1;">
+      <div style="font-size:10.5px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-bottom:14px;">Mapped Effects</div>
+      <div class="table-wrap" style="margin:0;border:none;background:transparent;">
+        <div class="data-table-container">
+          <table class="data-table" style="table-layout:fixed;width:100%;">
+            <thead>
+              <tr>
+                <th style="width:200px;">TikTok Gift</th>
+                <th>R.E.P.O. Effect</th>
+                <th style="width:280px;text-align:center;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="repoEffectsTableBody">
+              <tr><td colspan="3" style="text-align:center;padding:20px;">No effects added</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%- include('./modal-repo-effect') %>
+  <%- include('./modal-repo-setup') %>
+</div>
