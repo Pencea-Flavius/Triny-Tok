@@ -7,6 +7,7 @@ import { loadTopDonors, clearTopDonors } from './ui/topDonors.js';
 import { initMinecraftUI } from './ui/minecraft.js';
 import { initCommandsUI, refreshCommandsData } from './ui/commands.js';
 import { initIsaacUI } from './ui/isaac.js';
+import { initRepoUI } from './ui/repo.js';
 import { showToast } from './ui/dialog.js';
 window.showToast = showToast;
 
@@ -77,6 +78,7 @@ $(document).ready(() => {
     initMinecraftUI(connection);
     initCommandsUI(connection);
     initIsaacUI(connection);
+    initRepoUI(connection);
 });
 
 function connect() {
