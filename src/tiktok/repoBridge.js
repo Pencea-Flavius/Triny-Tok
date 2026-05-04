@@ -40,6 +40,8 @@ class RepoBridge extends EventEmitter {
                     if (!msg) return;
                     try {
                         const parsed = JSON.parse(msg);
+                        // ignore keepalive pings from the mod (id=0, status=255)
+                        if (parsed.id === 0 && parsed.status === 255) return;
                         this._handleResponse(parsed);
                     } catch (e) {
                         console.error('[Repo] JSON Parse Error:', e.message, 'Raw:', msg);
@@ -87,7 +89,7 @@ class RepoBridge extends EventEmitter {
         this.emit('response', msg);
     }
 
-    sendEffect(code, viewer, durationSec = 0) {
+    sendEffect(code, viewer, durationSec = 0, targetRandom = false) {
         if (!this.isConnected || !this.socket) return Promise.resolve(false);
 
         const id = this._requestId++;
@@ -96,7 +98,8 @@ class RepoBridge extends EventEmitter {
             code,
             type: '1',
             duration: Math.round(durationSec * 1000),
-            viewer: viewer || 'TikTok'
+            viewer: viewer || 'TikTok',
+            targetRandom
         };
 
         return new Promise((resolve) => {

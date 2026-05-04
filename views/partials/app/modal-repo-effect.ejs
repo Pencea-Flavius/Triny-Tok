@@ -20,8 +20,12 @@
         <div style="font-size:0.68rem;color:var(--dim);margin-top:4px;">How long the timed effect lasts on the player</div>
       </div>
 
-      <!-- Wait for streak -->
-      <div style="margin-top:4px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;">
+      <!-- Wait for streak and random -->
+      <div style="margin-top:4px;padding-top:12px;border-top:1px solid var(--border);display:flex;flex-direction:row;justify-content:space-between;align-items:center;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;">
+          <input type="checkbox" id="repoTargetRandom" style="width:16px;height:16px;accent-color:var(--accent);">
+          Target Random Player
+        </label>
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;">
           <input type="checkbox" id="repoWaitStreak" checked style="width:16px;height:16px;accent-color:var(--accent);">
           Wait for Streak End
