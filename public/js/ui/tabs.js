@@ -15,7 +15,7 @@ const SECTIONS = {
   },
   game: {
     label: 'Game Bridge',
-    desc:  'Minecraft RCON & commands',
+    desc:  'Integrated games & gift effects',
     body:  'sec-game',
     first: null
   }

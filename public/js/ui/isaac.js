@@ -4,38 +4,57 @@ import { makeGiftCell, makeActionCell } from './components/GiftActionButtons.js'
 
 const QUALITY_COLORS = ['#888', '#a3e4a3', '#5bb8ff', '#c084fc', '#fbbf24'];
 const CATEGORY_COLORS = {
-    'Chaos':      '#e05252',
-    'Curses':     '#9b59b6',
+    'Chaos': '#e05252',
+    'Curses': '#9b59b6',
     'Punishment': '#e07c2a',
-    'Timed':      '#3498db',
-    'Buff':       '#27ae60',
-    'Glitch':     '#00d2d3',
-    'Other':      '#888888',
+    'Timed': '#3498db',
+    'Buff': '#27ae60',
+    'Glitch': '#00d2d3',
+    'Other': '#888888',
 };
 
-let socket           = null;
-let availableGifts   = [];
-let profiles         = [];
-let currentCommands  = {};
-let isaacItems       = [];
-let isaacBosses      = [];
-let giftDropdown     = null;
-let serverActive     = false;
-let isConnected      = false;
+// Boss IDs (type.variant) that must be spawned N times on the SAME tile to form one whole boss.
+const SEGMENTED_BOSSES = {
+    '28.0': 3,  // Chub
+    '28.1': 3,  // C.H.A.D.
+    '28.2': 3,  // Carrion Queen
+    '19.0': 10,  // Larry Jr.
+    '19.1': 4,  // The Hollow
+    '19.2': 6,  // Tuff Twins
+    '19.3': 5,  // The Shell
+    '918.0': 5, // Turdlet
+};
+
+function getSegmentedBossCount(bossId) {
+    if (!bossId) return null;
+    // bossId from DB is like "28.0" or "28.1"
+    const key = String(bossId).split('.').slice(0, 2).join('.');
+    return SEGMENTED_BOSSES[key] || null;
+}
+
+let socket = null;
+let availableGifts = [];
+let profiles = [];
+let currentCommands = {};
+let isaacItems = [];
+let isaacBosses = [];
+let giftDropdown = null;
+let serverActive = false;
+let isConnected = false;
 
 export function initIsaacUI(ioConnection) {
     if (ioConnection) socket = ioConnection.socket;
 
-    const tableBody       = $('#isaacEffectsTableBody');
-    const modal           = $('#isaacEffectModal');
-    const addBtn          = $('#addIsaacEffectBtn');
-    const sidebarDot      = $('#isaacStatusDot');
+    const tableBody = $('#isaacEffectsTableBody');
+    const modal = $('#isaacEffectModal');
+    const addBtn = $('#addIsaacEffectBtn');
+    const sidebarDot = $('#isaacStatusDot');
     const statusTextLarge = $('#isaacStatusTextLarge');
     const sidebarStatusDot = $('#isaacSidebarStatusDot');
-    const connectBtn      = $('#isaacConnectBtn');
+    const connectBtn = $('#isaacConnectBtn');
 
     giftDropdown = new GiftDropdown({
-        inputId:   'isaacGiftInput',
+        inputId: 'isaacGiftInput',
         resultsId: 'isaacGiftResults',
         previewId: 'isaacGiftImagePreview',
     });
@@ -47,7 +66,7 @@ export function initIsaacUI(ioConnection) {
     const itemNameLabel = $('#isaacItemNameLabel');
     const itemQualityBadge = $('#isaacItemQualityBadge');
 
-    itemSearchInput.on('input focus', function() {
+    itemSearchInput.on('input focus', function () {
         const query = $(this).val();
         updateItemSuggestions(query);
     });
@@ -58,7 +77,7 @@ export function initIsaacUI(ioConnection) {
     const bossPreview = $('#isaacBossPreview');
     const bossNameLabel = $('#isaacBossNameLabel');
 
-    bossSearchInput.on('input focus', function() {
+    bossSearchInput.on('input focus', function () {
         const query = $(this).val();
         updateBossSuggestions(query);
     });
@@ -66,10 +85,10 @@ export function initIsaacUI(ioConnection) {
     function populateFilters(meta) {
         const typeSelect = $('#isaacFilterType');
         const poolSelect = $('#isaacFilterPool');
-        
+
         typeSelect.find('option:not(:first)').remove();
         poolSelect.find('option:not(:first)').remove();
-        
+
         if (meta.types) {
             meta.types.forEach(t => typeSelect.append(`<option value="${t}">${t}</option>`));
         }
@@ -91,7 +110,7 @@ export function initIsaacUI(ioConnection) {
             const matchesQuality = !qualityFilter || item.quality === parseInt(qualityFilter);
             const matchesType = !typeFilter || (item.type && item.type.includes(typeFilter));
             const matchesPool = !poolFilter || (item.pool && item.pool.includes(poolFilter));
-            
+
             return matchesQuery && matchesQuality && matchesType && matchesPool;
         });
 
@@ -104,7 +123,7 @@ export function initIsaacUI(ioConnection) {
         filtered.slice(0, 50).forEach(it => {
             results.append(createItemElement(it));
         });
-        
+
         if (results.children().length === 0) { results.hide(); return; }
         results.show();
     }
@@ -161,7 +180,7 @@ export function initIsaacUI(ioConnection) {
     function updateBossSuggestions(query = '') {
         bossSearchResults.empty();
         const filtered = isaacBosses.filter(b => b.name.toLowerCase().includes(query.toLowerCase()));
-        
+
         filtered.slice(0, 30).forEach(b => {
             const img = getBossImage(b.name);
             const bossEl = $(`
@@ -193,18 +212,37 @@ export function initIsaacUI(ioConnection) {
         bossSelectedId.val(b.id);
         bossSearchInput.val(b.name);
         bossNameLabel.text(b.name).show();
-        
+
         const img = getBossImage(b.name);
         bossPreview.html(`<img src="${img}" style="width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 0 6px var(--accent-glow));" onerror="this.src='/images/Isaac/boss.png'">`);
-        
+
         $('#isaacBossBaseHp').text(b.base_hp || '???');
         $('#isaacBossHpInfo').show();
+
+        // Show hint for segmented bosses, but don't override the 'Amount' (which now means 'Number of Bosses').
+        const segCount = getSegmentedBossCount(b.id);
+        if (segCount) {
+            let msg = `⚠ Segmented Boss — will automatically spawn ${segCount} segments per boss.`;
+            if (String(b.id) === '19.2' || String(b.id) === '19.3') {
+                msg += ` + Grimace for bombs.`;
+            }
+            $('#isaacBossSegmentHint').text(msg).show();
+        } else if (String(b.id) === '921.0') {
+            $('#isaacBossSegmentHint').text(`⚠ Phase 1 Minions — will automatically spawn 3 Clickety Clacks for Clutch.`).show();
+        } else {
+            $('#isaacBossSegmentHint').hide();
+        }
     }
 
     function getBossImage(name) {
         if (!name) return null;
         let cleanName = name.replace(' (Boss)', '');
-        
+
+        // Special case for Blue Baby
+        if (cleanName === '???') {
+            cleanName = 'Blue_Baby';
+        }
+
         // Handle special character encoding for URLs (especially for ???)
         cleanName = cleanName.replace(/\?/g, '%3F');
         cleanName = cleanName.replace(/'/g, '%27');
@@ -212,7 +250,7 @@ export function initIsaacUI(ioConnection) {
 
         // Suffix mapping
         let suffix = '_portrait.webp';
-        
+
         const ingameBosses = ["Ultra_Death", "Ultra_Famine", "Ultra_Pestilence", "Ultra_War", "The_Beast", "Ultra_Greedier"];
         if (ingameBosses.includes(cleanName)) {
             suffix = '_ingame.webp';
@@ -289,8 +327,8 @@ export function initIsaacUI(ioConnection) {
         // Update Button
         btnText.text(serverActive ? 'Stop Bridge' : 'Start Bridge');
         connectBtn.removeClass('btn-primary btn-secondary').addClass(serverActive ? 'btn-secondary' : 'btn-primary');
-        
-        btnIcon.html(serverActive 
+
+        btnIcon.html(serverActive
             ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12"></rect></svg>`
             : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`
         );
@@ -354,13 +392,13 @@ export function initIsaacUI(ioConnection) {
             gIdx++; // for id >= 475
             gIdx++; // for id >= 649
             if (gIdx >= 548) gIdx += 12;
-            return { x: -( (gIdx % 20) * 44), y: -(Math.floor(gIdx / 20) * 44) };
+            return { x: -((gIdx % 20) * 44), y: -(Math.floor(gIdx / 20) * 44) };
         }
         const idx = isaacItems.findIndex(it => it.id === id);
         if (idx === -1) return null;
         let gIdx = idx;
         if (id >= 475) gIdx++; if (id >= 649) gIdx++; if (gIdx >= 548) gIdx += 12;
-        return { x: -( (gIdx % 20) * 44), y: -(Math.floor(gIdx / 20) * 44) };
+        return { x: -((gIdx % 20) * 44), y: -(Math.floor(gIdx / 20) * 44) };
     }
 
     const ISAAC_DEFAULT_PROFILES = [
@@ -440,8 +478,8 @@ export function initIsaacUI(ioConnection) {
                 makeGiftCell(giftName, gift),
                 effectTd,
                 makeActionCell(giftName, {
-                    onTest:   (g) => window.testIsaac(g),
-                    onEdit:   (g) => openModal(g),
+                    onTest: (g) => window.testIsaac(g),
+                    onEdit: (g) => openModal(g),
                     onDelete: (g) => window.deleteIsaacMapping(g)
                 })
             );
@@ -459,7 +497,7 @@ export function initIsaacUI(ioConnection) {
         $('#fields_spawn_item').show();
         itemSelectedId.val('');
         itemSearchInput.val('');
-        
+
         $('#isaacFilterQuality, #isaacFilterType, #isaacFilterPool').on('change', () => {
             updateItemSuggestions($('#isaacItemSearchInput').val());
             $('#isaacItemSearchResults').show();
@@ -518,7 +556,7 @@ export function initIsaacUI(ioConnection) {
                 if (b) selectBoss(b);
                 $('#isaacBossAmountInput').val(effect.amount || 1);
             }
-            
+
             if (effect && typeof effect === 'object') {
                 $('#isaacWaitStreak').prop('checked', effect.waitForStreak !== false);
             }
@@ -584,7 +622,7 @@ export function initIsaacUI(ioConnection) {
         } else {
             const action = $('.isaac-action-tab.active').data('action') || 'spawn_item';
             const waitForStreak = $('#isaacWaitStreak').is(':checked');
-            
+
             if (action === 'spawn_item') {
                 const itemId = parseInt($('#isaacSelectedItemId').val());
                 if (itemId || itemId === -1) {
@@ -621,10 +659,10 @@ export function initIsaacUI(ioConnection) {
             } else if (action === 'spawn_entity') {
                 const entityId = $('#isaacEntityIdInput').val().trim();
                 if (entityId) {
-                    payload = { 
-                        type: 'custom_action', 
-                        action: 'spawn_entity', 
-                        entityId, 
+                    payload = {
+                        type: 'custom_action',
+                        action: 'spawn_entity',
+                        entityId,
                         amount: parseInt($('#isaacEntityAmountInput').val()) || 1,
                         waitForStreak
                     };
@@ -659,11 +697,11 @@ export function initIsaacUI(ioConnection) {
                 body: JSON.stringify({ giftName, effectId, action })
             });
             const d = await r.json();
-            if (d.success) { 
-                currentCommands = d.commands; 
-                renderTable(); 
-                modal.hide(); 
-                resetModal(); 
+            if (d.success) {
+                currentCommands = d.commands;
+                renderTable();
+                modal.hide();
+                resetModal();
                 showToast(action === 'delete' ? 'Mapping removed' : 'Mapping saved!', 'success');
             } else {
                 showToast(d.error || 'Failed to save mapping', 'error');
@@ -675,11 +713,11 @@ export function initIsaacUI(ioConnection) {
 
     window.testIsaac = (g) => {
         fetch('/api/isaac/test', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ giftName: g }) })
-        .then(r => r.json()).then(res => showToast(res.success ? 'Sent!' : res.error, res.success ? 'success' : 'error'));
+            .then(r => r.json()).then(res => showToast(res.success ? 'Sent!' : res.error, res.success ? 'success' : 'error'));
     };
 
     window.deleteIsaacMapping = (g) => {
-        showConfirm({ title: 'Delete?', message: `Remove ${g}?` }).then(ok => { if(ok) saveMapping(g, null, 'delete'); });
+        showConfirm({ title: 'Delete?', message: `Remove ${g}?` }).then(ok => { if (ok) saveMapping(g, null, 'delete'); });
     };
 
     loadAllData();

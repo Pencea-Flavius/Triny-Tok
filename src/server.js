@@ -146,7 +146,6 @@ repoBridge.on('response', (data) => {
     io.emit('repoResponse', data);
 });
 
-
 // app state
 let trackedDiamonds = 0;
 let donorStats = {}; // { userId: { userId, nickname, uniqueId, profilePictureUrl, totalDiamonds, lastGift } }
@@ -312,10 +311,11 @@ async function finalizeGift(msg, updateDbAndCommand = true) {
         const code = typeof repoEffect === 'string' ? repoEffect : repoEffect.code;
         const duration = (typeof repoEffect === 'object' && repoEffect.duration) ? repoEffect.duration : 0;
         const waitForStreak = (typeof repoEffect === 'object' && repoEffect.waitForStreak !== undefined) ? repoEffect.waitForStreak : true;
+        const targetRandom = (typeof repoEffect === 'object' && repoEffect.targetRandom !== undefined) ? repoEffect.targetRandom : false;
         const executions = waitForStreak === false ? (msg.repeatCount || 1) : 1;
 
         for (let i = 0; i < executions; i++) {
-            repoBridge.sendEffect(code, msg.nickname || msg.uniqueId, duration);
+            repoBridge.sendEffect(code, msg.nickname || msg.uniqueId, duration, targetRandom);
             if (executions > 1 && i < executions - 1) {
                 await new Promise(resolve => setTimeout(resolve, 200));
             }
@@ -887,11 +887,17 @@ app.post('/api/repo/test', express.json(), (req, res) => {
 
     const code = typeof effect === 'string' ? effect : effect.code;
     const duration = (typeof effect === 'object' && effect.duration) ? effect.duration : 0;
+    const targetRandom = (typeof effect === 'object' && effect.targetRandom !== undefined) ? effect.targetRandom : false;
 
     if (!repoBridge.isConnected) return res.status(503).json({ success: false, error: 'REPO mod not connected' });
 
-    repoBridge.sendEffect(code, 'TestUser', duration)
-        .then(r => res.json({ success: r.status === 0, response: r }))
+    repoBridge.sendEffect(code, 'TestUser', duration, targetRandom)
+        .then(r => {
+            if (!r || typeof r !== 'object') {
+                return res.json({ success: false, error: 'Mod did not respond' });
+            }
+            res.json({ success: r.status === 0, error: r.status !== 0 ? (r.message || 'Unknown mod error') : undefined, response: r });
+        })
         .catch(e => res.status(500).json({ success: false, error: e.message }));
 });
 
