@@ -8,6 +8,7 @@ import { initMinecraftUI } from './ui/minecraft.js';
 import { initCommandsUI, refreshCommandsData } from './ui/commands.js';
 import { initIsaacUI } from './ui/isaac.js';
 import { initRepoUI } from './ui/repo.js';
+import { initGoiUI } from './ui/goi.js';
 import { showToast } from './ui/dialog.js';
 window.showToast = showToast;
 
@@ -79,6 +80,7 @@ $(document).ready(() => {
     initCommandsUI(connection);
     initIsaacUI(connection);
     initRepoUI(connection);
+    initGoiUI(connection);
 });
 
 function connect() {
