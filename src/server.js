@@ -9,6 +9,7 @@ const { clientBlocked } = require('./utils/limiter');
 const minecraftBridge = require('./tiktok/minecraftBridge');
 const isaacBridge = require('./tiktok/isaacBridge');
 const repoBridge = require('./tiktok/repoBridge');
+const goiBridge = require('./tiktok/goiBridge');
 const path = require('path');
 const fs = require('fs');
 const db = require('./database/db_manager');
@@ -28,6 +29,7 @@ let config = {
     giftCommands: {},
     isaacCommands: {},
     repoCommands: {},
+    goiCommands: {},
     followCommand: { command: "", cooldown: 0 },
     likeCommand: { command: "", minLikes: 100 },
     targetPlayers: []
@@ -144,6 +146,14 @@ repoBridge.on('statusChange', (isConnected, errorMsg) => {
 
 repoBridge.on('response', (data) => {
     io.emit('repoResponse', data);
+});
+
+goiBridge.on('statusChange', (isConnected, errorMsg) => {
+    io.emit('goiStatus', { isConnected, serverActive: !!goiBridge.server, error: errorMsg || null });
+});
+
+goiBridge.on('response', (data) => {
+    io.emit('goiResponse', data);
 });
 
 // app state
@@ -324,6 +334,25 @@ async function finalizeGift(msg, updateDbAndCommand = true) {
         console.info(`[Repo] Triggered effect ${code} for ${msg.giftName}`);
         io.emit('repoLog', { code, giftName: msg.giftName, viewer: msg.nickname || msg.uniqueId });
     }
+
+    const goiEffect = config.goiCommands && config.goiCommands[msg.giftName];
+    if (goiEffect && goiBridge.isConnected) {
+        const goiCode = typeof goiEffect === 'string' ? goiEffect : goiEffect.code;
+        const goiDuration = (typeof goiEffect === 'object' && goiEffect.duration) ? goiEffect.duration : 0;
+        const goiCount = (typeof goiEffect === 'object' && goiEffect.count) ? goiEffect.count : 1;
+        const goiWaitForStreak = (typeof goiEffect === 'object' && goiEffect.waitForStreak !== undefined) ? goiEffect.waitForStreak : true;
+        const goiExecutions = goiWaitForStreak === false ? (msg.repeatCount || 1) : 1;
+
+        for (let i = 0; i < goiExecutions; i++) {
+            goiBridge.sendEffect(goiCode, msg.nickname || msg.uniqueId, goiDuration, goiCount);
+            if (goiExecutions > 1 && i < goiExecutions - 1) {
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+        }
+
+        console.info(`[GOI] Triggered effect ${goiCode} for ${msg.giftName}`);
+        io.emit('goiLog', { code: goiCode, giftName: msg.giftName, viewer: msg.nickname || msg.uniqueId });
+    }
 }
 
 io.on('connection', (socket) => {
@@ -335,6 +364,7 @@ io.on('connection', (socket) => {
     socket.emit('isaacStatus', { isConnected: isaacBridge.isConnected, serverActive: !!isaacBridge.server });
     socket.emit('isaacProfiles', isaacBridge.profiles.length > 0 ? isaacBridge.profiles : (config.isaacProfiles || ISAAC_DEFAULT_PROFILES));
     socket.emit('repoStatus', { isConnected: repoBridge.isConnected, serverActive: !!repoBridge.server });
+    socket.emit('goiStatus', { isConnected: goiBridge.isConnected, serverActive: !!goiBridge.server });
 
     // rcon settings
     socket.on('minecraftConnect', (data) => {
@@ -378,6 +408,16 @@ io.on('connection', (socket) => {
     socket.on('repoStop', () => {
         repoBridge.stop();
         io.emit('repoStatus', { isConnected: false, serverActive: false });
+    });
+
+    socket.on('goiStart', () => {
+        goiBridge.start(config.goi?.port || 52000);
+        io.emit('goiStatus', { isConnected: goiBridge.isConnected, serverActive: true });
+    });
+
+    socket.on('goiStop', () => {
+        goiBridge.stop();
+        io.emit('goiStatus', { isConnected: false, serverActive: false });
     });
 
     socket.on('testCommand', async (data) => {
@@ -924,6 +964,50 @@ app.post('/api/isaac/test', express.json(), (req, res) => {
         console.error(`[Isaac] Effect not found for gift "${giftName}". Available:`, Object.keys(config.isaacCommands));
         res.status(404).json({ success: false, error: 'Effect not found for this gift' });
     }
+});
+
+// GOI API routes
+app.get('/api/goi/commands', (req, res) => {
+    res.json({ success: true, commands: config.goiCommands || {} });
+});
+
+app.post('/api/goi/commands', express.json(), (req, res) => {
+    const { giftName, effect, action } = req.body;
+    if (!config.goiCommands) config.goiCommands = {};
+
+    if (action === 'delete' && giftName) {
+        delete config.goiCommands[giftName];
+    } else if (giftName && effect) {
+        config.goiCommands[giftName] = effect;
+    }
+
+    try {
+        fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+        res.json({ success: true, commands: config.goiCommands });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+app.post('/api/goi/test', express.json(), (req, res) => {
+    const { giftName } = req.body;
+    if (!config.goiCommands) return res.status(404).json({ success: false, error: 'No GOI commands configured' });
+
+    const effect = config.goiCommands[giftName];
+    if (!effect) return res.status(404).json({ success: false, error: 'Effect not found for this gift' });
+
+    const code = typeof effect === 'string' ? effect : effect.code;
+    const duration = (typeof effect === 'object' && effect.duration) ? effect.duration : 0;
+    const count    = (typeof effect === 'object' && effect.count)    ? effect.count    : 1;
+
+    if (!goiBridge.isConnected) return res.status(503).json({ success: false, error: 'GOI mod not connected' });
+
+    goiBridge.sendEffect(code, 'TestUser', duration, count)
+        .then(r => {
+            if (!r || typeof r !== 'object') return res.json({ success: false, error: 'Mod did not respond' });
+            res.json({ success: r.status === 0, error: r.status !== 0 ? (r.message || 'Unknown mod error') : undefined, response: r });
+        })
+        .catch(e => res.status(500).json({ success: false, error: e.message }));
 });
 
 // Emit global stats
