@@ -73,6 +73,13 @@ body[data-active-tab="repoEffects"] {
   --accent-glow: rgba(240, 173, 22, 0.18);
 }
 
+body[data-active-tab="goiEffects"] {
+  --accent: #819846;
+  --accent-rgb: 129, 152, 70;
+  --accent-dim: rgba(129, 152, 70, 0.1);
+  --accent-glow: rgba(129, 152, 70, 0.18);
+}
+
 /* ── RESET ── */
 *,
 *::before,
@@ -339,8 +346,6 @@ body::before {
 
 .sub-item svg {
   flex-shrink: 0;
-  opacity: 0.55;
-  transition: opacity 0.18s;
 }
 
 .sub-item:hover {
@@ -348,18 +353,10 @@ body::before {
   color: var(--text);
 }
 
-.sub-item:hover svg {
-  opacity: 0.9;
-}
-
 .sub-item.active {
   background: var(--accent-dim);
   color: var(--accent);
   font-weight: 700;
-}
-
-.sub-item.active svg {
-  opacity: 1;
 }
 
 /* ── CONSOLE ACCORDION (Game Bridge) ── */
@@ -397,8 +394,6 @@ body::before {
 }
 
 .sub-console-header svg:first-child {
-  opacity: 0.55;
-  transition: opacity 0.18s;
   flex-shrink: 0;
 }
 
@@ -413,7 +408,7 @@ body::before {
   color: var(--text);
 }
 
-.sub-console-header:hover svg {
+.sub-console-header:hover .chevron {
   opacity: 0.9;
 }
 
@@ -430,10 +425,6 @@ body::before {
 /* Has-active state: console header highlights when a child is active */
 .sub-console.has-active .sub-console-header {
   color: var(--accent);
-}
-
-.sub-console.has-active .sub-console-header svg {
-  opacity: 0.9;
 }
 
 /* Children container — collapsed by default */
