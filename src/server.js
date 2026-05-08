@@ -652,6 +652,11 @@ app.get('/', (req, res) => {
     res.render('index');
 });
 
+// Login page
+app.get('/login', (req, res) => {
+    res.render('login');
+});
+
 // App (tracker tool) — catch-all so /app/* routes work with client-side history API
 app.get('/app', (req, res) => res.render('app'));
 app.get('/app/{*path}', (req, res) => res.render('app'));
