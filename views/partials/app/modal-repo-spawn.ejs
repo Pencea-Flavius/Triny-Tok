@@ -1,0 +1,76 @@
+<!-- REPO Spawn Modal -->
+<div id="repoSpawnModal" class="modal-overlay" style="display:none;">
+  <div class="modal-content glass" style="max-width:720px;width:100%;max-height:90vh;display:flex;flex-direction:column;">
+    <h3 id="repoSpawnModalTitle" style="margin-bottom:16px;font-size:1.2rem;font-weight:800;letter-spacing:-.02em;flex-shrink:0;">Add Spawn Effect</h3>
+
+    <!-- Gift Selector -->
+    <div style="flex-shrink:0;">
+      <%- include('../gift-selector', { previewId: 'repoSpawnGiftPreview', inputId: 'repoSpawnGiftInput', resultsId: 'repoSpawnGiftResults' }) %>
+    </div>
+
+    <!-- Spawn type tabs -->
+    <div style="display:flex;gap:2px;background:var(--bg2);padding:3px;border-radius:10px;border:1px solid var(--border);margin:12px 0 8px;flex-shrink:0;" id="repoSpawnTypeTabs">
+      <button class="repo-spawn-type-tab active" data-type="items" style="flex:1;padding:7px 0;border-radius:8px;border:none;background:var(--bg-light);color:var(--text);font-size:11px;font-weight:800;cursor:pointer;transition:all .2s;">Items</button>
+      <button class="repo-spawn-type-tab" data-type="valuables" style="flex:1;padding:7px 0;border-radius:8px;border:none;background:transparent;color:var(--dim);font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;">Valuables</button>
+      <button class="repo-spawn-type-tab" data-type="enemies" style="flex:1;padding:7px 0;border-radius:8px;border:none;background:transparent;color:var(--dim);font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;">Enemies</button>
+    </div>
+
+    <!-- Biome filter (valuables only) -->
+    <div id="repoBiomeFilter" style="display:none;flex-shrink:0;margin-bottom:8px;">
+      <div style="display:flex;gap:4px;flex-wrap:wrap;" id="repoBiomeTabs"></div>
+    </div>
+
+    <!-- Item category filter (items only) -->
+    <div id="repoItemCatFilter" style="display:none;flex-shrink:0;margin-bottom:8px;">
+      <div style="display:flex;gap:4px;flex-wrap:wrap;" id="repoItemCatTabs"></div>
+    </div>
+
+    <!-- Search -->
+    <div style="position:relative;flex-shrink:0;margin-bottom:10px;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--dim);pointer-events:none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="repoSpawnSearch" type="text" placeholder="Search..." class="input-base" style="width:100%;padding-left:32px;box-sizing:border-box;">
+    </div>
+
+    <!-- Cards grid -->
+    <div id="repoSpawnCards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;overflow-y:auto;flex:1;padding:4px 2px;min-height:0;"></div>
+
+    <!-- Upgrade spawn option (items only, shown when an upgrade item is selected) -->
+    <div id="repoUpgradeSpawnRow" style="display:none;margin-top:10px;padding:10px 14px;background:var(--bg4);border:1px solid var(--border2);border-radius:var(--r-md);flex-shrink:0;">
+      <div style="font-size:11px;font-weight:800;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Delivery Method</div>
+      <div style="display:flex;gap:8px;">
+        <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 12px;border:2px solid var(--border);border-radius:8px;cursor:pointer;transition:all .2s;" id="repoUpgradeDirectLabel">
+          <input type="radio" name="repoUpgradeDelivery" value="direct" checked style="accent-color:var(--accent);">
+          <div>
+            <div style="font-size:12px;font-weight:700;">Apply directly</div>
+            <div style="font-size:10px;color:var(--dim);">Upgrade activates instantly</div>
+          </div>
+        </label>
+        <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 12px;border:2px solid var(--border);border-radius:8px;cursor:pointer;transition:all .2s;" id="repoUpgradeItemLabel">
+          <input type="radio" name="repoUpgradeDelivery" value="item" style="accent-color:var(--accent);">
+          <div>
+            <div style="font-size:12px;font-weight:700;">Spawn as item</div>
+            <div style="font-size:10px;color:var(--dim);">Item drops on the ground</div>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <!-- Options row -->
+    <div style="margin-top:10px;padding-top:12px;border-top:1px solid var(--border);display:flex;flex-direction:row;justify-content:space-between;align-items:center;flex-shrink:0;">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;">
+        <input type="checkbox" id="repoSpawnTargetRandom" style="width:16px;height:16px;accent-color:var(--accent);">
+        Target Random Player
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;">
+        <input type="checkbox" id="repoSpawnWaitStreak" checked style="width:16px;height:16px;accent-color:var(--accent);">
+        Wait for Streak End
+      </label>
+    </div>
+
+    <!-- Save/Cancel -->
+    <div style="display:flex;gap:10px;margin-top:14px;flex-shrink:0;">
+      <button class="btn-primary" id="saveRepoSpawnBtn" style="flex:2;">Save Effect</button>
+      <button class="btn-secondary" id="cancelRepoSpawnBtn" style="flex:1;">Cancel</button>
+    </div>
+  </div>
+</div>

@@ -41,6 +41,8 @@ let isaacBosses = [];
 let giftDropdown = null;
 let serverActive = false;
 let isConnected = false;
+let activeIsaacCat = 'Chaos';
+const ISAAC_CAT_ORDER = ['Chaos', 'Curses', 'Punishment', 'Timed', 'Buff', 'Glitch', 'Other'];
 
 export function initIsaacUI(ioConnection) {
     if (ioConnection) socket = ioConnection.socket;
@@ -293,8 +295,9 @@ export function initIsaacUI(ioConnection) {
     $('#isaacModeProfileBtn').off('click').on('click', () => {
         $('#isaacModeProfileBtn').addClass('active');
         $('#isaacModeCustomBtn').removeClass('active');
-        $('#isaacProfileView').show();
+        $('#isaacProfileView').css('display', 'flex');
         $('#isaacCustomActionView').hide();
+        buildIsaacCategoryTabs(window.selectedIsaacProfile || null);
         renderProfileCards(window.selectedIsaacProfile || null);
     });
 
@@ -309,6 +312,17 @@ export function initIsaacUI(ioConnection) {
 
     connectBtn.off('click').on('click', () => {
         socket.emit(!serverActive ? 'isaacStart' : 'isaacStop');
+    });
+
+    $('#isaacWaitStreak').off('change').on('change', function() {
+        if ($(this).is(':checked')) {
+            $('#isaacDelayConfigRow').hide();
+        } else {
+            $('#isaacDelayConfigRow').css('display', 'flex');
+        }
+    });
+    $('#isaacExecuteDelayInput').off('input').on('input', function() {
+        $('#isaacDelayValueDisplay').text($(this).val() + 's');
     });
 
     $('#saveIsaacEffectBtn').off('click').on('click', saveCurrentMapping);
@@ -507,7 +521,9 @@ export function initIsaacUI(ioConnection) {
         $('#isaacUseEffectOnly').prop('checked', false);
         $('#isaacUseEffectRow').hide();
         $('#isaacItemSpawnOptions').show();
-        $('#isaacWaitStreak').prop('checked', true);
+        $('#isaacWaitStreak').prop('checked', true).trigger('change');
+        $('#isaacExecuteDelayInput').val(0.2);
+        $('#isaacDelayValueDisplay').text('0.2s');
         $('#isaacEntityIdInput').val('');
         $('#isaacEntityAmountInput').val(1);
         itemPreview.html('<span style="font-size:9px;color:var(--text-muted);">ITEM</span>');
@@ -558,34 +574,42 @@ export function initIsaacUI(ioConnection) {
             }
 
             if (effect && typeof effect === 'object') {
-                $('#isaacWaitStreak').prop('checked', effect.waitForStreak !== false);
+                $('#isaacWaitStreak').prop('checked', effect.waitForStreak !== false).trigger('change');
+                if (effect.executeDelay) {
+                    $('#isaacExecuteDelayInput').val(effect.executeDelay);
+                    $('#isaacDelayValueDisplay').text(effect.executeDelay + 's');
+                }
             }
         } else {
             giftDropdown.setValue('');
             $('#isaacModalTitle').text('Add TBOI Effect');
+            buildIsaacCategoryTabs(null);
             renderProfileCards(null);
         }
         modal.css('display', 'flex');
     }
 
+    function buildIsaacCategoryTabs(selId) {
+        const container = $('#isaacCategoryTabs').empty();
+        container.css({ display: 'flex', gap: '2px', background: 'var(--bg2)', padding: '3px', borderRadius: '10px', border: '1px solid var(--border)', overflowX: 'auto', scrollbarWidth: 'none' });
+        const available = ISAAC_CAT_ORDER.filter(cat => profiles.some(p => (p.category || 'Other') === cat));
+        available.forEach(cat => {
+            const color = CATEGORY_COLORS[cat] || '#888';
+            const active = activeIsaacCat === cat;
+            const btn = $(`<button style="flex:1 0 auto;padding:8px 14px;border-radius:8px;border:none;background:${active ? 'var(--bg-light)' : 'transparent'};color:${active ? 'var(--text)' : 'var(--dim)'};font-size:11px;font-weight:${active ? '800' : '600'};cursor:pointer;transition:all .2s;white-space:nowrap;display:flex;align-items:center;gap:8px;box-shadow:${active ? '0 2px 8px rgba(0,0,0,0.2)' : 'none'};">
+                <div style="width:8px;height:8px;border-radius:50%;background:${color};box-shadow:0 0 6px ${color}88;opacity:${active ? 1 : 0.5};transition:opacity .2s;"></div>${cat}</button>`);
+            btn.on('click', () => { activeIsaacCat = cat; buildIsaacCategoryTabs(selId); renderProfileCards(selId); });
+            container.append(btn);
+        });
+    }
+
     function renderProfileCards(selId) {
         const cards = $('#isaacEffectCards').empty();
 
-        const byCategory = {};
-        profiles.forEach(p => {
-            const cat = p.category || 'Other';
-            if (!byCategory[cat]) byCategory[cat] = [];
-            byCategory[cat].push(p);
-        });
+        const catProfiles = profiles.filter(p => (p.category || 'Other') === activeIsaacCat);
+        const catColor = CATEGORY_COLORS[activeIsaacCat] || '#888';
 
-        const catOrder = ['Chaos', 'Curses', 'Punishment', 'Timed', 'Buff', 'Glitch', 'Other'];
-        catOrder.forEach(cat => {
-            if (!byCategory[cat]) return;
-            const catColor = CATEGORY_COLORS[cat] || '#888';
-            const section = $(`<div style="grid-column:1/-1;margin-top:4px;"></div>`);
-            section.append(`<div style="font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:${catColor};margin-bottom:6px;padding-left:2px;">${cat}</div>`);
-            const grid = $(`<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;"></div>`);
-            byCategory[cat].forEach(p => {
+        catProfiles.forEach(p => {
                 const isSelected = p.id === selId;
                 const card = $(`
                     <div class="isaac-effect-card ${isSelected ? 'selected' : ''}"
@@ -595,11 +619,8 @@ export function initIsaacUI(ioConnection) {
                     </div>
                 `);
                 card.on('click', () => { renderProfileCards(p.id); window.selectedIsaacProfile = p.id; });
-                grid.append(card);
+                cards.append(card);
             });
-            section.append(grid);
-            cards.append(section);
-        });
 
         if (!profiles.length) {
             cards.append(`<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--dim);font-size:.85rem;">No profiles received yet. Start the bridge and open a run.</div>`);
@@ -610,18 +631,21 @@ export function initIsaacUI(ioConnection) {
         const giftName = giftDropdown.getValue();
         let payload = null;
         let isProfileMode = $('#isaacModeProfileBtn').hasClass('active');
+        const waitForStreak = $('#isaacWaitStreak').is(':checked');
+        const executeDelay = waitForStreak ? undefined : (parseFloat($('#isaacExecuteDelayInput').val()) || 0.2);
+        const delayObj = executeDelay !== undefined ? { executeDelay } : {};
 
         if (isProfileMode) {
             if (window.selectedIsaacProfile) {
                 payload = {
                     type: 'activate',
                     profileId: window.selectedIsaacProfile,
-                    waitForStreak: $('#isaacWaitStreak').is(':checked')
+                    waitForStreak,
+                    ...delayObj
                 };
             }
         } else {
             const action = $('.isaac-action-tab.active').data('action') || 'spawn_item';
-            const waitForStreak = $('#isaacWaitStreak').is(':checked');
 
             if (action === 'spawn_item') {
                 const itemId = parseInt($('#isaacSelectedItemId').val());
@@ -632,7 +656,8 @@ export function initIsaacUI(ioConnection) {
                             type: 'custom_action',
                             action: 'use_item',
                             itemId,
-                            waitForStreak
+                            waitForStreak,
+                            ...delayObj
                         };
                     } else {
                         payload = {
@@ -641,7 +666,8 @@ export function initIsaacUI(ioConnection) {
                             itemId,
                             amount: parseInt($('#isaacItemAmountInput').val()) || 1,
                             autoCollect: $('#isaacItemAutoCollect').is(':checked'),
-                            waitForStreak
+                            waitForStreak,
+                            ...delayObj
                         };
                     }
                 }
@@ -653,7 +679,8 @@ export function initIsaacUI(ioConnection) {
                         action: 'spawn_boss',
                         bossId,
                         amount: parseInt($('#isaacBossAmountInput').val()) || 1,
-                        waitForStreak
+                        waitForStreak,
+                        ...delayObj
                     };
                 }
             } else if (action === 'spawn_entity') {
@@ -664,7 +691,8 @@ export function initIsaacUI(ioConnection) {
                         action: 'spawn_entity',
                         entityId,
                         amount: parseInt($('#isaacEntityAmountInput').val()) || 1,
-                        waitForStreak
+                        waitForStreak,
+                        ...delayObj
                     };
                 }
             }

@@ -12,8 +12,8 @@
         <!-- Mode Toggle -->
         <div
           style="display:grid;grid-template-columns:1fr 1fr;gap:4px;background:rgba(0,0,0,0.25);padding:4px;border-radius:10px;border:1px solid var(--border);">
-          <button id="isaacModeCustomBtn" class="isaac-mode-btn active" onclick="">Custom Action</button>
-          <button id="isaacModeProfileBtn" class="isaac-mode-btn" onclick="">Preset Effects</button>
+          <button id="isaacModeCustomBtn" class="isaac-mode-btn active" onclick="">Spawn</button>
+          <button id="isaacModeProfileBtn" class="isaac-mode-btn" onclick="">Effects</button>
         </div>
 
         <!-- Custom Action Panel -->
@@ -178,8 +178,8 @@
         </div>
 
         <!-- Presets Panel -->
-        <div id="isaacProfileView" style="display:none;">
-          <label class="field-label" style="margin-bottom:8px;display:block;">Select Profile</label>
+        <div id="isaacProfileView" style="display:none;flex-direction:column;gap:10px;">
+          <div style="display:flex;gap:4px;flex-wrap:wrap;" id="isaacCategoryTabs"></div>
           <div id="isaacEffectCards"
             style="display:grid;grid-template-columns:1fr 1fr;gap:8px;max-height:240px;overflow-y:auto;padding:2px;">
           </div>
@@ -193,6 +193,13 @@
               style="width:16px;height:16px;accent-color:var(--accent);">
             Wait for Streak End
           </label>
+        </div>
+        <div id="isaacDelayConfigRow" style="display:none;flex-direction:column;gap:8px;padding:10px 14px;background:var(--bg4);border:1px solid var(--border2);border-radius:var(--r-md);">
+          <label class="field-label" style="display:flex;justify-content:space-between;">
+            <span>Execution Delay</span>
+            <span id="isaacDelayValueDisplay" style="color:var(--accent);font-weight:700;">0.2s</span>
+          </label>
+          <input type="range" id="isaacExecuteDelayInput" min="0.1" max="1.0" step="0.1" value="0.2" style="width:100%;accent-color:var(--accent);">
         </div>
 
         <!-- Save/Cancel -->
