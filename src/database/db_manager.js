@@ -71,7 +71,43 @@ class DatabaseManager {
                     base_hp INTEGER,
                     stage_hp INTEGER
                 );
+
+                CREATE TABLE IF NOT EXISTS repo_valuables (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    biome TEXT,
+                    size TEXT NOT NULL,
+                    mass REAL
+                );
+
+                CREATE TABLE IF NOT EXISTS repo_items (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS repo_enemies (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    in_game_name TEXT,
+                    hp INTEGER,
+                    danger_level INTEGER,
+                    damage TEXT,
+                    strength_breakpoint INTEGER,
+                    strength_breakpoint_stunned INTEGER,
+                    attacks_crouched TEXT,
+                    orb_size TEXT,
+                    behavior TEXT
+                );
             `);
+
+            const [vCount, iCount, eCount] = await Promise.all([
+                db.get(`SELECT COUNT(*) as n FROM repo_valuables`),
+                db.get(`SELECT COUNT(*) as n FROM repo_items`),
+                db.get(`SELECT COUNT(*) as n FROM repo_enemies`),
+            ]);
+            if (vCount.n === 0) await seedRepoValuables(db);
+            if (iCount.n === 0) await seedRepoItems(db);
+            if (eCount.n === 0) await seedRepoEnemies(db);
             console.log('[DB] Connected to global.db (gifts).');
             return db;
         }).catch(err => {
@@ -298,7 +334,45 @@ class DatabaseManager {
         const db = await this.connectGlobal();
         return db.all(`SELECT * FROM isaac_bosses ORDER BY name`);
     }
+
+    // --- REPO Valuables (global.db) ---
+    async getRepoValuables() {
+        const db = await this.connectGlobal();
+        return db.all(`SELECT * FROM repo_valuables ORDER BY biome NULLS FIRST, size, name`);
+    }
+
+    async updateValuableMass(id, mass) {
+        const db = await this.connectGlobal();
+        await db.run(`UPDATE repo_valuables SET mass = ? WHERE id = ?`, [mass, id]);
+    }
+
+    // --- REPO Items (global.db) ---
+    async getRepoItems() {
+        const db = await this.connectGlobal();
+        return db.all(`SELECT * FROM repo_items ORDER BY name`);
+    }
+
+    // --- REPO Enemies (global.db) ---
+    async getRepoEnemies() {
+        const db = await this.connectGlobal();
+        return db.all(`SELECT * FROM repo_enemies ORDER BY name`);
+    }
+
+    async updateEnemyStats(id, stats) {
+        const db = await this.connectGlobal();
+        const fields = Object.keys(stats).map(k => `${k} = ?`).join(', ');
+        await db.run(
+            `UPDATE repo_enemies SET ${fields} WHERE id = ?`,
+            [...Object.values(stats), id]
+        );
+    }
 }
+
+
+async function seedRepoValuables(db) { /* data pre-loaded in DB */ }
+async function seedRepoItems(db)     { /* data pre-loaded in DB */ }
+async function seedRepoEnemies(db)   { /* data pre-loaded in DB */ }
+
 
 const instance = new DatabaseManager();
 module.exports = instance;

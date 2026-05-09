@@ -896,6 +896,27 @@ app.post('/api/isaac/commands', express.json(), (req, res) => {
 });
 
 // REPO API routes
+app.get('/api/repo/images', (req, res) => {
+    const base = path.join(__dirname, '../public/images/repo');
+    const read = (dir) => { try { return fs.readdirSync(path.join(base, dir)); } catch { return []; } };
+    res.json({ items: read('items'), valuables: read('valuables'), enemies: read('enemies') });
+});
+
+app.get('/api/repo/valuables', async (req, res) => {
+    try { res.json({ success: true, valuables: await db.getRepoValuables() }); }
+    catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+app.get('/api/repo/items', async (req, res) => {
+    try { res.json({ success: true, items: await db.getRepoItems() }); }
+    catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+app.get('/api/repo/enemies', async (req, res) => {
+    try { res.json({ success: true, enemies: await db.getRepoEnemies() }); }
+    catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
 app.get('/api/repo/commands', (req, res) => {
     res.json({ success: true, commands: config.repoCommands || {} });
 });
