@@ -82,7 +82,8 @@ class DatabaseManager {
 
                 CREATE TABLE IF NOT EXISTS repo_items (
                     id TEXT PRIMARY KEY,
-                    name TEXT NOT NULL
+                    name TEXT NOT NULL,
+                    item_type TEXT
                 );
 
                 CREATE TABLE IF NOT EXISTS repo_enemies (

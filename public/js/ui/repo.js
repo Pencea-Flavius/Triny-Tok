@@ -94,17 +94,6 @@ const ITEM_IMAGE = {
     ItemExtractionTracker:          'TrackerExtraction.png',
 };
 
-// Item categories for filter
-const ITEM_CATEGORY = {
-    ItemCartCannon: 'Cart', ItemCartLaser: 'Cart', ItemCartSmall: 'Cart', ItemCartMedium: 'Cart',
-    ItemDroneBattery: 'Drone', ItemDroneFeather: 'Drone', ItemDroneIndestructible: 'Drone', ItemDroneTorque: 'Drone', ItemDroneZeroGravity: 'Drone',
-    ItemGunHandgun: 'Gun', ItemGunLaser: 'Gun', ItemGunShockwave: 'Gun', ItemGunShotgun: 'Gun', ItemGunStun: 'Gun', ItemGunTranq: 'Gun',
-    ItemGrenadeExplosive: 'Grenade', ItemGrenadeDuctTaped: 'Grenade', ItemGrenadeHuman: 'Grenade', ItemGrenadeShockwave: 'Grenade', ItemGrenadeStun: 'Grenade',
-    ItemMeleeBaseballBat: 'Melee', ItemMeleeFryingPan: 'Melee', ItemMeleeInflatableHammer: 'Melee', ItemMeleeSledgeHammer: 'Melee', ItemMeleeStunBaton: 'Melee', ItemMeleeSword: 'Melee',
-    ItemMineExplosive: 'Mine', ItemMineShockwave: 'Mine', ItemMineStun: 'Mine',
-    ItemHealthPackLarge: 'Health', ItemHealthPackMedium: 'Health', ItemHealthPackSmall: 'Health', ItemReviveItem: 'Health',
-    ItemStaffTorque: 'Staff', ItemStaffVoid: 'Staff', ItemStaffZeroGravity: 'Staff',
-};
 // Maps spawncollectable upgrade item ID → direct-apply effect code
 const UPGRADE_ITEM_TO_EFFECT = {
     'spawncollectable_ItemUpgradePlayerEnergy':      'player_upgrade_energy',
@@ -120,11 +109,8 @@ const EFFECT_TO_UPGRADE_ITEM = Object.fromEntries(
     Object.entries(UPGRADE_ITEM_TO_EFFECT).map(([k, v]) => [v, k])
 );
 
-function getItemCat(id) {
-    const key = id.replace('spawncollectable_', '');
-    if (ITEM_CATEGORY[key]) return ITEM_CATEGORY[key];
-    if (key.includes('Upgrade')) return 'Upgrade';
-    return 'Other';
+function getItemCat(item) {
+    return item.item_type || 'Other';
 }
 
 function normalize(s) { return s.toLowerCase().replace(/[^a-z0-9]/g, ''); }
@@ -323,7 +309,7 @@ export function initRepoUI(ioConnection) {
         const row = $('#repoSpawnFilters');
         select.find('option:not(:first)').remove();
         if (activeSpawnType === 'spawn_item') {
-            const cats = [...new Set(dbItems.map(item => getItemCat(item.id)))].sort();
+            const cats = [...new Set(dbItems.map(item => getItemCat(item)))].sort();
             cats.forEach(cat => select.append(`<option value="${cat}">${cat}</option>`));
             row.show();
         } else {
@@ -364,7 +350,7 @@ export function initRepoUI(ioConnection) {
         const filtered = entities.filter(e => {
             const label = activeSpawnType === 'spawn_enemy' ? (e.in_game_name || e.name) : e.name;
             if (!label.toLowerCase().includes(query.toLowerCase())) return false;
-            if (catFilter) return getItemCat(e.id) === catFilter;
+            if (catFilter) return getItemCat(e) === catFilter;
             return true;
         });
 
