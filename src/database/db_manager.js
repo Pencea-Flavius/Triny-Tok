@@ -6,8 +6,7 @@ const fs = require('fs');
 class DatabaseManager {
     constructor() {
         if (!DatabaseManager.instance) {
-            this.globalDbPromise = null; // global.db — gifts (pushable)
-            this.localDbPromise = null;  // trinytok.db — streamers/users/donations (gitignored)
+            this.globalDbPromise = null;
             this.currentStreamerId = null;
             DatabaseManager.instance = this;
         }
@@ -25,6 +24,7 @@ class DatabaseManager {
             filename: dbPath,
             driver: sqlite3.Database
         }).then(async (db) => {
+            await db.exec(`PRAGMA foreign_keys = ON;`);
             await db.exec(`
                 CREATE TABLE IF NOT EXISTS gifts (
                     id INTEGER PRIMARY KEY,
@@ -99,43 +99,22 @@ class DatabaseManager {
                     orb_size TEXT,
                     behavior TEXT
                 );
-            `);
 
-            const [vCount, iCount, eCount] = await Promise.all([
-                db.get(`SELECT COUNT(*) as n FROM repo_valuables`),
-                db.get(`SELECT COUNT(*) as n FROM repo_items`),
-                db.get(`SELECT COUNT(*) as n FROM repo_enemies`),
-            ]);
-            if (vCount.n === 0) await seedRepoValuables(db);
-            if (iCount.n === 0) await seedRepoItems(db);
-            if (eCount.n === 0) await seedRepoEnemies(db);
-            console.log('[DB] Connected to global.db (gifts).');
-            return db;
-        }).catch(err => {
-            console.error('[DB] global.db connection error:', err);
-            this.globalDbPromise = null;
-            throw err;
-        });
+                CREATE TABLE IF NOT EXISTS app_accounts (
+                    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username      TEXT UNIQUE NOT NULL,
+                    email         TEXT UNIQUE NOT NULL,
+                    first_name    TEXT NOT NULL,
+                    last_name     TEXT NOT NULL,
+                    password_hash TEXT NOT NULL,
+                    birth_date    DATE NOT NULL,
+                    created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
 
-        return this.globalDbPromise;
-    }
-
-    async connectLocal() {
-        if (this.localDbPromise) return this.localDbPromise;
-
-        const dbPath = path.join(__dirname, '../../data/trinytok.db');
-        const dataDir = path.dirname(dbPath);
-        if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
-
-        this.localDbPromise = open({
-            filename: dbPath,
-            driver: sqlite3.Database
-        }).then(async (db) => {
-            await db.exec(`PRAGMA foreign_keys = ON;`);
-            await db.exec(`
                 CREATE TABLE IF NOT EXISTS streamers (
-                    id INTEGER PRIMARY KEY,
-                    uniqueId TEXT UNIQUE NOT NULL
+                    id         INTEGER PRIMARY KEY,
+                    uniqueId   TEXT UNIQUE NOT NULL,
+                    account_id INTEGER REFERENCES app_accounts(id) ON DELETE SET NULL
                 );
 
                 CREATE TABLE IF NOT EXISTS users (
@@ -148,44 +127,83 @@ class DatabaseManager {
                     totalDiamonds INTEGER DEFAULT 0,
                     lastSeen DATETIME DEFAULT CURRENT_TIMESTAMP,
                     UNIQUE(streamerId, userId),
-                    FOREIGN KEY(streamerId) REFERENCES streamers(id)
+                    FOREIGN KEY(streamerId) REFERENCES streamers(id) ON DELETE CASCADE
                 );
 
                 CREATE TABLE IF NOT EXISTS donations (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     streamerId INTEGER NOT NULL,
                     userId TEXT,
+                    user_id INTEGER,
                     giftId INTEGER,
                     count INTEGER DEFAULT 1,
                     totalDiamonds INTEGER DEFAULT 0,
                     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY(streamerId) REFERENCES streamers(id)
+                    FOREIGN KEY(streamerId) REFERENCES streamers(id) ON DELETE CASCADE,
+                    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE SET NULL,
+                    FOREIGN KEY(giftId) REFERENCES gifts(id)
                 );
             `);
-            console.log('[DB] Connected to trinytok.db (users/donations).');
+
+            console.log('[DB] Connected to global.db.');
             return db;
         }).catch(err => {
-            console.error('[DB] trinytok.db connection error:', err);
-            this.localDbPromise = null;
+            console.error('[DB] global.db connection error:', err);
+            this.globalDbPromise = null;
             throw err;
         });
 
-        return this.localDbPromise;
+        return this.globalDbPromise;
+    }
+
+    // Alias — păstrat ca să nu crape nimic din cod vechi
+    async connectLocal() {
+        return this.connectGlobal();
+    }
+
+    // --- App Accounts ---
+    async createAccount({ username, email, firstName, lastName, passwordHash, birthDate }) {
+        const db = await this.connectGlobal();
+        const result = await db.run(
+            `INSERT INTO app_accounts (username, email, first_name, last_name, password_hash, birth_date)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [username, email, firstName, lastName, passwordHash, birthDate]
+        );
+        // Automatically link to streamer (username = TikTok handle)
+        const normalized = username.replace(/^@/, '').trim().toLowerCase();
+        await db.run(`INSERT OR IGNORE INTO streamers (uniqueId) VALUES (?)`, [normalized]);
+        await db.run(`UPDATE streamers SET account_id = ? WHERE uniqueId = ?`, [result.lastID, normalized]);
+        return result.lastID;
+    }
+
+    async getAccountByUsername(username) {
+        const db = await this.connectGlobal();
+        return db.get(`SELECT * FROM app_accounts WHERE username = ?`, [username]);
+    }
+
+    async getAccountByEmail(email) {
+        const db = await this.connectGlobal();
+        return db.get(`SELECT * FROM app_accounts WHERE email = ?`, [email]);
+    }
+
+    async getAccountById(id) {
+        const db = await this.connectGlobal();
+        return db.get(`SELECT * FROM app_accounts WHERE id = ?`, [id]);
     }
 
     async setCurrentStreamer(uniqueId) {
         const normalized = uniqueId.replace(/^@/, '').trim().toLowerCase();
-        const db = await this.connectLocal();
+        const db = await this.connectGlobal();
         await db.run(`INSERT OR IGNORE INTO streamers (uniqueId) VALUES (?)`, [normalized]);
         const row = await db.get(`SELECT id FROM streamers WHERE uniqueId = ?`, [normalized]);
         this.currentStreamerId = row.id;
         console.log(`[DB] Streamer context: @${normalized} (id=${this.currentStreamerId})`);
     }
 
-    // --- Users (trinytok.db) ---
+    // --- Users ---
     async upsertUser(user) {
         if (!this.currentStreamerId) return;
-        const db = await this.connectLocal();
+        const db = await this.connectGlobal();
         const { userId, uniqueId, nickname, profilePictureUrl, addedDiamonds = 0 } = user;
 
         await db.run(`
@@ -202,7 +220,7 @@ class DatabaseManager {
 
     async getTopDonors(limit = 50) {
         if (!this.currentStreamerId) return [];
-        const db = await this.connectLocal();
+        const db = await this.connectGlobal();
         return db.all(
             `SELECT * FROM users WHERE streamerId = ? ORDER BY totalDiamonds DESC LIMIT ?`,
             [this.currentStreamerId, limit]
@@ -211,7 +229,7 @@ class DatabaseManager {
 
     async getTotalDiamonds() {
         if (!this.currentStreamerId) return 0;
-        const db = await this.connectLocal();
+        const db = await this.connectGlobal();
         const result = await db.get(
             `SELECT SUM(totalDiamonds) as sum FROM users WHERE streamerId = ?`,
             [this.currentStreamerId]
@@ -219,7 +237,7 @@ class DatabaseManager {
         return result.sum || 0;
     }
 
-    // --- Gifts (global.db) ---
+    // --- Gifts ---
     async upsertGift(gift) {
         const db = await this.connectGlobal();
         const { id, name, diamondCount, imageUrl } = gift;
@@ -244,22 +262,28 @@ class DatabaseManager {
         return result.changes;
     }
 
-    // --- Donations (trinytok.db) ---
+    // --- Donations ---
     async recordDonation(userId, giftId, count, totalDiamonds) {
         if (!this.currentStreamerId) return;
-        const db = await this.connectLocal();
+        const db = await this.connectGlobal();
+
+        // Look up the user's integer PK so we have a real FK
+        const userRow = await db.get(
+            `SELECT id FROM users WHERE streamerId = ? AND userId = ?`,
+            [this.currentStreamerId, userId]
+        );
+
         await db.run(`
-            INSERT INTO donations (streamerId, userId, giftId, count, totalDiamonds)
-            VALUES (?, ?, ?, ?, ?)
-        `, [this.currentStreamerId, userId, giftId, count, totalDiamonds]);
+            INSERT INTO donations (streamerId, userId, user_id, giftId, count, totalDiamonds)
+            VALUES (?, ?, ?, ?, ?, ?)
+        `, [this.currentStreamerId, userId, userRow?.id ?? null, giftId, count, totalDiamonds]);
     }
 
-    // --- Isaac Items (global.db) ---
+    // --- Isaac Items ---
     async upsertIsaacItem(item) {
         const db = await this.connectGlobal();
         const { id, name, quality, type, pool } = item;
 
-        // Upsert item
         await db.run(`
             INSERT INTO isaac_items (id, name, quality)
             VALUES (?, ?, ?)
@@ -268,11 +292,9 @@ class DatabaseManager {
                 quality = excluded.quality
         `, [id, name, quality]);
 
-        // Handle types
         if (type) {
             const typeNames = type.split(',').map(t => t.trim()).filter(t => t);
             await db.run(`DELETE FROM isaac_item_types WHERE item_id = ?`, [id]);
-
             for (const typeName of typeNames) {
                 await db.run(`INSERT OR IGNORE INTO isaac_types (name) VALUES (?)`, [typeName]);
                 const typeRow = await db.get(`SELECT id FROM isaac_types WHERE name = ?`, [typeName]);
@@ -280,33 +302,22 @@ class DatabaseManager {
             }
         }
 
-        // Handle pools
         if (pool) {
             const poolNames = pool.split(',').map(p => p.trim()).filter(p => p);
-            
-            // Clear existing pool mappings for this item
             await db.run(`DELETE FROM isaac_item_pools WHERE item_id = ?`, [id]);
-
             for (const poolName of poolNames) {
-                // Ensure pool exists
                 await db.run(`INSERT OR IGNORE INTO isaac_pools (name) VALUES (?)`, [poolName]);
                 const poolRow = await db.get(`SELECT id FROM isaac_pools WHERE name = ?`, [poolName]);
-                
-                // Map item to pool
-                await db.run(`
-                    INSERT OR IGNORE INTO isaac_item_pools (item_id, pool_id)
-                    VALUES (?, ?)
-                `, [id, poolRow.id]);
+                await db.run(`INSERT OR IGNORE INTO isaac_item_pools (item_id, pool_id) VALUES (?, ?)`, [id, poolRow.id]);
             }
         }
     }
 
     async getIsaacItems() {
         const db = await this.connectGlobal();
-        // Join with pools and types
-        const rows = await db.all(`
-            SELECT 
-                i.*, 
+        return db.all(`
+            SELECT
+                i.*,
                 GROUP_CONCAT(DISTINCT p.name) as pool,
                 GROUP_CONCAT(DISTINCT t.name) as type
             FROM isaac_items i
@@ -317,7 +328,6 @@ class DatabaseManager {
             GROUP BY i.id
             ORDER BY i.id
         `);
-        return rows;
     }
 
     async getIsaacPools() {
@@ -330,13 +340,13 @@ class DatabaseManager {
         return db.all(`SELECT name FROM isaac_types ORDER BY name`);
     }
 
-    // --- Isaac Bosses (global.db) ---
+    // --- Isaac Bosses ---
     async getIsaacBosses() {
         const db = await this.connectGlobal();
         return db.all(`SELECT * FROM isaac_bosses ORDER BY name`);
     }
 
-    // --- REPO Valuables (global.db) ---
+    // --- REPO Valuables ---
     async getRepoValuables() {
         const db = await this.connectGlobal();
         return db.all(`SELECT * FROM repo_valuables ORDER BY biome NULLS FIRST, size, name`);
@@ -347,13 +357,13 @@ class DatabaseManager {
         await db.run(`UPDATE repo_valuables SET mass = ? WHERE id = ?`, [mass, id]);
     }
 
-    // --- REPO Items (global.db) ---
+    // --- REPO Items ---
     async getRepoItems() {
         const db = await this.connectGlobal();
         return db.all(`SELECT * FROM repo_items ORDER BY name`);
     }
 
-    // --- REPO Enemies (global.db) ---
+    // --- REPO Enemies ---
     async getRepoEnemies() {
         const db = await this.connectGlobal();
         return db.all(`SELECT * FROM repo_enemies ORDER BY name`);
@@ -368,11 +378,6 @@ class DatabaseManager {
         );
     }
 }
-
-
-async function seedRepoValuables(db) { /* data pre-loaded in DB */ }
-async function seedRepoItems(db)     { /* data pre-loaded in DB */ }
-async function seedRepoEnemies(db)   { /* data pre-loaded in DB */ }
 
 
 const instance = new DatabaseManager();
