@@ -704,10 +704,17 @@ app.get('/api/top-donors', (req, res) => {
 
 app.get('/api/demo-users', async (req, res) => {
     try {
-        const dbInstance = await db.connectLocal();
-        const users = await dbInstance.all(
-            `SELECT * FROM users WHERE uniqueId IN ("zzflaviusboss", "alexnon3", "ghinescumarius298", "memenorul20", "gtrap_", "umbrahero")`
-        );
+        const recoveredPath = path.join(__dirname, '../data/demo_users.json');
+        let users = [];
+        if (require('fs').existsSync(recoveredPath)) {
+            const data = JSON.parse(require('fs').readFileSync(recoveredPath, 'utf8'));
+            users = Object.values(data);
+        } else {
+            const dbInstance = await db.connectLocal();
+            users = await dbInstance.all(
+                `SELECT * FROM users WHERE uniqueId IN ("zzflaviusboss", "alexnon3", "ghinescumarius298", "memenorul20", "gtrap_", "andrei.umbra")`
+            );
+        }
         res.json({ success: true, users });
     } catch (e) {
         res.json({ success: false, users: [], error: e.message });
