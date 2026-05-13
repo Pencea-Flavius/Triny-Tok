@@ -6,6 +6,28 @@
   </div>
 
   <div class="top-bar-right">
+    <% if (user) { %>
+    <div style="position:relative;" id="appAvatarWrap">
+      <button id="appAvatarBtn" style="width:32px;height:32px;border-radius:50%;border:2px solid rgba(0,242,234,0.2);background:rgba(0,242,234,0.08);cursor:pointer;padding:0;overflow:hidden;display:flex;align-items:center;justify-content:center;transition:border-color 0.18s;" onmouseover="this.style.borderColor='#00f2ea'" onmouseout="this.style.borderColor='rgba(0,242,234,0.2)'">
+        <img src="https://unavatar.io/tiktok/<%= user.username %>" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+        <span style="display:none;font-size:12px;font-weight:900;color:#00f2ea;"><%= user.username.charAt(0).toUpperCase() %></span>
+      </button>
+      <div id="appDropdown" style="display:none;position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#0c1220;border:1px solid rgba(0,242,234,0.12);border-radius:12px;min-width:180px;box-shadow:0 16px 40px rgba(0,0,0,0.6);z-index:200;overflow:hidden;">
+        <div style="padding:12px 14px 10px;border-bottom:1px solid rgba(255,255,255,0.05);">
+          <div style="font-size:12px;font-weight:800;color:#e8eaf0;">@<%= user.username %></div>
+        </div>
+        <a href="/account" style="display:flex;align-items:center;gap:9px;padding:10px 14px;font-size:12px;font-weight:600;color:#5a6385;text-decoration:none;" onmouseover="this.style.background='rgba(255,255,255,0.04)';this.style.color='#e8eaf0'" onmouseout="this.style.background='';this.style.color='#5a6385'">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          My Account
+        </a>
+        <div style="height:1px;background:rgba(255,255,255,0.05);"></div>
+        <a href="/logout" style="display:flex;align-items:center;gap:9px;padding:10px 14px;font-size:12px;font-weight:600;color:#f43f5e;text-decoration:none;" onmouseover="this.style.background='rgba(244,63,94,0.07)'" onmouseout="this.style.background=''">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Sign out
+        </a>
+      </div>
+    </div>
+    <% } %>
     <div class="room-stat">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
         stroke-linecap="round" stroke-linejoin="round">

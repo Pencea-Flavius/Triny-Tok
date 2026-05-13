@@ -149,6 +149,20 @@ class DatabaseManager {
                 );
             `);
 
+            // Migrate app_accounts: add auth columns if they don't exist yet
+            const acCols = await db.all(`PRAGMA table_info(app_accounts)`);
+            const acColNames = acCols.map(c => c.name);
+            const authMigrations = [
+                ['email_verified',      `ALTER TABLE app_accounts ADD COLUMN email_verified INTEGER DEFAULT 0`],
+                ['verification_token',  `ALTER TABLE app_accounts ADD COLUMN verification_token TEXT`],
+                ['reset_token',         `ALTER TABLE app_accounts ADD COLUMN reset_token TEXT`],
+                ['reset_token_expires', `ALTER TABLE app_accounts ADD COLUMN reset_token_expires DATETIME`],
+                ['tiktok_avatar',       `ALTER TABLE app_accounts ADD COLUMN tiktok_avatar TEXT`],
+            ];
+            for (const [col, sql] of authMigrations) {
+                if (!acColNames.includes(col)) await db.run(sql);
+            }
+
             console.log('[DB] Connected to global.db.');
             return db;
         }).catch(err => {

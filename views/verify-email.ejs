@@ -1,30 +1,116 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('partials/head', { title: 'Verify Email' }) %>
+  <%- include('partials/head', { title: state === 'success' ? 'Email Verified' : state === 'pending' ? 'Check Your Email' : 'Link Invalid' }) %>
   <link rel="stylesheet" href="/css/login.css">
+  <style>
+    .status-wrap {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 120px 24px 80px;
+      position: relative;
+    }
+    .status-card {
+      position: relative;
+      z-index: 1;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 52px 44px;
+      max-width: 440px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 32px 72px rgba(0,0,0,0.55);
+      animation: up 0.5s ease both;
+    }
+    .status-icon {
+      width: 72px; height: 72px;
+      border-radius: 20px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 28px;
+      font-size: 32px;
+    }
+    .icon-pending  { background: rgba(0,242,234,0.08);  border: 1px solid rgba(0,242,234,0.15); color: var(--teal); }
+    .icon-success  { background: rgba(34,197,94,0.08);  border: 1px solid rgba(34,197,94,0.2);  color: #22c55e; }
+    .icon-error    { background: rgba(244,63,94,0.08);  border: 1px solid rgba(244,63,94,0.2);  color: var(--danger); }
+    .status-title  { font-size: 26px; font-weight: 900; letter-spacing: -0.8px; margin-bottom: 12px; }
+    .status-sub    { font-size: 14px; color: var(--muted); line-height: 1.7; margin-bottom: 32px; }
+    .status-sub strong { color: var(--text); font-weight: 700; }
+    .status-hint {
+      font-size: 12px;
+      color: var(--dim);
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(255,255,255,0.05);
+      line-height: 1.6;
+    }
+  </style>
 </head>
 <body>
 <%- include('partials/nav') %>
 
-<div class="login-wrap">
+<div class="status-wrap">
   <div class="glow-blob blob-a"></div>
   <div class="glow-blob blob-b"></div>
-  <div class="login-container" style="justify-content:center;">
-    <div class="login-card" style="max-width:420px; text-align:center;">
-      <% if (success) { %>
-        <div style="font-size:48px; margin-bottom:16px;">✓</div>
-        <h1 class="login-title">Email verified!</h1>
-        <p class="login-sub" style="margin-bottom:24px;">Your account is confirmed. You can now sign in.</p>
-        <a href="/login" class="btn-login" style="text-decoration:none; display:inline-flex; justify-content:center;">Go to Sign In</a>
-      <% } else { %>
-        <div style="font-size:48px; margin-bottom:16px;">✗</div>
-        <h1 class="login-title" style="color:var(--danger);">Link invalid</h1>
-        <p class="login-sub" style="margin-bottom:24px;"><%= error %></p>
-        <a href="/login" class="btn-login" style="text-decoration:none; display:inline-flex; justify-content:center;">Back to Sign In</a>
-      <% } %>
+
+  <% if (state === 'pending') { %>
+  <div class="status-card">
+    <div class="status-icon icon-pending">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+        <polyline points="22,6 12,13 2,6"/>
+      </svg>
+    </div>
+    <h1 class="status-title">Check your inbox</h1>
+    <p class="status-sub">
+      We sent a confirmation link to<br>
+      <% if (email) { %><strong><%= email %></strong><% } else { %>your email address<% } %>.<br>
+      Click it to activate your account.
+    </p>
+    <a href="/login" class="btn-login" style="text-decoration:none; display:inline-flex; justify-content:center; width:100%;">
+      Back to Sign In
+    </a>
+    <p class="status-hint">Didn't get it? Check your spam folder. The link expires in 24 hours.</p>
+  </div>
+
+  <% } else if (state === 'success') { %>
+  <div class="status-card">
+    <div class="status-icon icon-success">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+    </div>
+    <h1 class="status-title">Email verified!</h1>
+    <p class="status-sub">Your account is confirmed and ready to go. Sign in to get started.</p>
+    <a href="/login" class="btn-login" style="text-decoration:none; display:inline-flex; justify-content:center; width:100%;">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/>
+      </svg>
+      Sign In
+    </a>
+  </div>
+
+  <% } else { %>
+  <div class="status-card">
+    <div class="status-icon icon-error">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+    </div>
+    <h1 class="status-title" style="color:var(--danger);">Link invalid</h1>
+    <p class="status-sub"><%= typeof error !== 'undefined' && error ? error : 'This verification link is invalid or has already been used.' %></p>
+    <a href="/register" class="btn-login" style="text-decoration:none; display:inline-flex; justify-content:center; width:100%; background:var(--bg3); color:var(--text); box-shadow:none;">
+      Try registering again
+    </a>
+    <div style="margin-top:12px;">
+      <a href="/login" class="forgot-link">Already have an account? Sign in</a>
     </div>
   </div>
+  <% } %>
 </div>
 
 <%- include('partials/footer') %>

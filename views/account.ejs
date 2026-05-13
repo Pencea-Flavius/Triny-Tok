@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('partials/head', { title: 'Account' }) %>
+  <link rel="stylesheet" href="/css/login.css">
+  <style>
+    .account-wrap {
+      min-height: 100vh;
+      padding: 90px 48px 80px;
+      position: relative;
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    .account-back {
+      display: inline-flex; align-items: center; gap: 7px;
+      font-size: 13px; font-weight: 600; color: var(--muted);
+      text-decoration: none; margin-bottom: 32px;
+      transition: color 0.15s;
+    }
+    .account-back:hover { color: var(--teal); }
+
+    .account-profile {
+      display: flex; align-items: center; gap: 24px;
+      margin-bottom: 36px;
+    }
+    .account-avatar {
+      width: 80px; height: 80px; border-radius: 50%;
+      border: 2px solid rgba(0,242,234,0.2);
+      object-fit: cover; flex-shrink: 0;
+      background: rgba(0,242,234,0.08);
+    }
+    .account-avatar-fallback {
+      width: 80px; height: 80px; border-radius: 50%;
+      border: 2px solid rgba(0,242,234,0.2);
+      background: rgba(0,242,234,0.08);
+      display: none; align-items: center; justify-content: center;
+      font-size: 28px; font-weight: 900; color: var(--teal);
+      flex-shrink: 0;
+    }
+    .account-profile-info h1 {
+      font-size: 22px; font-weight: 900; letter-spacing: -0.5px; margin-bottom: 4px;
+    }
+    .account-profile-info p { font-size: 14px; color: var(--muted); }
+
+    .account-section {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px 28px;
+      margin-bottom: 16px;
+    }
+    .section-title {
+      font-size: 11px; font-weight: 800; letter-spacing: 1.5px;
+      text-transform: uppercase; color: var(--teal);
+      margin-bottom: 18px;
+    }
+    .info-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .info-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .info-row:first-of-type { padding-top: 0; }
+    .info-label { font-size: 12px; font-weight: 700; color: var(--dim); text-transform: uppercase; letter-spacing: 0.8px; }
+    .info-value { font-size: 14px; color: var(--text); font-weight: 500; }
+
+    .danger-zone { border-color: rgba(244,63,94,0.2); }
+    .danger-zone .section-title { color: var(--danger); }
+
+    .btn-danger {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 20px; border-radius: 8px;
+      font-size: 13px; font-weight: 700; cursor: pointer;
+      font-family: inherit; transition: all 0.18s;
+      background: rgba(244,63,94,0.08);
+      border: 1px solid rgba(244,63,94,0.25);
+      color: var(--danger);
+    }
+    .btn-danger:hover { background: rgba(244,63,94,0.15); border-color: var(--danger); }
+
+    .success-banner {
+      display: flex; align-items: center; gap: 10px;
+      padding: 13px 16px; margin-bottom: 20px;
+      background: rgba(0,242,234,0.07); border: 1px solid rgba(0,242,234,0.2);
+      border-radius: 10px; font-size: 13px; font-weight: 600; color: var(--teal);
+      animation: up 0.3s ease both;
+    }
+
+    @media (max-width: 600px) {
+      .account-wrap { padding: 90px 20px 60px; }
+      .account-section { padding: 20px 18px; }
+      .info-row { flex-direction: column; align-items: flex-start; gap: 4px; }
+    }
+  </style>
+</head>
+<body>
+<%- include('partials/nav') %>
+
+<div class="account-wrap">
+  <div class="glow-blob blob-a" style="opacity:0.05;"></div>
+
+  <a href="/" class="account-back">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    Back to homepage
+  </a>
+
+  <!-- Profile header -->
+  <div class="account-profile">
+    <img
+      src="https://unavatar.io/tiktok/<%= account.username %>"
+      alt="<%= account.username %>"
+      class="account-avatar"
+      id="accountAvatar"
+      onerror="this.style.display='none';document.getElementById('accountAvatarFallback').style.display='flex';"
+    >
+    <div class="account-avatar-fallback" id="accountAvatarFallback">
+      <%= account.username.charAt(0).toUpperCase() %>
+    </div>
+    <div class="account-profile-info">
+      <h1>@<%= account.username %></h1>
+      <p><%= account.first_name %> <%= account.last_name %> &middot; <%= account.email %></p>
+    </div>
+  </div>
+
+  <% if (typeof success !== 'undefined' && success) { %>
+  <div class="success-banner">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    <%= success %>
+  </div>
+  <% } %>
+
+  <!-- Profile info -->
+  <div class="account-section">
+    <div class="section-title">Profile</div>
+    <div class="info-row">
+      <span class="info-label">Full name</span>
+      <span class="info-value"><%= account.first_name %> <%= account.last_name %></span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Date of birth</span>
+      <span class="info-value"><%= account.birth_date %></span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Member since</span>
+      <span class="info-value"><%= new Date(account.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) %></span>
+    </div>
+  </div>
+
+  <!-- Change username -->
+  <div class="account-section">
+    <div class="section-title">Change TikTok username</div>
+    <% if (typeof errors !== 'undefined' && errors.username) { %>
+      <div class="login-error" style="display:flex; margin-bottom:16px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span><%= errors.username %></span></div>
+    <% } %>
+    <form class="login-form" method="POST" action="/account/username" style="gap:12px;">
+      <div class="form-field">
+        <label class="form-label" for="username">Username</label>
+        <input type="text" id="username" name="username" value="<%= account.username %>" required pattern="[a-zA-Z0-9_.]{3,30}" autocomplete="username">
+      </div>
+      <div><button type="submit" class="btn-login" style="width:auto; padding:11px 24px;">Save</button></div>
+    </form>
+  </div>
+
+  <!-- Change password -->
+  <div class="account-section">
+    <div class="section-title">Change password</div>
+    <% if (typeof errors !== 'undefined' && errors.password) { %>
+      <div class="login-error" style="display:flex; margin-bottom:16px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span><%= errors.password %></span></div>
+    <% } %>
+    <form class="login-form" method="POST" action="/account/password" style="gap:12px;">
+      <div class="form-field">
+        <label class="form-label" for="currentPassword">Current password</label>
+        <input type="password" id="currentPassword" name="currentPassword" placeholder="••••••••" required autocomplete="current-password">
+      </div>
+      <div class="form-row-2">
+        <div class="form-field">
+          <label class="form-label" for="newPassword">New password</label>
+          <input type="password" id="newPassword" name="newPassword" placeholder="••••••••" required minlength="8" autocomplete="new-password">
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="newPassword2">Confirm</label>
+          <input type="password" id="newPassword2" name="newPassword2" placeholder="••••••••" required minlength="8" autocomplete="new-password">
+        </div>
+      </div>
+      <div><button type="submit" class="btn-login" style="width:auto; padding:11px 24px;">Update password</button></div>
+    </form>
+  </div>
+
+  <!-- Danger zone -->
+  <div class="account-section danger-zone">
+    <div class="section-title">Danger zone</div>
+    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px;">
+      <div>
+        <div style="font-size:14px; font-weight:700; margin-bottom:4px;">Delete account</div>
+        <div style="font-size:13px; color:var(--muted);">Permanently removes your account. Cannot be undone.</div>
+      </div>
+      <form method="POST" action="/account/delete" onsubmit="return confirm('Are you sure? This cannot be undone.')">
+        <button type="submit" class="btn-danger">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+          Delete account
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/footer') %>
+
+<script>
+  document.getElementById('newPassword2').addEventListener('input', function() {
+    this.setCustomValidity(this.value !== document.getElementById('newPassword').value ? 'Passwords do not match' : '');
+  });
+</script>
+</body>
+</html>
