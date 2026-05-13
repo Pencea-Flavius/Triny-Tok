@@ -1,6 +1,7 @@
 /**
- * db-clean.js — Run this before `git push` to strip live TikTok data from global.db.
-
+ * db-clean.js — Strip all live/user data from global.db before pushing.
+ * Keeps: gifts, isaac_*, repo_* tables intact.
+ *
  * Usage: npm run db:clean
  */
 
@@ -10,20 +11,24 @@ const path = require('path');
 
 async function clean() {
     const db = await open({
-        filename: path.join(__dirname, '../data/global.db'),
+        filename: path.join(__dirname, '../../data/global.db'),
         driver: sqlite3.Database
     });
 
     await db.exec(`PRAGMA foreign_keys = OFF;`);
 
-    const { donations } = await db.get(`SELECT COUNT(*) as donations FROM donations`);
-    const { users } = await db.get(`SELECT COUNT(*) as users FROM users`);
-    const { streamers } = await db.get(`SELECT COUNT(*) as streamers FROM streamers`);
+    const counts = {};
+    for (const t of ['app_accounts', 'donations', 'users', 'streamers']) {
+        const row = await db.get(`SELECT COUNT(*) as n FROM ${t}`);
+        counts[t] = row.n;
+    }
 
     await db.exec(`
         DELETE FROM donations;
         DELETE FROM users;
         DELETE FROM streamers;
+        DELETE FROM app_accounts;
+        DELETE FROM sqlite_sequence WHERE name IN ('donations','users','streamers','app_accounts');
     `);
 
     await db.exec(`PRAGMA foreign_keys = ON;`);
@@ -31,10 +36,10 @@ async function clean() {
     await db.close();
 
     console.log(`[db:clean] Removed:`);
-    console.log(`  - ${donations} donation(s)`);
-    console.log(`  - ${users} user(s)`);
-    console.log(`  - ${streamers} streamer(s)`);
-    console.log(`[db:clean] global.db is clean and ready to push.`);
+    for (const [t, n] of Object.entries(counts)) {
+        console.log(`  - ${n} row(s) from ${t}`);
+    }
+    console.log(`[db:clean] global.db is clean. Gifts, Isaac and Repo data untouched.`);
 }
 
 clean().catch(err => {

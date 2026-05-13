@@ -63,7 +63,7 @@ $(document).ready(() => {
     // clear top donors on page load
     clearTopDonors();
 
-    $('#uniqueIdInput').val(localStorage.getItem('tiktokUsername') || '');
+    $('#uniqueIdInput').val(localStorage.getItem('tiktokUsername') || $('#uniqueIdInput').val() || '');
 
     $('#connectButton').click(connect);
     $('#disconnectButton').click(disconnect);

@@ -36,4 +36,19 @@
   </div>
 </body>
 
+<script>
+  (function() {
+    const btn = document.getElementById('appAvatarBtn');
+    const dropdown = document.getElementById('appDropdown');
+    if (!btn) return;
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+    });
+    document.addEventListener('click', function() {
+      if (dropdown) dropdown.style.display = 'none';
+    });
+  })();
+</script>
+
 </html>
