@@ -166,6 +166,29 @@ let giftCooldowns = new Map(); // { giftName: lastExecutionTime }
 let tiktokConnectionWrapper = null;
 let tiktokOwnerSocketId = null; // Which socket created the TikTok connection
 
+// Always generate avatar from uniqueId — TikTok CDN URLs are signed and expire.
+// unavatar.io fetches the real profile picture and caches it 28 days.
+function avatarUrl(uniqueId) {
+    if (!uniqueId || uniqueId === 'Unknown') return 'https://www.tiktok.com/static/images/avatar_default.png';
+    return `https://unavatar.io/tiktok/${encodeURIComponent(uniqueId)}`;
+}
+
+// Inject avatar URL into TikTok event messages.
+// Prioritizes original TikTok URL (expiring but saves requests) for real-time messages.
+function injectAvatar(msg) {
+    if (!msg) return msg;
+    
+    // If it already has a URL, use it (expiring but good for session)
+    if (msg.profilePictureUrl && msg.profilePictureUrl.includes('tiktokcdn.com')) return msg;
+    
+    // Fallback/Permanent
+    const uid = msg.uniqueId || (msg.user && (msg.user.uniqueId || msg.user.displayId)) || 'Unknown';
+    msg.profilePictureUrl = msg.profilePictureUrl || avatarUrl(uid);
+    if (msg.user && !msg.user.profilePictureUrl) msg.user.profilePictureUrl = msg.profilePictureUrl;
+    
+    return msg;
+}
+
 function upsertDonor(userId, uniqueId, nickname, profilePictureUrl, diamonds, lastGift) {
     let donor = null;
     let key = userId || uniqueId;
@@ -180,7 +203,13 @@ function upsertDonor(userId, uniqueId, nickname, profilePictureUrl, diamonds, la
         donor.totalDiamonds += parseInt(diamonds);
         if (lastGift) donor.lastGift = lastGift;
         if (nickname && nickname !== 'Unknown') donor.nickname = nickname;
-        if (profilePictureUrl) donor.profilePictureUrl = profilePictureUrl;
+        
+        // Update avatar in RAM — use provided URL or fallback to unavatar
+        if (profilePictureUrl) {
+            donor.profilePictureUrl = profilePictureUrl;
+        } else if (uniqueId && (!donor.profilePictureUrl || donor.profilePictureUrl.includes('avatar_default'))) {
+            donor.profilePictureUrl = avatarUrl(uniqueId);
+        }
 
         if (userId && (!donor.userId || donor.userId.startsWith('init_'))) donor.userId = userId;
         if (uniqueId) donor.uniqueId = uniqueId;
@@ -194,20 +223,19 @@ function upsertDonor(userId, uniqueId, nickname, profilePictureUrl, diamonds, la
             userId,
             uniqueId,
             nickname: nickname || uniqueId || 'Unknown',
-            profilePictureUrl: profilePictureUrl || '',
+            profilePictureUrl: profilePictureUrl || avatarUrl(uniqueId),
             totalDiamonds: parseInt(diamonds),
             lastGift: lastGift || ''
         };
         donor = donorStats[key];
     }
 
-    // save to sqlite async
+    // save to sqlite async (NEVER passes profilePictureUrl — we don't store expiring links)
     if (donor.userId && !donor.userId.startsWith('init_') && db) {
         db.upsertUser({
             userId: donor.userId,
             uniqueId: donor.uniqueId,
             nickname: donor.nickname,
-            profilePictureUrl: donor.profilePictureUrl,
             addedDiamonds: parseInt(diamonds)
         }).catch(err => console.error('[DB] Failed to upsert user', err));
     }
@@ -243,7 +271,8 @@ async function finalizeGift(msg, updateDbAndCommand = true) {
             }).catch(err => console.error('[DB] Failed to learn new gift', err));
         }
     }
-
+    
+    injectAvatar(msg);
     io.emit('gift', msg);
     io.emit('statUpdate', { trackedDiamonds, initialDonorsSynced, initialDonorsSum });
 
@@ -566,11 +595,12 @@ io.on('connection', (socket) => {
                     const diamonds = parseInt(f.fan_ticket || f.fanTicket || 0);
                     initialDonorsSum += diamonds;
                     const user = f.user || {};
+                    const uid = user.display_id || user.uniqueId || user.displayId || 'Unknown';
                     initialTopDonors.push({
                         userId: user.user_id || user.userId || f.userId || `init_${Math.random()}`,
                         nickname: user.nickname || user.displayId || 'Unknown',
-                        uniqueId: user.display_id || user.uniqueId || user.displayId || 'Unknown',
-                        profilePictureUrl: user.avatar_thumb?.url_list?.[0] || user.profilePictureUrl || '',
+                        uniqueId: uid,
+                        profilePictureUrl: avatarUrl(uid),
                         totalDiamonds: diamonds
                     });
                 });
@@ -582,10 +612,10 @@ io.on('connection', (socket) => {
         tiktokConnectionWrapper.connection.on('streamEnd', () => io.emit('streamEnd'));
 
         // forward events to users
-        tiktokConnectionWrapper.connection.on('roomUser', msg => io.emit('roomUser', msg));
-        tiktokConnectionWrapper.connection.on('member', msg => io.emit('member', msg));
-        tiktokConnectionWrapper.connection.on('chat', msg => io.emit('chat', msg));
-        tiktokConnectionWrapper.connection.on('subscribe', msg => io.emit('subscribe', msg));
+        tiktokConnectionWrapper.connection.on('roomUser', msg => io.emit('roomUser', injectAvatar(msg)));
+        tiktokConnectionWrapper.connection.on('member', msg => io.emit('member', injectAvatar(msg)));
+        tiktokConnectionWrapper.connection.on('chat', msg => io.emit('chat', injectAvatar(msg)));
+        tiktokConnectionWrapper.connection.on('subscribe', msg => io.emit('subscribe', injectAvatar(msg)));
 
         const activeStreaks = new Map();
         tiktokConnectionWrapper.connection.on('gift', msg => {
@@ -596,7 +626,7 @@ io.on('connection', (socket) => {
 
                 // show streaks as they happen so ui looks smooth
                 if (!msg.repeatEnd) {
-                    io.emit('gift', msg);
+                    io.emit('gift', injectAvatar(msg));
                 }
 
                 if (msg.repeatEnd) {
@@ -639,7 +669,7 @@ io.on('connection', (socket) => {
                     });
                 }
             }
-            io.emit('social', msg);
+            io.emit('social', injectAvatar(msg));
         });
 
         let currentLikes = 0;
@@ -671,7 +701,7 @@ io.on('connection', (socket) => {
                     }
                 }
             }
-            io.emit('like', msg);
+            io.emit('like', injectAvatar(msg));
         });
     });
 
@@ -698,7 +728,8 @@ io.on('connection', (socket) => {
 app.get('/api/top-donors', (req, res) => {
     const donors = Array.from(new Set(Object.values(donorStats)))
         .sort((a, b) => b.totalDiamonds - a.totalDiamonds)
-        .slice(0, 50);
+        .slice(0, 50)
+        .map(d => ({ ...d, profilePictureUrl: avatarUrl(d.uniqueId) }));
     res.json({ success: true, donors });
 });
 
