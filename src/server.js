@@ -2,6 +2,7 @@ process.env.DOTENV_CONFIG_QUIET = 'true';
 require('dotenv').config();
 
 const express = require('express');
+const session = require('express-session');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
 const { TikTokConnectionWrapper, getGlobalConnectionCount } = require('./tiktok/connectionWrapper');
@@ -13,6 +14,7 @@ const goiBridge = require('./tiktok/goiBridge');
 const path = require('path');
 const fs = require('fs');
 const db = require('./database/db_manager');
+const auth = require('./auth/auth');
 
 // read settings
 const configPath = path.join(__dirname, '../config/config.json');
@@ -65,6 +67,14 @@ const httpServer = createServer(app);
 // setup views
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, '../views'));
+
+app.use(express.urlencoded({ extended: true }));
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'triny-tok-dev-secret-change-in-prod',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000 },
+}));
 
 // let clients connect
 const io = new Server(httpServer, {
@@ -1043,9 +1053,93 @@ app.get('/', (req, res) => {
 });
 
 // App (tracker tool) — catch-all so /app/* routes work with client-side history API
-app.get('/app', (req, res) => res.render('app'));
-app.get('/app/{*path}', (req, res) => res.render('app'));
-app.get('/login', (req, res) => res.render('login'));
+app.get('/app', auth.requireAuth, (req, res) => res.render('app'));
+app.get('/app/{*path}', auth.requireAuth, (req, res) => res.render('app'));
+
+// ── Auth routes ──────────────────────────────────────────────────────────────
+app.get('/login', (req, res) => {
+    if (req.session.user) return res.redirect('/app');
+    res.render('login', { error: null });
+});
+
+app.post('/login', async (req, res) => {
+    const { email, password } = req.body;
+    try {
+        const user = await auth.login(email, password);
+        req.session.user = user;
+        const next = req.query.next || '/app';
+        res.redirect(next);
+    } catch (err) {
+        res.render('login', { error: err.message });
+    }
+});
+
+app.get('/register', (req, res) => {
+    if (req.session.user) return res.redirect('/app');
+    res.render('register', { error: null, values: {} });
+});
+
+app.post('/register', async (req, res) => {
+    const { username, email, firstName, lastName, password, password2, birthDate } = req.body;
+    if (password !== password2) {
+        return res.render('register', { error: 'Passwords do not match', values: req.body });
+    }
+    try {
+        const token = await auth.register({ username, email, firstName, lastName, password, birthDate });
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        if (process.env.SMTP_USER) {
+            await auth.sendVerificationEmail(email, token, baseUrl);
+        }
+        res.render('verify-email', { success: false, error: null, pending: true, email });
+    } catch (err) {
+        res.render('register', { error: err.message, values: req.body });
+    }
+});
+
+app.get('/verify-email/:token', async (req, res) => {
+    try {
+        await auth.verifyEmail(req.params.token);
+        res.render('verify-email', { success: true, error: null });
+    } catch (err) {
+        res.render('verify-email', { success: false, error: err.message });
+    }
+});
+
+app.get('/password-reset', (req, res) => res.render('password-reset-request', { sent: false }));
+
+app.post('/password-reset', async (req, res) => {
+    const { email } = req.body;
+    try {
+        const token = await auth.requestPasswordReset(email);
+        if (token && process.env.SMTP_USER) {
+            const baseUrl = `${req.protocol}://${req.get('host')}`;
+            await auth.sendPasswordResetEmail(email, token, baseUrl);
+        }
+    } catch (_) { /* silently ignore */ }
+    res.render('password-reset-request', { sent: true });
+});
+
+app.get('/password-reset/:token', (req, res) => {
+    res.render('password-reset-confirm', { token: req.params.token, error: null });
+});
+
+app.post('/password-reset/:token', async (req, res) => {
+    const { password, password2 } = req.body;
+    if (password !== password2) {
+        return res.render('password-reset-confirm', { token: req.params.token, error: 'Passwords do not match' });
+    }
+    try {
+        await auth.resetPassword(req.params.token, password);
+        res.redirect('/login?reset=1');
+    } catch (err) {
+        res.render('password-reset-confirm', { token: req.params.token, error: err.message });
+    }
+});
+
+app.get('/logout', (req, res) => {
+    req.session.destroy(() => res.redirect('/login'));
+});
+// ─────────────────────────────────────────────────────────────────────────────
 
 app.use(express.static(path.join(__dirname, '../public')));
 
