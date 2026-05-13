@@ -69,12 +69,20 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, '../views'));
 
 app.use(express.urlencoded({ extended: true }));
-app.use(session({
+const sessionMiddleware = session({
     secret: process.env.SESSION_SECRET || 'triny-tok-dev-secret-change-in-prod',
     resave: false,
     saveUninitialized: false,
     cookie: { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000 },
-}));
+});
+app.use(sessionMiddleware);
+
+// make session user available in all views
+app.use((req, res, next) => {
+    res.locals.user = req.session.user || null;
+    next();
+});
+
 
 // let clients connect
 const io = new Server(httpServer, {
@@ -82,6 +90,9 @@ const io = new Server(httpServer, {
         origin: '*'
     }
 });
+
+// share session with socket.io
+io.use((socket, next) => sessionMiddleware(socket.request, socket.request.res || {}, next));
 
 const ISAAC_DEFAULT_PROFILES = [
     { id: 'boss_rush', name: 'Boss Rush', desc: 'Spawns 3 random bosses', category: 'Chaos' },
@@ -535,6 +546,20 @@ io.on('connection', (socket) => {
 
         tiktokConnectionWrapper.once('connected', state => {
             socket.emit('tiktokConnected', state);
+
+            // Save TikTok avatar to account if logged in
+            const avatarUrl = state?.roomInfo?.data?.owner?.avatarThumb?.urlList?.[0]
+                           || state?.roomInfo?.owner?.profilePictureUrl
+                           || null;
+            if (avatarUrl && socket.request?.session?.user?.id) {
+                db.connectGlobal().then(gdb => {
+                    gdb.run('UPDATE app_accounts SET tiktok_avatar = ? WHERE id = ?', [avatarUrl, socket.request.session.user.id])
+                       .then(() => {
+                           socket.request.session.user.tiktokAvatar = avatarUrl;
+                           socket.request.session.save?.();
+                       });
+                }).catch(() => {});
+            }
 
             /* 
             // SYNC ALL AVAILABLE GIFTS (Blocked by TikTok (403) without premium auth)
@@ -1053,13 +1078,16 @@ app.get('/', (req, res) => {
 });
 
 // App (tracker tool) — catch-all so /app/* routes work with client-side history API
-app.get('/app', auth.requireAuth, (req, res) => res.render('app'));
-app.get('/app/{*path}', auth.requireAuth, (req, res) => res.render('app'));
+app.get('/app', auth.requireAuth, (req, res) => res.render('app', { tiktokUsername: req.session.user.username }));
+app.get('/app/{*path}', auth.requireAuth, (req, res) => res.render('app', { tiktokUsername: req.session.user.username }));
 
 // ── Auth routes ──────────────────────────────────────────────────────────────
 app.get('/login', (req, res) => {
     if (req.session.user) return res.redirect('/app');
-    res.render('login', { error: null });
+    const success = req.query.verified ? 'Account created! You can now sign in.'
+                  : req.query.reset    ? 'Password updated! You can now sign in.'
+                  : null;
+    res.render('login', { error: null, success });
 });
 
 app.post('/login', async (req, res) => {
@@ -1067,7 +1095,7 @@ app.post('/login', async (req, res) => {
     try {
         const user = await auth.login(email, password);
         req.session.user = user;
-        const next = req.query.next || '/app';
+        const next = req.query.next || '/';
         res.redirect(next);
     } catch (err) {
         res.render('login', { error: err.message });
@@ -1087,21 +1115,23 @@ app.post('/register', async (req, res) => {
     try {
         const token = await auth.register({ username, email, firstName, lastName, password, birthDate });
         const baseUrl = `${req.protocol}://${req.get('host')}`;
-        if (process.env.SMTP_USER) {
-            await auth.sendVerificationEmail(email, token, baseUrl);
-        }
-        res.render('verify-email', { success: false, error: null, pending: true, email });
+        await auth.sendVerificationEmail(email, token, baseUrl);
+        res.redirect(`/register/pending?email=${encodeURIComponent(email)}`);
     } catch (err) {
         res.render('register', { error: err.message, values: req.body });
     }
 });
 
+app.get('/register/pending', (req, res) => {
+    res.render('verify-email', { state: 'pending', email: req.query.email || '' });
+});
+
 app.get('/verify-email/:token', async (req, res) => {
     try {
         await auth.verifyEmail(req.params.token);
-        res.render('verify-email', { success: true, error: null });
+        res.render('verify-email', { state: 'success', email: '' });
     } catch (err) {
-        res.render('verify-email', { success: false, error: err.message });
+        res.render('verify-email', { state: 'error', email: '', error: err.message });
     }
 });
 
@@ -1137,7 +1167,46 @@ app.post('/password-reset/:token', async (req, res) => {
 });
 
 app.get('/logout', (req, res) => {
-    req.session.destroy(() => res.redirect('/login'));
+    req.session.destroy(() => res.redirect('/'));
+});
+
+
+app.get('/account', auth.requireAuth, async (req, res) => {
+    const globalDb = await db.connectGlobal();
+    const account = await globalDb.get('SELECT * FROM app_accounts WHERE id = ?', [req.session.user.id]);
+    res.render('account', { account, success: req.query.saved ? 'Changes saved.' : null, errors: {} });
+});
+
+app.post('/account/username', auth.requireAuth, async (req, res) => {
+    const { username } = req.body;
+    const globalDb = await db.connectGlobal();
+    const account = await globalDb.get('SELECT * FROM app_accounts WHERE id = ?', [req.session.user.id]);
+    try {
+        await globalDb.run('UPDATE app_accounts SET username = ? WHERE id = ?', [username, req.session.user.id]);
+        req.session.user.username = username;
+        res.redirect('/account?saved=1');
+    } catch (err) {
+        res.render('account', { account, success: null, errors: { username: 'Username already taken' } });
+    }
+});
+
+app.post('/account/password', auth.requireAuth, async (req, res) => {
+    const { currentPassword, newPassword, newPassword2 } = req.body;
+    const globalDb = await db.connectGlobal();
+    const account = await globalDb.get('SELECT * FROM app_accounts WHERE id = ?', [req.session.user.id]);
+    const bcrypt = require('bcrypt');
+    const match = await bcrypt.compare(currentPassword, account.password_hash);
+    if (!match) return res.render('account', { account, success: null, errors: { password: 'Current password is incorrect' } });
+    if (newPassword !== newPassword2) return res.render('account', { account, success: null, errors: { password: 'New passwords do not match' } });
+    const hash = await bcrypt.hash(newPassword, 12);
+    await globalDb.run('UPDATE app_accounts SET password_hash = ? WHERE id = ?', [hash, req.session.user.id]);
+    res.redirect('/account?saved=1');
+});
+
+app.post('/account/delete', auth.requireAuth, async (req, res) => {
+    const globalDb = await db.connectGlobal();
+    await globalDb.run('DELETE FROM app_accounts WHERE id = ?', [req.session.user.id]);
+    req.session.destroy(() => res.redirect('/'));
 });
 // ─────────────────────────────────────────────────────────────────────────────
 

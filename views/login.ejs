@@ -26,6 +26,13 @@
         <p class="login-sub">Sign in to your TrinyTok account to manage your streams and game integrations.</p>
       </div>
 
+      <% if (typeof success !== 'undefined' && success) { %>
+      <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;background:rgba(0,242,234,0.07);border:1px solid rgba(0,242,234,0.2);border-radius:10px;font-size:13px;font-weight:600;color:var(--teal);margin-bottom:20px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        <span><%= success %></span>
+      </div>
+      <% } %>
+
       <form class="login-form" id="loginForm" method="POST" action="/login">
         <div class="form-field">
           <label class="form-label" for="loginEmail">
