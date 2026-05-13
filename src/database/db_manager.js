@@ -123,7 +123,6 @@ class DatabaseManager {
                     userId TEXT NOT NULL,
                     uniqueId TEXT,
                     nickname TEXT,
-                    profilePictureUrl TEXT,
                     totalDiamonds INTEGER DEFAULT 0,
                     lastSeen DATETIME DEFAULT CURRENT_TIMESTAMP,
                     UNIQUE(streamerId, userId),
@@ -146,6 +145,19 @@ class DatabaseManager {
             `);
 
             console.log('[DB] Connected to global.db.');
+
+            // Migration: drop profilePictureUrl column if it still exists from an older schema
+            // (avatars are now always derived from uniqueId via unavatar.io at runtime)
+            try {
+                const cols = await db.all(`PRAGMA table_info(users)`);
+                if (cols.some(c => c.name === 'profilePictureUrl')) {
+                    await db.run(`ALTER TABLE users DROP COLUMN profilePictureUrl`);
+                    console.log('[DB] Migration: dropped profilePictureUrl column from users table.');
+                }
+            } catch (e) {
+                console.warn('[DB] Migration warning (profilePictureUrl):', e.message);
+            }
+
             return db;
         }).catch(err => {
             console.error('[DB] global.db connection error:', err);
@@ -204,18 +216,19 @@ class DatabaseManager {
     async upsertUser(user) {
         if (!this.currentStreamerId) return;
         const db = await this.connectGlobal();
-        const { userId, uniqueId, nickname, profilePictureUrl, addedDiamonds = 0 } = user;
+        const { userId, uniqueId, nickname, addedDiamonds = 0 } = user;
 
+        // NOTE: profilePictureUrl is intentionally NOT stored — TikTok CDN URLs are signed
+        // and expire after a few days. The avatar is always generated dynamically from uniqueId.
         await db.run(`
-            INSERT INTO users (streamerId, userId, uniqueId, nickname, profilePictureUrl, totalDiamonds, lastSeen)
-            VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            INSERT INTO users (streamerId, userId, uniqueId, nickname, totalDiamonds, lastSeen)
+            VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             ON CONFLICT(streamerId, userId) DO UPDATE SET
                 uniqueId = excluded.uniqueId,
                 nickname = excluded.nickname,
-                profilePictureUrl = excluded.profilePictureUrl,
                 totalDiamonds = totalDiamonds + excluded.totalDiamonds,
                 lastSeen = CURRENT_TIMESTAMP
-        `, [this.currentStreamerId, userId, uniqueId, nickname, profilePictureUrl, addedDiamonds]);
+        `, [this.currentStreamerId, userId, uniqueId, nickname, addedDiamonds]);
     }
 
     async getTopDonors(limit = 50) {
