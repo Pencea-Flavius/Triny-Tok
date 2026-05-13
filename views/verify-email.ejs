@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('partials/head', { title: 'Verify Email' }) %>
+  <link rel="stylesheet" href="/css/login.css">
+</head>
+<body>
+<%- include('partials/nav') %>
+
+<div class="login-wrap">
+  <div class="glow-blob blob-a"></div>
+  <div class="glow-blob blob-b"></div>
+  <div class="login-container" style="justify-content:center;">
+    <div class="login-card" style="max-width:420px; text-align:center;">
+      <% if (success) { %>
+        <div style="font-size:48px; margin-bottom:16px;">✓</div>
+        <h1 class="login-title">Email verified!</h1>
+        <p class="login-sub" style="margin-bottom:24px;">Your account is confirmed. You can now sign in.</p>
+        <a href="/login" class="btn-login" style="text-decoration:none; display:inline-flex; justify-content:center;">Go to Sign In</a>
+      <% } else { %>
+        <div style="font-size:48px; margin-bottom:16px;">✗</div>
+        <h1 class="login-title" style="color:var(--danger);">Link invalid</h1>
+        <p class="login-sub" style="margin-bottom:24px;"><%= error %></p>
+        <a href="/login" class="btn-login" style="text-decoration:none; display:inline-flex; justify-content:center;">Back to Sign In</a>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/footer') %>
+</body>
+</html>

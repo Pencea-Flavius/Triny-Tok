@@ -101,14 +101,18 @@ class DatabaseManager {
                 );
 
                 CREATE TABLE IF NOT EXISTS app_accounts (
-                    id            INTEGER PRIMARY KEY AUTOINCREMENT,
-                    username      TEXT UNIQUE NOT NULL,
-                    email         TEXT UNIQUE NOT NULL,
-                    first_name    TEXT NOT NULL,
-                    last_name     TEXT NOT NULL,
-                    password_hash TEXT NOT NULL,
-                    birth_date    DATE NOT NULL,
-                    created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
+                    id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username             TEXT UNIQUE NOT NULL,
+                    email                TEXT UNIQUE NOT NULL,
+                    first_name           TEXT NOT NULL,
+                    last_name            TEXT NOT NULL,
+                    password_hash        TEXT NOT NULL,
+                    birth_date           DATE NOT NULL,
+                    email_verified       INTEGER DEFAULT 0,
+                    verification_token   TEXT,
+                    reset_token          TEXT,
+                    reset_token_expires  DATETIME,
+                    created_at           DATETIME DEFAULT CURRENT_TIMESTAMP
                 );
 
                 CREATE TABLE IF NOT EXISTS streamers (
