@@ -702,15 +702,14 @@ app.get('/api/top-donors', (req, res) => {
     res.json({ success: true, donors });
 });
 
-app.get('/api/demo-users', async (req, res) => {
+app.get('/api/demo-users', (req, res) => {
     try {
         const demoPath = path.join(__dirname, '../data/demo_users.json');
-        let users = [];
-        if (require('fs').existsSync(demoPath)) {
-            const data = JSON.parse(require('fs').readFileSync(demoPath, 'utf8'));
-            users = Object.values(data);
+        if (!fs.existsSync(demoPath)) {
+            return res.json({ success: true, users: [] });
         }
-        res.json({ success: true, users });
+        const data = JSON.parse(fs.readFileSync(demoPath, 'utf8'));
+        res.json({ success: true, users: Object.values(data) });
     } catch (e) {
         res.json({ success: false, users: [], error: e.message });
     }
