@@ -69,20 +69,12 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, '../views'));
 
 app.use(express.urlencoded({ extended: true }));
-const sessionMiddleware = session({
+app.use(session({
     secret: process.env.SESSION_SECRET || 'triny-tok-dev-secret-change-in-prod',
     resave: false,
     saveUninitialized: false,
     cookie: { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000 },
-});
-app.use(sessionMiddleware);
-
-// make session user available in all views
-app.use((req, res, next) => {
-    res.locals.user = req.session.user || null;
-    next();
-});
-
+}));
 
 // let clients connect
 const io = new Server(httpServer, {
@@ -90,9 +82,6 @@ const io = new Server(httpServer, {
         origin: '*'
     }
 });
-
-// share session with socket.io
-io.use((socket, next) => sessionMiddleware(socket.request, socket.request.res || {}, next));
 
 const ISAAC_DEFAULT_PROFILES = [
     { id: 'boss_rush', name: 'Boss Rush', desc: 'Spawns 3 random bosses', category: 'Chaos' },
@@ -187,29 +176,6 @@ let giftCooldowns = new Map(); // { giftName: lastExecutionTime }
 let tiktokConnectionWrapper = null;
 let tiktokOwnerSocketId = null; // Which socket created the TikTok connection
 
-// Always generate avatar from uniqueId — TikTok CDN URLs are signed and expire.
-// unavatar.io fetches the real profile picture and caches it 28 days.
-function avatarUrl(uniqueId) {
-    if (!uniqueId || uniqueId === 'Unknown') return 'https://www.tiktok.com/static/images/avatar_default.png';
-    return `https://unavatar.io/tiktok/${encodeURIComponent(uniqueId)}`;
-}
-
-// Inject avatar URL into TikTok event messages.
-// Prioritizes original TikTok URL (expiring but saves requests) for real-time messages.
-function injectAvatar(msg) {
-    if (!msg) return msg;
-    
-    // If it already has a URL, use it (expiring but good for session)
-    if (msg.profilePictureUrl && msg.profilePictureUrl.includes('tiktokcdn.com')) return msg;
-    
-    // Fallback/Permanent
-    const uid = msg.uniqueId || (msg.user && (msg.user.uniqueId || msg.user.displayId)) || 'Unknown';
-    msg.profilePictureUrl = msg.profilePictureUrl || avatarUrl(uid);
-    if (msg.user && !msg.user.profilePictureUrl) msg.user.profilePictureUrl = msg.profilePictureUrl;
-    
-    return msg;
-}
-
 function upsertDonor(userId, uniqueId, nickname, profilePictureUrl, diamonds, lastGift) {
     let donor = null;
     let key = userId || uniqueId;
@@ -224,13 +190,7 @@ function upsertDonor(userId, uniqueId, nickname, profilePictureUrl, diamonds, la
         donor.totalDiamonds += parseInt(diamonds);
         if (lastGift) donor.lastGift = lastGift;
         if (nickname && nickname !== 'Unknown') donor.nickname = nickname;
-        
-        // Update avatar in RAM — use provided URL or fallback to unavatar
-        if (profilePictureUrl) {
-            donor.profilePictureUrl = profilePictureUrl;
-        } else if (uniqueId && (!donor.profilePictureUrl || donor.profilePictureUrl.includes('avatar_default'))) {
-            donor.profilePictureUrl = avatarUrl(uniqueId);
-        }
+        if (profilePictureUrl) donor.profilePictureUrl = profilePictureUrl;
 
         if (userId && (!donor.userId || donor.userId.startsWith('init_'))) donor.userId = userId;
         if (uniqueId) donor.uniqueId = uniqueId;
@@ -244,19 +204,20 @@ function upsertDonor(userId, uniqueId, nickname, profilePictureUrl, diamonds, la
             userId,
             uniqueId,
             nickname: nickname || uniqueId || 'Unknown',
-            profilePictureUrl: profilePictureUrl || avatarUrl(uniqueId),
+            profilePictureUrl: profilePictureUrl || '',
             totalDiamonds: parseInt(diamonds),
             lastGift: lastGift || ''
         };
         donor = donorStats[key];
     }
 
-    // save to sqlite async (NEVER passes profilePictureUrl — we don't store expiring links)
+    // save to sqlite async
     if (donor.userId && !donor.userId.startsWith('init_') && db) {
         db.upsertUser({
             userId: donor.userId,
             uniqueId: donor.uniqueId,
             nickname: donor.nickname,
+            profilePictureUrl: donor.profilePictureUrl,
             addedDiamonds: parseInt(diamonds)
         }).catch(err => console.error('[DB] Failed to upsert user', err));
     }
@@ -292,8 +253,7 @@ async function finalizeGift(msg, updateDbAndCommand = true) {
             }).catch(err => console.error('[DB] Failed to learn new gift', err));
         }
     }
-    
-    injectAvatar(msg);
+
     io.emit('gift', msg);
     io.emit('statUpdate', { trackedDiamonds, initialDonorsSynced, initialDonorsSum });
 
@@ -576,20 +536,6 @@ io.on('connection', (socket) => {
         tiktokConnectionWrapper.once('connected', state => {
             socket.emit('tiktokConnected', state);
 
-            // Save TikTok avatar to account if logged in
-            const avatarUrl = state?.roomInfo?.data?.owner?.avatarThumb?.urlList?.[0]
-                           || state?.roomInfo?.owner?.profilePictureUrl
-                           || null;
-            if (avatarUrl && socket.request?.session?.user?.id) {
-                db.connectGlobal().then(gdb => {
-                    gdb.run('UPDATE app_accounts SET tiktok_avatar = ? WHERE id = ?', [avatarUrl, socket.request.session.user.id])
-                       .then(() => {
-                           socket.request.session.user.tiktokAvatar = avatarUrl;
-                           socket.request.session.save?.();
-                       });
-                }).catch(() => {});
-            }
-
             /* 
             // SYNC ALL AVAILABLE GIFTS (Blocked by TikTok (403) without premium auth)
             tiktokConnectionWrapper.connection.fetchAvailableGifts()
@@ -630,12 +576,11 @@ io.on('connection', (socket) => {
                     const diamonds = parseInt(f.fan_ticket || f.fanTicket || 0);
                     initialDonorsSum += diamonds;
                     const user = f.user || {};
-                    const uid = user.display_id || user.uniqueId || user.displayId || 'Unknown';
                     initialTopDonors.push({
                         userId: user.user_id || user.userId || f.userId || `init_${Math.random()}`,
                         nickname: user.nickname || user.displayId || 'Unknown',
-                        uniqueId: uid,
-                        profilePictureUrl: avatarUrl(uid),
+                        uniqueId: user.display_id || user.uniqueId || user.displayId || 'Unknown',
+                        profilePictureUrl: user.avatar_thumb?.url_list?.[0] || user.profilePictureUrl || '',
                         totalDiamonds: diamonds
                     });
                 });
@@ -647,10 +592,10 @@ io.on('connection', (socket) => {
         tiktokConnectionWrapper.connection.on('streamEnd', () => io.emit('streamEnd'));
 
         // forward events to users
-        tiktokConnectionWrapper.connection.on('roomUser', msg => io.emit('roomUser', injectAvatar(msg)));
-        tiktokConnectionWrapper.connection.on('member', msg => io.emit('member', injectAvatar(msg)));
-        tiktokConnectionWrapper.connection.on('chat', msg => io.emit('chat', injectAvatar(msg)));
-        tiktokConnectionWrapper.connection.on('subscribe', msg => io.emit('subscribe', injectAvatar(msg)));
+        tiktokConnectionWrapper.connection.on('roomUser', msg => io.emit('roomUser', msg));
+        tiktokConnectionWrapper.connection.on('member', msg => io.emit('member', msg));
+        tiktokConnectionWrapper.connection.on('chat', msg => io.emit('chat', msg));
+        tiktokConnectionWrapper.connection.on('subscribe', msg => io.emit('subscribe', msg));
 
         const activeStreaks = new Map();
         tiktokConnectionWrapper.connection.on('gift', msg => {
@@ -661,7 +606,7 @@ io.on('connection', (socket) => {
 
                 // show streaks as they happen so ui looks smooth
                 if (!msg.repeatEnd) {
-                    io.emit('gift', injectAvatar(msg));
+                    io.emit('gift', msg);
                 }
 
                 if (msg.repeatEnd) {
@@ -704,7 +649,7 @@ io.on('connection', (socket) => {
                     });
                 }
             }
-            io.emit('social', injectAvatar(msg));
+            io.emit('social', msg);
         });
 
         let currentLikes = 0;
@@ -736,7 +681,7 @@ io.on('connection', (socket) => {
                     }
                 }
             }
-            io.emit('like', injectAvatar(msg));
+            io.emit('like', msg);
         });
     });
 
@@ -763,8 +708,7 @@ io.on('connection', (socket) => {
 app.get('/api/top-donors', (req, res) => {
     const donors = Array.from(new Set(Object.values(donorStats)))
         .sort((a, b) => b.totalDiamonds - a.totalDiamonds)
-        .slice(0, 50)
-        .map(d => ({ ...d, profilePictureUrl: avatarUrl(d.uniqueId) }));
+        .slice(0, 50);
     res.json({ success: true, donors });
 });
 
@@ -1109,16 +1053,13 @@ app.get('/', (req, res) => {
 });
 
 // App (tracker tool) — catch-all so /app/* routes work with client-side history API
-app.get('/app', auth.requireAuth, (req, res) => res.render('app', { tiktokUsername: req.session.user.username }));
-app.get('/app/{*path}', auth.requireAuth, (req, res) => res.render('app', { tiktokUsername: req.session.user.username }));
+app.get('/app', auth.requireAuth, (req, res) => res.render('app'));
+app.get('/app/{*path}', auth.requireAuth, (req, res) => res.render('app'));
 
 // ── Auth routes ──────────────────────────────────────────────────────────────
 app.get('/login', (req, res) => {
     if (req.session.user) return res.redirect('/app');
-    const success = req.query.verified ? 'Account created! You can now sign in.'
-                  : req.query.reset    ? 'Password updated! You can now sign in.'
-                  : null;
-    res.render('login', { error: null, success });
+    res.render('login', { error: null });
 });
 
 app.post('/login', async (req, res) => {
@@ -1126,7 +1067,7 @@ app.post('/login', async (req, res) => {
     try {
         const user = await auth.login(email, password);
         req.session.user = user;
-        const next = req.query.next || '/';
+        const next = req.query.next || '/app';
         res.redirect(next);
     } catch (err) {
         res.render('login', { error: err.message });
@@ -1146,23 +1087,21 @@ app.post('/register', async (req, res) => {
     try {
         const token = await auth.register({ username, email, firstName, lastName, password, birthDate });
         const baseUrl = `${req.protocol}://${req.get('host')}`;
-        await auth.sendVerificationEmail(email, token, baseUrl);
-        res.redirect(`/register/pending?email=${encodeURIComponent(email)}`);
+        if (process.env.SMTP_USER) {
+            await auth.sendVerificationEmail(email, token, baseUrl);
+        }
+        res.render('verify-email', { success: false, error: null, pending: true, email });
     } catch (err) {
         res.render('register', { error: err.message, values: req.body });
     }
 });
 
-app.get('/register/pending', (req, res) => {
-    res.render('verify-email', { state: 'pending', email: req.query.email || '' });
-});
-
 app.get('/verify-email/:token', async (req, res) => {
     try {
         await auth.verifyEmail(req.params.token);
-        res.render('verify-email', { state: 'success', email: '' });
+        res.render('verify-email', { success: true, error: null });
     } catch (err) {
-        res.render('verify-email', { state: 'error', email: '', error: err.message });
+        res.render('verify-email', { success: false, error: err.message });
     }
 });
 
@@ -1198,46 +1137,7 @@ app.post('/password-reset/:token', async (req, res) => {
 });
 
 app.get('/logout', (req, res) => {
-    req.session.destroy(() => res.redirect('/'));
-});
-
-
-app.get('/account', auth.requireAuth, async (req, res) => {
-    const globalDb = await db.connectGlobal();
-    const account = await globalDb.get('SELECT * FROM app_accounts WHERE id = ?', [req.session.user.id]);
-    res.render('account', { account, success: req.query.saved ? 'Changes saved.' : null, errors: {} });
-});
-
-app.post('/account/username', auth.requireAuth, async (req, res) => {
-    const { username } = req.body;
-    const globalDb = await db.connectGlobal();
-    const account = await globalDb.get('SELECT * FROM app_accounts WHERE id = ?', [req.session.user.id]);
-    try {
-        await globalDb.run('UPDATE app_accounts SET username = ? WHERE id = ?', [username, req.session.user.id]);
-        req.session.user.username = username;
-        res.redirect('/account?saved=1');
-    } catch (err) {
-        res.render('account', { account, success: null, errors: { username: 'Username already taken' } });
-    }
-});
-
-app.post('/account/password', auth.requireAuth, async (req, res) => {
-    const { currentPassword, newPassword, newPassword2 } = req.body;
-    const globalDb = await db.connectGlobal();
-    const account = await globalDb.get('SELECT * FROM app_accounts WHERE id = ?', [req.session.user.id]);
-    const bcrypt = require('bcrypt');
-    const match = await bcrypt.compare(currentPassword, account.password_hash);
-    if (!match) return res.render('account', { account, success: null, errors: { password: 'Current password is incorrect' } });
-    if (newPassword !== newPassword2) return res.render('account', { account, success: null, errors: { password: 'New passwords do not match' } });
-    const hash = await bcrypt.hash(newPassword, 12);
-    await globalDb.run('UPDATE app_accounts SET password_hash = ? WHERE id = ?', [hash, req.session.user.id]);
-    res.redirect('/account?saved=1');
-});
-
-app.post('/account/delete', auth.requireAuth, async (req, res) => {
-    const globalDb = await db.connectGlobal();
-    await globalDb.run('DELETE FROM app_accounts WHERE id = ?', [req.session.user.id]);
-    req.session.destroy(() => res.redirect('/'));
+    req.session.destroy(() => res.redirect('/login'));
 });
 // ─────────────────────────────────────────────────────────────────────────────
 

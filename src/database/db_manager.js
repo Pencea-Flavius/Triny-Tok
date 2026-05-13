@@ -127,6 +127,7 @@ class DatabaseManager {
                     userId TEXT NOT NULL,
                     uniqueId TEXT,
                     nickname TEXT,
+                    profilePictureUrl TEXT,
                     totalDiamonds INTEGER DEFAULT 0,
                     lastSeen DATETIME DEFAULT CURRENT_TIMESTAMP,
                     UNIQUE(streamerId, userId),
@@ -148,34 +149,7 @@ class DatabaseManager {
                 );
             `);
 
-            // Migrate app_accounts: add auth columns if they don't exist yet
-            const acCols = await db.all(`PRAGMA table_info(app_accounts)`);
-            const acColNames = acCols.map(c => c.name);
-            const authMigrations = [
-                ['email_verified',      `ALTER TABLE app_accounts ADD COLUMN email_verified INTEGER DEFAULT 0`],
-                ['verification_token',  `ALTER TABLE app_accounts ADD COLUMN verification_token TEXT`],
-                ['reset_token',         `ALTER TABLE app_accounts ADD COLUMN reset_token TEXT`],
-                ['reset_token_expires', `ALTER TABLE app_accounts ADD COLUMN reset_token_expires DATETIME`],
-                ['tiktok_avatar',       `ALTER TABLE app_accounts ADD COLUMN tiktok_avatar TEXT`],
-            ];
-            for (const [col, sql] of authMigrations) {
-                if (!acColNames.includes(col)) await db.run(sql);
-            }
-
             console.log('[DB] Connected to global.db.');
-
-            // Migration: drop profilePictureUrl column if it still exists from an older schema
-            // (avatars are now always derived from uniqueId via unavatar.io at runtime)
-            try {
-                const cols = await db.all(`PRAGMA table_info(users)`);
-                if (cols.some(c => c.name === 'profilePictureUrl')) {
-                    await db.run(`ALTER TABLE users DROP COLUMN profilePictureUrl`);
-                    console.log('[DB] Migration: dropped profilePictureUrl column from users table.');
-                }
-            } catch (e) {
-                console.warn('[DB] Migration warning (profilePictureUrl):', e.message);
-            }
-
             return db;
         }).catch(err => {
             console.error('[DB] global.db connection error:', err);
@@ -234,19 +208,18 @@ class DatabaseManager {
     async upsertUser(user) {
         if (!this.currentStreamerId) return;
         const db = await this.connectGlobal();
-        const { userId, uniqueId, nickname, addedDiamonds = 0 } = user;
+        const { userId, uniqueId, nickname, profilePictureUrl, addedDiamonds = 0 } = user;
 
-        // NOTE: profilePictureUrl is intentionally NOT stored — TikTok CDN URLs are signed
-        // and expire after a few days. The avatar is always generated dynamically from uniqueId.
         await db.run(`
-            INSERT INTO users (streamerId, userId, uniqueId, nickname, totalDiamonds, lastSeen)
-            VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            INSERT INTO users (streamerId, userId, uniqueId, nickname, profilePictureUrl, totalDiamonds, lastSeen)
+            VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             ON CONFLICT(streamerId, userId) DO UPDATE SET
                 uniqueId = excluded.uniqueId,
                 nickname = excluded.nickname,
+                profilePictureUrl = excluded.profilePictureUrl,
                 totalDiamonds = totalDiamonds + excluded.totalDiamonds,
                 lastSeen = CURRENT_TIMESTAMP
-        `, [this.currentStreamerId, userId, uniqueId, nickname, addedDiamonds]);
+        `, [this.currentStreamerId, userId, uniqueId, nickname, profilePictureUrl, addedDiamonds]);
     }
 
     async getTopDonors(limit = 50) {
