@@ -852,8 +852,8 @@ app.get('/api/gifts', (req, res) => {
     res.json({ success: true, gifts: normalized });
 });
 
-// delete gift from db
-app.delete('/api/gifts/:id', async (req, res) => {
+// delete gift from db — admin only
+app.delete('/api/gifts/:id', auth.requireAdmin, async (req, res) => {
     try {
         const giftIdParam = req.params.id;
         const giftId = parseInt(giftIdParam);
@@ -1108,9 +1108,110 @@ app.get('/', (req, res) => {
     res.render('index');
 });
 
+// Admin panel
+app.get('/admin', auth.requireAuth, auth.requireAdmin, async (req, res) => {
+    try {
+        const globalDb = await db.connectGlobal();
+        const tab = req.query.tab || 'gifts';
+        const search = req.query.search || '';
+        const sort = req.query.sort || '';
+        const dir = req.query.dir === 'desc' ? 'DESC' : 'ASC';
+
+        const ALLOWED_GIFT_SORT = { name: 'name', diamonds: 'diamondCount', id: 'id' };
+        const ALLOWED_ACCOUNT_SORT = { username: 'username', email: 'email', created: 'created_at', admin: 'is_admin' };
+        const ALLOWED_DONOR_SORT = { nickname: 'nickname', diamonds: 'totalDiamonds', seen: 'lastSeen' };
+        const ALLOWED_DONATION_SORT = { diamonds: 'totalDiamonds', date: 'timestamp' };
+
+        const stats = {
+            accounts: (await globalDb.get(`SELECT COUNT(*) as c FROM app_accounts`)).c,
+            gifts: (await globalDb.get(`SELECT COUNT(*) as c FROM gifts`)).c,
+            donations: (await globalDb.get(`SELECT COUNT(*) as c FROM donations`)).c,
+            donors: (await globalDb.get(`SELECT COUNT(*) as c FROM users`)).c,
+            isaacItems: (await globalDb.get(`SELECT COUNT(*) as c FROM isaac_items`)).c,
+            repoItems: (await globalDb.get(`SELECT COUNT(*) as c FROM repo_items`)).c,
+            repoValuables: (await globalDb.get(`SELECT COUNT(*) as c FROM repo_valuables`)).c,
+            repoEnemies: (await globalDb.get(`SELECT COUNT(*) as c FROM repo_enemies`)).c,
+        };
+
+        let gifts = [], accounts = [], donors = [], donations = [];
+
+        if (tab === 'gifts') {
+            const col = ALLOWED_GIFT_SORT[sort] || 'name';
+            const where = search ? `WHERE name LIKE ?` : '';
+            const params = search ? [`%${search}%`] : [];
+            gifts = await globalDb.all(`SELECT * FROM gifts ${where} ORDER BY ${col} ${dir}`, params);
+        } else if (tab === 'accounts') {
+            const col = ALLOWED_ACCOUNT_SORT[sort] || 'created_at';
+            const where = search ? `WHERE username LIKE ? OR email LIKE ?` : '';
+            const params = search ? [`%${search}%`, `%${search}%`] : [];
+            accounts = await globalDb.all(`SELECT id, username, email, first_name, last_name, created_at, email_verified, is_admin FROM app_accounts ${where} ORDER BY ${col} ${dir}`, params);
+        } else if (tab === 'donors') {
+            const col = ALLOWED_DONOR_SORT[sort] || 'totalDiamonds';
+            const where = search ? `WHERE nickname LIKE ? OR uniqueId LIKE ?` : '';
+            const params = search ? [`%${search}%`, `%${search}%`] : [];
+            donors = await globalDb.all(`SELECT * FROM users ${where} ORDER BY ${col} ${dir} LIMIT 200`, params);
+        } else if (tab === 'donations') {
+            const col = ALLOWED_DONATION_SORT[sort] || 'timestamp';
+            donations = await globalDb.all(
+                `SELECT d.*, g.name as giftName, g.diamondCount as giftDiamonds, u.nickname, u.uniqueId
+                 FROM donations d
+                 LEFT JOIN gifts g ON g.id = d.giftId
+                 LEFT JOIN users u ON u.id = d.user_id
+                 ORDER BY ${col} ${dir} LIMIT 200`
+            );
+        }
+
+        res.render('admin', { tab, search, sort, dir: req.query.dir || 'asc', stats, gifts, accounts, donors, donations, success: req.query.success || null, error: req.query.error || null });
+    } catch (e) {
+        console.error('[Admin]', e);
+        res.status(500).send('Error loading admin page: ' + e.message);
+    }
+});
+
+app.post('/admin/gifts/:id/delete', auth.requireAuth, auth.requireAdmin, async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const globalDb = await db.connectGlobal();
+        await globalDb.run(`DELETE FROM gifts WHERE id = ?`, [id]);
+        const idx = availableGifts.findIndex(g => g.id === id);
+        if (idx !== -1) availableGifts.splice(idx, 1);
+        const search = req.query.search ? `&search=${encodeURIComponent(req.query.search)}` : '';
+        const sortQs = req.query.sort ? `&sort=${req.query.sort}&dir=${req.query.dir || 'asc'}` : '';
+        res.redirect(`/admin?tab=gifts&success=Gift+deleted${search}${sortQs}`);
+    } catch (e) {
+        res.status(500).send('Error deleting gift');
+    }
+});
+
+app.post('/admin/accounts/:id/delete', auth.requireAuth, auth.requireAdmin, async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        if (id === req.session.user.id) return res.redirect('/admin?tab=accounts&error=Cannot+delete+your+own+account');
+        const globalDb = await db.connectGlobal();
+        await globalDb.run(`DELETE FROM app_accounts WHERE id = ?`, [id]);
+        res.redirect('/admin?tab=accounts&success=Account+deleted');
+    } catch (e) {
+        res.status(500).send('Error deleting account');
+    }
+});
+
+app.post('/admin/accounts/:id/toggle-admin', auth.requireAuth, auth.requireAdmin, async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        if (id === req.session.user.id) return res.redirect('/admin?tab=accounts&error=Cannot+change+your+own+admin+status');
+        const globalDb = await db.connectGlobal();
+        const account = await globalDb.get(`SELECT is_admin FROM app_accounts WHERE id = ?`, [id]);
+        if (!account) return res.redirect('/admin?tab=accounts&error=Account+not+found');
+        await globalDb.run(`UPDATE app_accounts SET is_admin = ? WHERE id = ?`, [account.is_admin ? 0 : 1, id]);
+        res.redirect('/admin?tab=accounts&success=Admin+status+updated');
+    } catch (e) {
+        res.status(500).send('Error updating admin status');
+    }
+});
+
 // App (tracker tool) — catch-all so /app/* routes work with client-side history API
-app.get('/app', auth.requireAuth, (req, res) => res.render('app', { tiktokUsername: req.session.user.username }));
-app.get('/app/{*path}', auth.requireAuth, (req, res) => res.render('app', { tiktokUsername: req.session.user.username }));
+app.get('/app', auth.requireAuth, (req, res) => res.render('app', { tiktokUsername: req.session.user.username, isAdmin: req.session.user.isAdmin || false }));
+app.get('/app/{*path}', auth.requireAuth, (req, res) => res.render('app', { tiktokUsername: req.session.user.username, isAdmin: req.session.user.isAdmin || false }));
 
 // ── Auth routes ──────────────────────────────────────────────────────────────
 app.get('/login', (req, res) => {

@@ -157,6 +157,7 @@ class DatabaseManager {
                 ['reset_token',         `ALTER TABLE app_accounts ADD COLUMN reset_token TEXT`],
                 ['reset_token_expires', `ALTER TABLE app_accounts ADD COLUMN reset_token_expires DATETIME`],
                 ['tiktok_avatar',       `ALTER TABLE app_accounts ADD COLUMN tiktok_avatar TEXT`],
+                ['is_admin',            `ALTER TABLE app_accounts ADD COLUMN is_admin INTEGER DEFAULT 0`],
             ];
             for (const [col, sql] of authMigrations) {
                 if (!acColNames.includes(col)) await db.run(sql);

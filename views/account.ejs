@@ -92,6 +92,47 @@
       .account-section { padding: 20px 18px; }
       .info-row { flex-direction: column; align-items: flex-start; gap: 4px; }
     }
+
+    /* Delete modal */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 1000;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal-box {
+      background: #0c1220;
+      border: 1px solid rgba(244,63,94,0.25);
+      border-radius: 18px;
+      padding: 32px 28px 24px;
+      max-width: 400px; width: 90%;
+      transform: translateY(16px) scale(0.97);
+      transition: transform 0.2s;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.7);
+    }
+    .modal-overlay.open .modal-box { transform: translateY(0) scale(1); }
+    .modal-icon {
+      width: 48px; height: 48px; border-radius: 50%;
+      background: rgba(244,63,94,0.1);
+      border: 1px solid rgba(244,63,94,0.2);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 18px; color: var(--danger);
+    }
+    .modal-title { font-size: 18px; font-weight: 900; margin-bottom: 8px; }
+    .modal-desc { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 24px; }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+    .modal-cancel {
+      padding: 10px 20px; border-radius: 8px;
+      font-size: 13px; font-weight: 700; cursor: pointer;
+      font-family: inherit; transition: all 0.18s;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: var(--muted);
+    }
+    .modal-cancel:hover { background: rgba(255,255,255,0.09); color: var(--text); }
   </style>
 </head>
 <body>
@@ -195,22 +236,50 @@
         <div style="font-size:14px; font-weight:700; margin-bottom:4px;">Delete account</div>
         <div style="font-size:13px; color:var(--muted);">Permanently removes your account. Cannot be undone.</div>
       </div>
-      <form method="POST" action="/account/delete" onsubmit="return confirm('Are you sure? This cannot be undone.')">
-        <button type="submit" class="btn-danger">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
-          Delete account
-        </button>
-      </form>
+      <button type="button" class="btn-danger" id="openDeleteModal">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+        Delete account
+      </button>
     </div>
   </div>
 </div>
 
 <%- include('partials/footer') %>
 
+<!-- Delete account modal -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal-box">
+    <div class="modal-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="3 6 5 6 21 6"/>
+        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+        <path d="M10 11v6"/><path d="M14 11v6"/>
+      </svg>
+    </div>
+    <div class="modal-title">Delete your account?</div>
+    <div class="modal-desc">This will permanently delete your account, all your settings, and disconnect your integrations. <strong style="color:var(--danger);">This cannot be undone.</strong></div>
+    <div class="modal-actions">
+      <button class="modal-cancel" id="cancelDeleteModal">Cancel</button>
+      <form method="POST" action="/account/delete" style="margin:0;">
+        <button type="submit" class="btn-danger">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+          Yes, delete
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
 <script>
   document.getElementById('newPassword2').addEventListener('input', function() {
     this.setCustomValidity(this.value !== document.getElementById('newPassword').value ? 'Passwords do not match' : '');
   });
+
+  const deleteModal = document.getElementById('deleteModal');
+  document.getElementById('openDeleteModal').addEventListener('click', () => deleteModal.classList.add('open'));
+  document.getElementById('cancelDeleteModal').addEventListener('click', () => deleteModal.classList.remove('open'));
+  deleteModal.addEventListener('click', (e) => { if (e.target === deleteModal) deleteModal.classList.remove('open'); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') deleteModal.classList.remove('open'); });
 </script>
 </body>
 </html>
