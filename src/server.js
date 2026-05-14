@@ -1175,8 +1175,9 @@ app.post('/admin/gifts/:id/delete', auth.requireAuth, auth.requireAdmin, async (
         await globalDb.run(`DELETE FROM gifts WHERE id = ?`, [id]);
         const idx = availableGifts.findIndex(g => g.id === id);
         if (idx !== -1) availableGifts.splice(idx, 1);
-        const qs = new URLSearchParams({ tab: 'gifts', success: 'Gift deleted', ...(req.query.search ? { search: req.query.search } : {}), ...(req.query.sort ? { sort: req.query.sort, dir: req.query.dir || 'asc' } : {}) });
-        res.redirect(`/admin?${qs}`);
+        const search = req.query.search ? `&search=${encodeURIComponent(req.query.search)}` : '';
+        const sortQs = req.query.sort ? `&sort=${req.query.sort}&dir=${req.query.dir || 'asc'}` : '';
+        res.redirect(`/admin?tab=gifts&success=Gift+deleted${search}${sortQs}`);
     } catch (e) {
         res.status(500).send('Error deleting gift');
     }
