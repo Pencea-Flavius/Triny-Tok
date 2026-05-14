@@ -904,6 +904,129 @@ app.post('/api/config', express.json(), (req, res) => {
     }
 });
 
+// ── Presets API ──────────────────────────────────────────────────────────────
+const PRESET_DETAIL_TABLE = { minecraft: 'preset_minecraft', isaac: 'preset_isaac', repo: 'preset_repo', goi: 'preset_goi' };
+
+function extractGameConfig(game) {
+    if (game === 'minecraft') return {
+        host: config.minecraft && config.minecraft.host,
+        port: config.minecraft && config.minecraft.port,
+        auto_connect: config.minecraft && config.minecraft.autoConnect ? 1 : 0,
+        target_players: JSON.stringify(config.targetPlayers || []),
+        gift_commands: JSON.stringify(config.giftCommands || {}),
+        follow_command: JSON.stringify(config.followCommand || {}),
+        like_command: JSON.stringify(config.likeCommand || {}),
+    };
+    if (game === 'isaac') return { isaac_commands: JSON.stringify(config.isaacCommands || {}) };
+    if (game === 'repo')  return { repo_commands:  JSON.stringify(config.repoCommands  || {}) };
+    if (game === 'goi')   return { goi_commands:   JSON.stringify(config.goiCommands   || {}) };
+}
+
+app.get('/api/presets/:game', (req, res) => {
+    if (!req.session.user) return res.json({ success: true, presets: [] });
+    const game = req.params.game;
+    if (!PRESET_DETAIL_TABLE[game]) return res.status(400).json({ success: false, error: 'Invalid game' });
+    db.connectGlobal().then(globalDb =>
+        globalDb.all(`SELECT id, name, created_at FROM presets WHERE account_id = ? AND game = ? ORDER BY created_at DESC`, [req.session.user.id, game])
+    ).then(presets => res.json({ success: true, presets }))
+     .catch(e => res.status(500).json({ success: false, error: e.message }));
+});
+
+app.post('/api/presets/:game', express.json(), auth.requireAuth, async (req, res) => {
+    const game = req.params.game;
+    const detail = PRESET_DETAIL_TABLE[game];
+    if (!detail) return res.status(400).json({ success: false, error: 'Invalid game' });
+    const { name } = req.body;
+    if (!name || !name.trim()) return res.status(400).json({ success: false, error: 'Name is required' });
+    try {
+        const globalDb = await db.connectGlobal();
+        const existing = await globalDb.get(
+            `SELECT id FROM presets WHERE account_id = ? AND name = ? AND game = ?`,
+            [req.session.user.id, name.trim(), game]
+        );
+        const data = extractGameConfig(game);
+        const cols = Object.keys(data);
+        const vals = Object.values(data);
+        let presetId;
+        if (existing) {
+            presetId = existing.id;
+            await globalDb.run(`UPDATE presets SET created_at = CURRENT_TIMESTAMP WHERE id = ?`, [presetId]);
+            await globalDb.run(
+                `UPDATE ${detail} SET ${cols.map(c => `${c} = ?`).join(', ')} WHERE preset_id = ?`,
+                [...vals, presetId]
+            );
+        } else {
+            const r = await globalDb.run(
+                `INSERT INTO presets (account_id, name, game) VALUES (?, ?, ?)`,
+                [req.session.user.id, name.trim(), game]
+            );
+            presetId = r.lastID;
+            await globalDb.run(
+                `INSERT INTO ${detail} (preset_id, ${cols.join(', ')}) VALUES (?, ${cols.map(() => '?').join(', ')})`,
+                [presetId, ...vals]
+            );
+        }
+        const presets = await globalDb.all(
+            `SELECT id, name, created_at FROM presets WHERE account_id = ? AND game = ? ORDER BY created_at DESC`,
+            [req.session.user.id, game]
+        );
+        res.json({ success: true, presets });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+app.post('/api/presets/:id/load', express.json(), auth.requireAuth, async (req, res) => {
+    try {
+        const globalDb = await db.connectGlobal();
+        const preset = await globalDb.get(
+            `SELECT p.game FROM presets p WHERE p.id = ? AND p.account_id = ?`,
+            [req.params.id, req.session.user.id]
+        );
+        if (!preset) return res.status(404).json({ success: false, error: 'Preset not found' });
+        const detail = PRESET_DETAIL_TABLE[preset.game];
+        const row = await globalDb.get(`SELECT * FROM ${detail} WHERE preset_id = ?`, [req.params.id]);
+        if (!row) return res.status(404).json({ success: false, error: 'Preset data missing' });
+
+        if (preset.game === 'minecraft') {
+            if (!config.minecraft) config.minecraft = {};
+            if (row.host) config.minecraft.host = row.host;
+            if (row.port) config.minecraft.port = row.port;
+            if (row.auto_connect !== null) config.minecraft.autoConnect = !!row.auto_connect;
+            if (row.target_players) config.targetPlayers = JSON.parse(row.target_players);
+            if (row.gift_commands)  config.giftCommands  = JSON.parse(row.gift_commands);
+            if (row.follow_command) config.followCommand = JSON.parse(row.follow_command);
+            if (row.like_command)   config.likeCommand   = JSON.parse(row.like_command);
+        } else if (preset.game === 'isaac') {
+            if (row.isaac_commands) config.isaacCommands = JSON.parse(row.isaac_commands);
+        } else if (preset.game === 'repo') {
+            if (row.repo_commands)  config.repoCommands  = JSON.parse(row.repo_commands);
+        } else if (preset.game === 'goi') {
+            if (row.goi_commands)   config.goiCommands   = JSON.parse(row.goi_commands);
+        }
+        fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+        res.json({ success: true, config });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+app.delete('/api/presets/:id', auth.requireAuth, async (req, res) => {
+    try {
+        const globalDb = await db.connectGlobal();
+        const preset = await globalDb.get(`SELECT game FROM presets WHERE id = ? AND account_id = ?`, [req.params.id, req.session.user.id]);
+        if (!preset) return res.status(404).json({ success: false, error: 'Not found' });
+        await globalDb.run(`DELETE FROM presets WHERE id = ?`, [req.params.id]);
+        const presets = await globalDb.all(
+            `SELECT id, name, created_at FROM presets WHERE account_id = ? AND game = ? ORDER BY created_at DESC`,
+            [req.session.user.id, preset.game]
+        );
+        res.json({ success: true, presets });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
 // Isaac API routes
 app.get('/api/isaac/items', async (req, res) => {
     try {
@@ -1210,8 +1333,8 @@ app.post('/admin/accounts/:id/toggle-admin', auth.requireAuth, auth.requireAdmin
 });
 
 // App (tracker tool) — catch-all so /app/* routes work with client-side history API
-app.get('/app', auth.requireAuth, (req, res) => res.render('app', { tiktokUsername: req.session.user.username, isAdmin: req.session.user.isAdmin || false }));
-app.get('/app/{*path}', auth.requireAuth, (req, res) => res.render('app', { tiktokUsername: req.session.user.username, isAdmin: req.session.user.isAdmin || false }));
+app.get('/app', (req, res) => res.render('app', { tiktokUsername: req.session.user ? req.session.user.username : '', isAdmin: req.session.user ? req.session.user.isAdmin || false : false }));
+app.get('/app/{*path}', (req, res) => res.render('app', { tiktokUsername: req.session.user ? req.session.user.username : '', isAdmin: req.session.user ? req.session.user.isAdmin || false : false }));
 
 // ── Auth routes ──────────────────────────────────────────────────────────────
 app.get('/login', (req, res) => {
