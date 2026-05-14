@@ -25,29 +25,7 @@ export function initCommandsUI(ioConnection) {
         resultsId: 'giftSearchResults',
         previewId: 'giftImagePreview',
         onSelect: (name) => {},
-        onDelete: async (gift) => {
-            const confirmed = await showConfirm({
-                title: 'Delete Gift from Database',
-                message: `Remove <b>${gift.name}</b> from the database? It will disappear from the gift list.`,
-                confirmText: 'Delete',
-                cancelText: 'Cancel',
-                danger: true
-            });
-            if (confirmed) {
-                try {
-                    const res = await fetch(`/api/gifts/${gift.id}`, { method: 'DELETE' });
-                    if (res.ok) {
-                        showToast(`"${gift.name}" removed from database`, 'success');
-                        refreshCommandsData();
-                    } else {
-                        const err = await res.json();
-                        showToast(err.error || 'Failed to delete gift', 'error');
-                    }
-                } catch (e) {
-                    showToast('Connection error: ' + e.message, 'error');
-                }
-            }
-        }
+        onDelete: null
     });
 
     const socialBtn = $('#socialTriggersBtn');
