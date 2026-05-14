@@ -6,6 +6,91 @@
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="/css/app.css">
+  <style>
+    .preset-popup {
+      position: absolute; top: calc(100% + 6px); right: 0;
+      width: 250px; background: #0c1220;
+      border: 1px solid rgba(var(--accent-rgb),0.2); border-radius: 12px;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.7);
+      z-index: 300; overflow: hidden;
+      opacity: 0; pointer-events: none;
+      transform: translateY(-6px) scale(0.97);
+      transition: opacity 0.15s, transform 0.15s;
+    }
+    .preset-popup.open { opacity: 1; pointer-events: all; transform: none; }
+    .preset-popup-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 11px 13px; border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .preset-popup-title { font-size: 10px; font-weight: 800; letter-spacing: 1.3px; text-transform: uppercase; color: var(--accent); }
+    .preset-save-btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 9px; border-radius: 5px; font-size: 11px; font-weight: 700;
+      background: rgba(var(--accent-rgb),0.1); border: 1px solid rgba(var(--accent-rgb),0.25);
+      color: var(--accent); cursor: pointer; font-family: inherit; transition: all 0.15s;
+    }
+    .preset-save-btn:hover { background: rgba(var(--accent-rgb),0.2); }
+    .preset-name-form {
+      padding: 10px 13px; border-bottom: 1px solid rgba(255,255,255,0.05);
+      display: none;
+    }
+    .preset-name-form input {
+      width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 6px; padding: 7px 10px; font-size: 12px; color: #e8eaf0;
+      font-family: inherit; margin-bottom: 8px;
+    }
+    .preset-name-form input:focus { outline: none; border-color: var(--accent); }
+    .preset-name-form-actions { display: flex; gap: 6px; }
+    .preset-confirm-btn {
+      flex: 1; padding: 6px; border-radius: 5px; font-size: 11px; font-weight: 700;
+      background: var(--accent); border: none; color: #060912; cursor: pointer; font-family: inherit;
+    }
+    .preset-cancel-btn {
+      padding: 6px 10px; border-radius: 5px; font-size: 11px; font-weight: 700;
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+      color: #5a6385; cursor: pointer; font-family: inherit;
+    }
+    .preset-list { max-height: 220px; overflow-y: auto; }
+    .preset-item {
+      display: flex; align-items: center; padding: 9px 13px;
+      border-bottom: 1px solid rgba(255,255,255,0.03); transition: background 0.12s;
+    }
+    .preset-item:last-child { border-bottom: none; }
+    .preset-item:hover { background: rgba(255,255,255,0.03); }
+    .preset-item-info { flex: 1; min-width: 0; }
+    .preset-item-name { font-size: 12px; font-weight: 700; color: #c8cad8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .preset-item-date { font-size: 10px; color: rgba(255,255,255,0.2); margin-top: 1px; }
+    .preset-item-btns { display: flex; gap: 4px; flex-shrink: 0; margin-left: 8px; }
+    .preset-action {
+      padding: 4px 8px; border-radius: 5px; font-size: 10px; font-weight: 700;
+      cursor: pointer; font-family: inherit; transition: all 0.12s; border: 1px solid;
+    }
+    .preset-load { background: rgba(var(--accent-rgb),0.08); border-color: rgba(var(--accent-rgb),0.2); color: var(--accent); }
+    .preset-load:hover { background: rgba(var(--accent-rgb),0.2); }
+    .preset-del { background: rgba(244,63,94,0.08); border-color: rgba(244,63,94,0.2); color: #f43f5e; }
+    .preset-del:hover { background: rgba(244,63,94,0.18); }
+    .preset-empty { padding: 18px 13px; text-align: center; font-size: 12px; color: rgba(255,255,255,0.2); }
+
+    .preset-trigger {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 800;
+      letter-spacing: 0.5px; text-transform: uppercase;
+      background: rgba(var(--accent-rgb),0.08); border: 1px solid rgba(var(--accent-rgb),0.2);
+      color: var(--accent); cursor: pointer; font-family: inherit; transition: all 0.15s;
+    }
+    .preset-trigger:hover { background: rgba(var(--accent-rgb),0.18); }
+
+    .signin-topbar-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 700;
+      color: #5a6385; border: 1px solid rgba(255,255,255,0.07);
+      text-decoration: none; transition: all 0.15s;
+    }
+    .signin-topbar-link:hover {
+      color: var(--accent);
+      border-color: rgba(var(--accent-rgb),0.35);
+    }
+  </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js"></script>
   <script type="module" src="/js/app.js"></script>
@@ -53,5 +138,87 @@
     });
   })();
 </script>
+
+<% if (user) { %>
+<script>
+function _renderPresets(game, presets) {
+  const list = document.getElementById('presetList_' + game);
+  if (!list) return;
+  if (!presets || !presets.length) {
+    list.innerHTML = '<div style="text-align:center;padding:24px 0;font-size:13px;color:var(--dim);">No presets saved yet</div>';
+    return;
+  }
+  list.innerHTML = presets.map(p => `
+    <div style="display:flex;align-items:center;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:12px 14px;gap:12px;">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:700;color:#e8eaf0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.name}</div>
+        <div style="font-size:11px;color:var(--dim);margin-top:2px;">${new Date(p.created_at).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'})}</div>
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0;">
+        <button class="btn-secondary btn-sm" style="padding:6px 12px;font-size:11px;" onclick="loadPreset(${p.id},'${game}')">Load</button>
+        <button class="btn-danger btn-sm" style="padding:6px 12px;font-size:11px;" onclick="deletePreset(${p.id},'${game}')">Delete</button>
+      </div>
+    </div>`).join('');
+}
+
+window.openPresetModal = async function(game, modalId) {
+  const modal = document.getElementById(modalId);
+  if (!modal) return;
+  modal.style.display = 'flex';
+  const r = await fetch('/api/presets/' + game);
+  const d = await r.json();
+  if (d.success) _renderPresets(game, d.presets);
+};
+
+window.closePresetModal = function(modalId) {
+  const modal = document.getElementById(modalId);
+  if (modal) modal.style.display = 'none';
+};
+
+window.savePreset = async function(game, modalId) {
+  const input = document.getElementById('presetInput_' + game);
+  const name = input.value.trim();
+  if (!name) { input.style.borderColor = '#f43f5e'; input.focus(); return; }
+  input.style.borderColor = '';
+  const r = await fetch('/api/presets/' + game, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name })
+  });
+  const d = await r.json();
+  if (d.success) {
+    input.value = '';
+    _renderPresets(game, d.presets);
+    if (window.showToast) showToast(`Preset "${name}" saved`, 'success');
+  } else {
+    if (window.showToast) showToast(d.error || 'Failed to save', 'error');
+  }
+};
+
+window.loadPreset = async function(id, game) {
+  const r = await fetch('/api/presets/' + id + '/load', { method: 'POST' });
+  const d = await r.json();
+  if (d.success) {
+    document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
+    if (window.showToast) showToast('Preset loaded — reloading...', 'success');
+    setTimeout(() => location.reload(), 800);
+  } else {
+    if (window.showToast) showToast(d.error || 'Failed to load', 'error');
+  }
+};
+
+window.deletePreset = async function(id, game) {
+  const r = await fetch('/api/presets/' + id, { method: 'DELETE' });
+  const d = await r.json();
+  if (d.success) _renderPresets(game, d.presets);
+};
+
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('modal-overlay')) e.target.style.display = 'none';
+});
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') document.querySelectorAll('.modal-overlay[style*="flex"]').forEach(m => m.style.display = 'none');
+});
+</script>
+<% } %>
 
 </html>

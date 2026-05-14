@@ -1,0 +1,55 @@
+<%
+/* locals: game (string), wrapperId (string), label (optional string) */
+const _label = typeof label !== 'undefined' ? label : 'Presets';
+const _modalId = 'presetModal_' + game;
+%>
+<% if (typeof user !== 'undefined' && user) { %>
+<button class="btn-secondary btn-sm" id="presetTrigger_<%= game %>" onclick="openPresetModal('<%= game %>', '<%= _modalId %>')">
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+    <polyline points="17 21 17 13 7 13 7 21"/>
+    <polyline points="7 3 7 8 15 8"/>
+  </svg>
+  <%= _label %>
+</button>
+
+<div class="modal-overlay" id="<%= _modalId %>" style="display:none;">
+  <div class="modal-content" style="max-width:480px;border-color:rgba(var(--accent-rgb),0.2);">
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+      <div>
+        <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);margin-bottom:4px;">
+          <%= game.charAt(0).toUpperCase() + game.slice(1) %> Presets
+        </div>
+        <h2 style="font-size:18px;font-weight:900;letter-spacing:-0.4px;">Saved Configurations</h2>
+      </div>
+      <button onclick="closePresetModal('<%= _modalId %>')" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;font-family:inherit;" onmouseover="this.style.background='rgba(255,255,255,0.1)';this.style.color='#e8eaf0'" onmouseout="this.style.background='rgba(255,255,255,0.05)';this.style.color='var(--muted)'">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <!-- Save new preset -->
+    <div style="background:rgba(var(--accent-rgb),0.05);border:1px solid rgba(var(--accent-rgb),0.15);border-radius:10px;padding:16px;margin-bottom:20px;">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--accent);margin-bottom:10px;">Save current config</div>
+      <div style="display:flex;gap:8px;">
+        <input type="text" id="presetInput_<%= game %>" placeholder="Preset name..." maxlength="40"
+          style="flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:9px 12px;font-size:13px;color:#e8eaf0;font-family:inherit;"
+          onkeydown="if(event.key==='Enter') savePreset('<%= game %>', '<%= _modalId %>')"
+          onfocus="this.style.borderColor='rgba(var(--accent-rgb),0.5)'"
+          onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+        <button class="btn-primary btn-sm" onclick="savePreset('<%= game %>', '<%= _modalId %>')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Save
+        </button>
+      </div>
+    </div>
+
+    <!-- Presets list -->
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--dim);margin-bottom:10px;">Saved Presets</div>
+    <div id="presetList_<%= game %>" style="display:flex;flex-direction:column;gap:6px;max-height:280px;overflow-y:auto;">
+      <div style="text-align:center;padding:24px 0;font-size:13px;color:var(--dim);">Loading...</div>
+    </div>
+
+  </div>
+</div>
+<% } %>
