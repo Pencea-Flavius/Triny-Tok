@@ -48,7 +48,10 @@
 
     <!-- Mapped Effects -->
     <div class="card" style="flex:1;">
-      <div style="font-size:10.5px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-bottom:14px;">Mapped Effects</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div style="font-size:10.5px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">Mapped Effects</div>
+        <%- include('./preset-btn', { game: 'goi', wrapperId: 'presetWrapGoi' }) %>
+      </div>
       <div class="table-wrap" style="margin:0;border:none;background:transparent;">
         <div class="data-table-container">
           <table class="data-table" style="table-layout:fixed;width:100%;">

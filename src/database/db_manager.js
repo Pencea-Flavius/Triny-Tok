@@ -159,11 +159,76 @@ class DatabaseManager {
                 ['tiktok_avatar',       `ALTER TABLE app_accounts ADD COLUMN tiktok_avatar TEXT`],
                 ['is_admin',            `ALTER TABLE app_accounts ADD COLUMN is_admin INTEGER DEFAULT 0`],
             ];
+
+            // Presets tables — one header + one detail per game
+            await db.exec(`
+                CREATE TABLE IF NOT EXISTS presets (
+                    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                    account_id  INTEGER NOT NULL REFERENCES app_accounts(id) ON DELETE CASCADE,
+                    name        TEXT NOT NULL,
+                    game        TEXT NOT NULL CHECK(game IN ('minecraft','isaac','repo','goi')),
+                    created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(account_id, name, game)
+                );
+                CREATE TABLE IF NOT EXISTS preset_minecraft (
+                    preset_id        INTEGER PRIMARY KEY REFERENCES presets(id) ON DELETE CASCADE,
+                    host             TEXT,
+                    port             INTEGER,
+                    auto_connect     INTEGER DEFAULT 0,
+                    target_players   TEXT,
+                    gift_commands    TEXT,
+                    follow_command   TEXT,
+                    like_command     TEXT
+                );
+                CREATE TABLE IF NOT EXISTS preset_isaac (
+                    preset_id       INTEGER PRIMARY KEY REFERENCES presets(id) ON DELETE CASCADE,
+                    isaac_commands  TEXT
+                );
+                CREATE TABLE IF NOT EXISTS preset_repo (
+                    preset_id      INTEGER PRIMARY KEY REFERENCES presets(id) ON DELETE CASCADE,
+                    repo_commands  TEXT
+                );
+                CREATE TABLE IF NOT EXISTS preset_goi (
+                    preset_id     INTEGER PRIMARY KEY REFERENCES presets(id) ON DELETE CASCADE,
+                    goi_commands  TEXT
+                );
+            `);
             for (const [col, sql] of authMigrations) {
                 if (!acColNames.includes(col)) await db.run(sql);
             }
 
             console.log('[DB] Connected to global.db.');
+
+            // Migration: recreate presets table if it has old schema (missing 'game' column)
+            try {
+                const presetCols = await db.all(`PRAGMA table_info(presets)`);
+                if (presetCols.length > 0 && !presetCols.some(c => c.name === 'game')) {
+                    await db.exec(`
+                        DROP TABLE IF EXISTS preset_minecraft;
+                        DROP TABLE IF EXISTS preset_isaac;
+                        DROP TABLE IF EXISTS preset_repo;
+                        DROP TABLE IF EXISTS preset_goi;
+                        DROP TABLE IF EXISTS presets;
+                    `);
+                    await db.exec(`
+                        CREATE TABLE presets (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            account_id INTEGER NOT NULL REFERENCES app_accounts(id) ON DELETE CASCADE,
+                            name TEXT NOT NULL,
+                            game TEXT NOT NULL CHECK(game IN ('minecraft','isaac','repo','goi')),
+                            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                            UNIQUE(account_id, name, game)
+                        );
+                        CREATE TABLE preset_minecraft (preset_id INTEGER PRIMARY KEY REFERENCES presets(id) ON DELETE CASCADE, host TEXT, port INTEGER, auto_connect INTEGER DEFAULT 0, target_players TEXT, gift_commands TEXT, follow_command TEXT, like_command TEXT);
+                        CREATE TABLE preset_isaac (preset_id INTEGER PRIMARY KEY REFERENCES presets(id) ON DELETE CASCADE, isaac_commands TEXT);
+                        CREATE TABLE preset_repo (preset_id INTEGER PRIMARY KEY REFERENCES presets(id) ON DELETE CASCADE, repo_commands TEXT);
+                        CREATE TABLE preset_goi (preset_id INTEGER PRIMARY KEY REFERENCES presets(id) ON DELETE CASCADE, goi_commands TEXT);
+                    `);
+                    console.log('[DB] Migration: rebuilt presets tables with new schema.');
+                }
+            } catch (e) {
+                console.warn('[DB] Migration warning (presets):', e.message);
+            }
 
             // Migration: drop profilePictureUrl column if it still exists from an older schema
             // (avatars are now always derived from uniqueId via unavatar.io at runtime)
