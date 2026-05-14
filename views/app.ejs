@@ -37,6 +37,9 @@
 </body>
 
 <script>
+  window.IS_ADMIN = <%- isAdmin ? 'true' : 'false' %>;
+</script>
+<script>
   (function() {
     const btn = document.getElementById('appAvatarBtn');
     const dropdown = document.getElementById('appDropdown');

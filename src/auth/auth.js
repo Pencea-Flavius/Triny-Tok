@@ -104,6 +104,7 @@ async function login(email, password) {
         email: account.email,
         firstName: account.first_name,
         lastName: account.last_name,
+        isAdmin: account.is_admin === 1,
     };
 }
 
@@ -143,4 +144,11 @@ function requireAuth(req, res, next) {
     res.redirect('/login?next=' + encodeURIComponent(req.originalUrl));
 }
 
-module.exports = { register, verifyEmail, login, requestPasswordReset, resetPassword, sendVerificationEmail, sendPasswordResetEmail, requireAuth };
+function requireAdmin(req, res, next) {
+    if (req.session && req.session.user && req.session.user.isAdmin) return next();
+    const wantsJson = req.accepts('json') && !req.accepts('html');
+    if (wantsJson) return res.status(403).json({ success: false, error: 'Forbidden' });
+    res.redirect('/');
+}
+
+module.exports = { register, verifyEmail, login, requestPasswordReset, resetPassword, sendVerificationEmail, sendPasswordResetEmail, requireAuth, requireAdmin };
