@@ -540,16 +540,20 @@ export function initIsaacUI(ioConnection) {
         window.selectedIsaacProfile = null;
     }
 
+    let editingGiftName = null;
+
     function openModal(editGiftName) {
         resetModal();
+        editingGiftName = editGiftName || null;
         if (editGiftName) {
             giftDropdown.setValue(editGiftName);
             $('#isaacModalTitle').text('Edit TBOI Effect');
             const effect = currentCommands[editGiftName];
             if (typeof effect === 'string') {
-                $('#isaacModeProfileBtn').trigger('click');
-                renderProfileCards(effect);
                 window.selectedIsaacProfile = effect;
+                const prof = profiles.find(p => p.id === effect) || ISAAC_DEFAULT_PROFILES.find(p => p.id === effect);
+                if (prof && prof.category) activeIsaacCat = prof.category;
+                $('#isaacModeProfileBtn').trigger('click');
             } else if (effect && (effect.action === 'spawn_item' || effect.action === 'use_item')) {
                 const it = effect.itemId === -1
                     ? { id: -1, name: 'Random Item', quality: 0, description: 'Spawns a random collectible item' }
@@ -709,20 +713,20 @@ export function initIsaacUI(ioConnection) {
         }
 
         // Check for duplicates (if not editing the same gift)
-        const isEdit = $('#isaacModalTitle').text().includes('Edit');
-        if (!isEdit && currentCommands[giftName]) {
+        if (currentCommands[giftName] && giftName !== editingGiftName) {
             showToast(`The gift "${giftName}" already has an effect set! Delete the old one first.`, 'error');
             return;
         }
 
-        saveMapping(giftName, payload, 'save');
+        saveMapping(giftName, payload, 'save', editingGiftName !== giftName ? editingGiftName : null);
+        editingGiftName = null;
     }
 
-    async function saveMapping(giftName, effectId, action) {
+    async function saveMapping(giftName, effectId, action, oldGiftName) {
         try {
             const r = await fetch('/api/isaac/commands', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ giftName, effectId, action })
+                body: JSON.stringify({ giftName, effectId, action, oldGiftName })
             });
             const d = await r.json();
             if (d.success) {

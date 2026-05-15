@@ -43,7 +43,7 @@ async function sendPasswordResetEmail(email, token, baseUrl) {
     });
 }
 
-async function register({ username, email, firstName, lastName, password, birthDate }) {
+async function register({ username, email, firstName, lastName, password, birthDate, preferences }) {
     const globalDb = await db.connectGlobal();
 
     const existing = await globalDb.get(
@@ -67,6 +67,11 @@ async function register({ username, email, firstName, lastName, password, birthD
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [username, email, firstName, lastName, passwordHash, birthDate, verificationToken]
     );
+
+    const newAccount = await globalDb.get('SELECT id FROM app_accounts WHERE email = ?', [email]);
+    if (preferences && newAccount) {
+        await db.saveUserPreferences(newAccount.id, preferences).catch(() => {});
+    }
 
     return verificationToken;
 }

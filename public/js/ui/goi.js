@@ -227,8 +227,11 @@ export function initGoiUI(ioConnection) {
         $('#goiWaitStreak').prop('checked', true);
     }
 
+    let editingGiftName = null;
+
     function openModal(editGiftName) {
         resetModal();
+        editingGiftName = editGiftName || null;
         if (editGiftName) {
             giftDropdown.setValue(editGiftName);
             $('#goiModalTitle').text('Edit GOI Effect');
@@ -265,8 +268,7 @@ export function initGoiUI(ioConnection) {
         if (!giftName)     { showToast('You must choose a gift!', 'warning');  return; }
         if (!selectedEffect) { showToast('You must choose an effect!', 'warning'); return; }
 
-        const isEdit = $('#goiModalTitle').text().includes('Edit');
-        if (!isEdit && currentCommands[giftName]) {
+        if (currentCommands[giftName] && giftName !== editingGiftName) {
             showToast(`"${giftName}" already has an effect! Delete it first.`, 'error');
             return;
         }
@@ -278,14 +280,15 @@ export function initGoiUI(ioConnection) {
             ...(selectedEffect.counted  ? { count:    parseInt($('#goiEffectCount').val())    || 1  } : {})
         };
 
-        saveMapping(giftName, payload, 'save');
+        saveMapping(giftName, payload, 'save', editingGiftName !== giftName ? editingGiftName : null);
+        editingGiftName = null;
     }
 
-    async function saveMapping(giftName, effect, action) {
+    async function saveMapping(giftName, effect, action, oldGiftName) {
         try {
             const r = await fetch('/api/goi/commands', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ giftName, effect, action })
+                body: JSON.stringify({ giftName, effect, action, oldGiftName })
             });
             const d = await r.json();
             if (d.success) {
