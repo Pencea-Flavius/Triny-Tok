@@ -2,6 +2,7 @@
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
 const MODEL = process.env.OLLAMA_MODEL || 'qwen2.5:7b';
 const { getTopGamesByCategory } = require('./twitchClient');
+const db = require('../database/db_manager');
 
 async function ollamaChat(messages, tools) {
     const res = await fetch(`${OLLAMA_URL}/api/chat`, {
@@ -39,10 +40,22 @@ async function runAgent(messages, tools, toolHandlers, label = 'agent') {
                 console.log(`${tag} ⚠ no tool call — nudging to use tools`);
                 const isMinecraft = label === 'preset-minecraft';
                 const cmdField = isMinecraft ? '"gift_commands"' : '"commands"';
-                const cmdExample = isMinecraft
-                    ? '"gift_commands": { "Rose": ["/give {playername} minecraft:diamond 1"], "Heart": ["/effect give {playername} minecraft:regeneration 10 1 true"], "Galaxy Brain": ["/effect give {playername} minecraft:speed 20 2 true"] }'
-                    : '"commands": { "GiftName": { ... } }';
-                msgs.push({ role: 'user', content: `You MUST call the create_preset tool now. Do not explain — just call it. Required fields: "name" (string) and ${cmdField} (object mapping gift names to effects). Example: { "name": "My Preset", ${cmdExample} }` });
+                const nudgeCount = msgs.filter(m => m.role === 'user' && m.content && m.content.includes('call a tool')).length;
+                const hasSearchTools = tools.some(t => t.function && t.function.name.startsWith('search_'));
+                let nudge;
+                if (nudgeCount === 0 && hasSearchTools) {
+                    nudge = `You must call a tool. If the user mentioned any item, enemy, or boss by name, call the appropriate search tool first. Otherwise call create_preset directly with all gift keys mapped.`;
+                } else {
+                    const cmdExample = isMinecraft
+                        ? '"gift_commands": { "Rose": ["/give {playername} minecraft:diamond 1"], "Heart": ["/effect give {playername} minecraft:regeneration 10 1 true"], "Galaxy Brain": ["/effect give {playername} minecraft:speed 20 2 true"] }'
+                        : label === 'preset-repo'
+                            ? '"commands": { "Rose": { "code": "player_heal", "targetRandom": false }, "Heart": { "code": "player_fast", "targetRandom": true, "duration": 10 } }'
+                            : label === 'preset-goi'
+                                ? '"commands": { "Rose": { "code": "launch" }, "Heart": { "code": "zero_gravity", "duration": 15 } }'
+                                : '"commands": { "Rose": "boss_rush", "Heart": { "action": "spawn_item", "itemId": 214, "amount": 1, "autoCollect": true } }';
+                    nudge = `You MUST call the create_preset tool now. Do not explain — just call it. Required fields: "name" (string) and ${cmdField} (object mapping gift names to effects). EVERY gift must have a real effect assigned — no empty arrays. Example: { "name": "My Preset", ${cmdExample} }`;
+                }
+                msgs.push({ role: 'user', content: nudge });
                 continue;
             }
             console.log(`${tag} ✓ final answer: ${(msg.content || '').slice(0, 160)}${(msg.content || '').length > 160 ? '…' : ''}`);
@@ -53,8 +66,9 @@ async function runAgent(messages, tools, toolHandlers, label = 'agent') {
         for (const call of msg.tool_calls) {
             const name = call.function.name;
             const args = call.function.arguments || {};
-            if (name === 'create_preset') calledCreatePreset = true;
             console.log(`${tag} ⚙  tool call: ${name}(${JSON.stringify(args)})`);
+
+            if (name === 'create_preset') calledCreatePreset = true;
 
             const handler = toolHandlers[name];
             let result;
@@ -78,9 +92,18 @@ async function runAgent(messages, tools, toolHandlers, label = 'agent') {
                 if (result && result.error) {
                     calledCreatePreset = false;
                     const hadCommands = args.commands || args.gift_commands;
+                    // Collect all search results from conversation history to remind model
+                    const searchResults = msgs
+                        .filter(m => m.role === 'tool')
+                        .map(m => { try { return JSON.parse(m.content); } catch { return null; } })
+                        .filter(r => r && r.results && r.results.length > 0)
+                        .flatMap(r => r.results);
+                    const searchHint = searchResults.length > 0
+                        ? ` Remember to include ALL searched items/bosses in your commands: ${JSON.stringify(searchResults)}.`
+                        : '';
                     const fixHint = hadCommands
-                        ? `You already provided the commands correctly. Just call create_preset again adding the missing "name" field. Example: ${JSON.stringify({ name: 'Gun Fight', ...args })}`
-                        : 'Call create_preset again with both "name" (string) and "commands" (object).';
+                        ? `Call create_preset again. Assign a real effect to EVERY gift key — do not leave any with empty arrays or missing commands.${searchHint}`
+                        : `Call create_preset with "name" and "commands" covering all gift keys.${searchHint}`;
                     msgs.push({ role: 'user', content: `create_preset failed: ${result.error}. ${fixHint}` });
                 } else if (result && result.success) {
                     console.log(`${tag} ─── done (preset saved) ──────────────\n`);
@@ -183,10 +206,10 @@ Most valuable gift: ${[...realGifts].sort((a, b) => b.diamonds - a.diamonds)[0].
         : 'DONATION HISTORY: No donation data yet for this stream.';
 
     // Gift list for preset keys — real donations first, preferred second, fallback last
-    const realLines = giftList.filter(g => g.real).map(g => `  ${g.gift} (${g.diamonds} diamonds, donated ${g.count}x)`);
-    const preferredLines = giftList.filter(g => g.preferred && !g.real).map(g => `  ${g.gift} (${g.diamonds} diamonds)`);
-    const fallbackLines = giftList.filter(g => !g.real && !g.preferred).map(g => `  ${g.gift} (${g.diamonds} diamonds)`);
-    const giftCostHint = `PRESET GIFT KEYS — choose 5 to 12 of these as command keys. Match effect strength to diamond cost.
+    const realLines = giftList.filter(g => g.real).map(g => `  "${g.gift}" — ${g.diamonds} diamonds, donated ${g.count}x`);
+    const preferredLines = giftList.filter(g => g.preferred && !g.real).map(g => `  "${g.gift}" — ${g.diamonds} diamonds`);
+    const fallbackLines = giftList.filter(g => !g.real && !g.preferred).map(g => `  "${g.gift}" — ${g.diamonds} diamonds`);
+    const giftCostHint = `PRESET GIFT KEYS — use ONLY the quoted names as command keys (without quotes). Match effect strength to diamond cost.
 Gifts viewers actually donated (highest priority — assign effects that reward donation frequency and value):
 ${realLines.length > 0 ? realLines.join('\n') : '  (none yet)'}
 ${preferredLines.length > 0 ? `Preferred gifts (commonly used by this streamer — include these):\n${preferredLines.join('\n')}` : ''}
@@ -205,7 +228,7 @@ ${existingPresets.map(p => {
             handlers.getProfiles(null),
             handlers.getItems({ type: 'Active', quality: 3 }, 8),
             handlers.getItems({ type: 'Passive', quality: 3 }, 8),
-            handlers.getBosses(8),
+            handlers.getBosses(16),
         ]);
         context = `PROFILES (use id as string value): ${JSON.stringify(profiles.map(p => ({ id: p.id, name: p.name, category: p.category })))}
 ACTIVE ITEMS (use_item or spawn_item): ${JSON.stringify(activeItems.map(i => ({ itemId: i.itemId, name: i.name })))}
@@ -232,34 +255,40 @@ VALUABLES (spawn valuable, use id as code): ${JSON.stringify(valuables.map(v => 
     // create_preset — exact format differs per game
     let createDesc, createParams;
     if (game === 'isaac') {
-        createDesc = 'Save the Isaac preset. EVERY key in commands must be a TikTok gift name. Each value is one of these — a profile string like "boss_rush", OR an object like {"action":"spawn_item","itemId":706,"amount":1,"autoCollect":false}, OR {"action":"use_item","itemId":361}, OR {"action":"spawn_boss","bossId":"monstro","amount":1}. NEVER put itemId/amount/autoCollect as top-level keys in commands — they must be inside the object value.';
-        createParams = {
-            type: 'object',
-            properties: {
-                name: { type: 'string' },
-                commands: { type: 'object', description: 'Example: {"Rose":"boss_rush","Galaxy Brain":{"action":"use_item","itemId":361},"Heart":{"action":"spawn_item","itemId":706,"amount":1,"autoCollect":true},"White Rose":{"action":"spawn_item","itemId":214,"amount":1,"autoCollect":false},"TikTok Universe":{"action":"spawn_boss","bossId":"monstro","amount":1}}' },
-            },
-            required: ['name', 'commands'],
-        };
-    } else if (game === 'repo') {
-        createDesc = 'Save the Repo preset. commands keys = TikTok gift names. Values = { "code": string, "targetRandom": bool, "duration": N (only for timed effects) }. Code can be: a basic effect id (e.g. "player_heal", "player_fast"), a spawn item id, a spawn enemy id, a spawn valuable id, or an upgrade effect id (e.g. "player_upgrade_energy" to apply upgrade instantly). Mix all types.';
-        createParams = {
-            type: 'object',
-            properties: {
-                name: { type: 'string' },
-                commands: { type: 'object', description: '{ "GiftName": { "code": "player_heal", "targetRandom": false } } or { "GiftName": { "code": "spawnenemy_...", "targetRandom": true } }' },
-            },
-            required: ['name', 'commands'],
-        };
-    } else if (game === 'goi') {
-        createDesc = 'Save the GOI preset. commands keys = TikTok gift names. Each value = { "code": string, "duration": N (only for timed effects), "count": N (only for counted effects) }. INSTANT codes (no duration): launch, shove_left, shove_right, reset_progress. COUNTED codes (add count field): spawn_hat, spawn_orange, spawn_gift. TIMED codes (add duration in seconds): low_gravity, high_gravity, zero_gravity, low_friction, high_friction, flip_camera, spin_camera, invert_mouse.';
+        createDesc = 'Save the Isaac preset. EVERY key must be a TikTok gift name. EVERY item/boss you searched for MUST appear as a command value — do not waste search results. Values: profile string like "boss_rush" | {"action":"use_item","itemId":N} for Active items | {"action":"spawn_item","itemId":N,"amount":1,"autoCollect":true/false} for any item | {"action":"spawn_boss","bossId":"X","amount":1} where bossId is the exact id from search or BOSSES list. NEVER invent itemId or bossId.';
         createParams = {
             type: 'object',
             properties: {
                 name: { type: 'string' },
                 commands: {
                     type: 'object',
-                    description: 'Example: { "Rose": { "code": "launch" }, "Galaxy Brain": { "code": "zero_gravity", "duration": 15 }, "Heart": { "code": "spawn_hat", "count": 3 }, "TikTok Universe": { "code": "reset_progress" }, "Ice Cream Cone": { "code": "flip_camera", "duration": 10 } }',
+                    description: 'Keys MUST be gift names from the PRESET GIFT KEYS list — NOT itemIds, NOT bossIds. Example where user asked for Death Certificate (id 628, Active) and Binge Eater (id 664, Passive): {"Rose":{"action":"use_item","itemId":628},"Heart":{"action":"spawn_item","itemId":664,"amount":1,"autoCollect":true},"Perfume":"boss_rush","Doughnut":{"action":"spawn_item","itemId":214,"amount":1,"autoCollect":false},"Gold Bar":{"action":"spawn_boss","bossId":"84.0","amount":1},"Ice Cream Cone":"chaos_reroll","Finger Heart":{"action":"spawn_item","itemId":42,"amount":1,"autoCollect":true}}',
+                },
+            },
+            required: ['name', 'commands'],
+        };
+    } else if (game === 'repo') {
+        createDesc = 'Save the Repo preset. KEY = TikTok gift name (e.g. "Rose", "Heart"). VALUE = { "code": "<effect_id>", "targetRandom": bool }. WRONG: {"spawnenemy_Hunter":{"code":"Rose",...}} RIGHT: {"Rose":{"code":"spawnenemy_Hunter",...}}. Add "duration":N only for timed effects. EVERY searched id MUST appear as a "code" value — never as a key.';
+        createParams = {
+            type: 'object',
+            properties: {
+                name: { type: 'string' },
+                commands: {
+                    type: 'object',
+                    description: 'Keys MUST be gift names from the PRESET GIFT KEYS list — NOT effect ids. Example where user asked for Huntsman (id "spawnenemy_Hunter") and grenades: {"Rose":{"code":"spawnenemy_Hunter","targetRandom":true},"Heart":{"code":"spawncollectable_ItemGrenadeExplosive","targetRandom":true},"Doughnut":{"code":"player_heal","targetRandom":false},"Perfume":{"code":"player_fast","targetRandom":true,"duration":10},"Ice Cream Cone":{"code":"player_upgrade_health","targetRandom":false},"Gold Bar":{"code":"spawncollectable_ItemGrenadeStun","targetRandom":true},"Finger Heart":{"code":"player_upgrade_jump","targetRandom":false}}',
+                },
+            },
+            required: ['name', 'commands'],
+        };
+    } else if (game === 'goi') {
+        createDesc = 'Save the GOI preset. commands keys = TikTok gift names. Each value = { "code": string, "duration": N (only for timed), "count": N (only for counted) }. INSTANT (no extra field): launch, shove_left, shove_right, reset_progress. COUNTED (must have "count"): spawn_hat, spawn_orange, spawn_gift — always include at least one of these, they spawn fun objects in the world. TIMED (must have "duration"): low_gravity, high_gravity, zero_gravity, low_friction, high_friction, flip_camera, spin_camera, invert_mouse.';
+        createParams = {
+            type: 'object',
+            properties: {
+                name: { type: 'string' },
+                commands: {
+                    type: 'object',
+                    description: 'Keys MUST be gift names from the PRESET GIFT KEYS list — NOT effect codes. Example: { "Rose": { "code": "launch" }, "Doughnut": { "code": "zero_gravity", "duration": 15 }, "Heart": { "code": "spawn_hat", "count": 3 }, "Ice Cream Cone": { "code": "reset_progress" }, "Finger Heart": { "code": "flip_camera", "duration": 10 } }',
                 },
             },
             required: ['name', 'commands'],
@@ -279,47 +308,121 @@ VALUABLES (spawn valuable, use id as code): ${JSON.stringify(valuables.map(v => 
         };
     }
     const createTool = { type: 'function', function: { name: 'create_preset', description: createDesc, parameters: createParams } };
+
+    const searchParam = { type: 'object', properties: { query: { type: 'string', description: 'Partial or full name to search for' } }, required: ['query'] };
+    const searchTools = [];
     const toolHandlers = { create_preset: async (a) => handlers.createPreset(a) };
+
+    // fuzzy fallback: if exact LIKE finds nothing, retry with each word token >= 3 chars
+    const fuzzySearch = async (searchFn, mapFn, query) => {
+        if (!query || typeof query !== 'string') return { error: 'query must be a string — pass only the name to search, e.g. "Huntsman"' };
+        let rows = await searchFn(query);
+        if (!rows.length) {
+            const tokens = query.split(/[^a-zA-Z0-9]+/).filter(t => t.length >= 3);
+            for (const token of tokens) {
+                rows = await searchFn(token);
+                if (rows.length) break;
+            }
+        }
+        if (!rows.length) return { results: [], note: `No results for "${query}". Try a shorter or different spelling.` };
+        return { results: rows.map(mapFn) };
+    };
+
+    if (game === 'isaac') {
+        searchTools.push(
+            { type: 'function', function: { name: 'search_boss', description: 'Search Isaac bosses by name. Returns matching bosses with their exact bossId — use that bossId in spawn_boss commands. If unsure of spelling, try a shorter substring.', parameters: searchParam } },
+            { type: 'function', function: { name: 'search_item', description: 'Search Isaac items by name. Returns matching items with itemId and type (Active/Passive). If unsure of spelling, try a shorter substring (e.g. "certificate" instead of "death certificate").', parameters: searchParam } }
+        );
+        toolHandlers.search_boss = ({ query }) => fuzzySearch(db.searchIsaacBosses.bind(db), r => ({ bossId: r.id, name: r.name }), query);
+        toolHandlers.search_item = ({ query }) => fuzzySearch(db.searchIsaacItems.bind(db), r => ({ itemId: r.id, name: r.name, quality: r.quality, type: r.type || null }), query);
+    } else if (game === 'repo') {
+        searchTools.push(
+            { type: 'function', function: { name: 'search_enemy',    description: 'Search R.E.P.O. enemies by name. Returns matching enemies with their exact id. Try shorter substrings if unsure of spelling.', parameters: searchParam } },
+            { type: 'function', function: { name: 'search_item',     description: 'Search R.E.P.O. items (guns, medicals, equipment) by name. Returns matching items with their exact id.', parameters: searchParam } },
+            { type: 'function', function: { name: 'search_valuable', description: 'Search R.E.P.O. valuables by name. Returns matching valuables with their exact id.', parameters: searchParam } }
+        );
+        toolHandlers.search_enemy    = ({ query }) => fuzzySearch(db.searchRepoEnemies.bind(db),   r => ({ id: r.id, name: r.name, danger_level: r.danger_level }), query);
+        toolHandlers.search_item     = ({ query }) => fuzzySearch(db.searchRepoItems.bind(db),     r => ({ id: r.id, name: r.name, type: r.item_type }), query);
+        toolHandlers.search_valuable = ({ query }) => fuzzySearch(db.searchRepoValuables.bind(db), r => ({ id: r.id, name: r.name }), query);
+    }
 
     // ── system prompt with all data embedded ────────────────────────────
     let systemContent, userContent;
 
     if (game === 'isaac') {
-        systemContent = `You are a TikTok streaming preset builder for Isaac. Call create_preset exactly once with all gift names as keys.
+        systemContent = `You are a TikTok streaming preset builder for Isaac. Your job: search for any requested items/bosses, then call create_preset once with ALL gift keys mapped.
+
+WORKFLOW:
+1. Read the user request. Find every Isaac item or boss name mentioned.
+2. Call search_item for each item name, search_boss for each boss name. Try shorter substrings if no results.
+3. Call create_preset. Every item/boss from your searches MUST appear as a command value — searched and ignored = wrong.
+
 ${donationSummary}
 ${giftCostHint}
 ${existingPresetsHint}
 ${context}
-Rules:
-- Each key = a gift name from the gift list above
-- Values: profile id string | {"action":"use_item","itemId":N} for ACTIVE items only | {"action":"spawn_item","itemId":N,"amount":1,"autoCollect":false} spawns item on the floor (player must walk over it) | {"action":"spawn_item","itemId":N,"amount":1,"autoCollect":true} adds item directly to inventory (instant, no pickup needed) | {"action":"spawn_boss","bossId":"id","amount":1}
-- autoCollect true = viewer gives a gift, player instantly gets the item — use for rewards and fun. autoCollect false = item drops on floor — use when you want the player to choose whether to pick it up (risky items, curses)
-- Mix all types. Use itemId/bossId ONLY from the lists above.
-- Give the preset a creative name different from existing ones.`;
+COMMAND VALUES (pick one per gift key):
+- "boss_rush" / "chaos_reroll" / "nightmare" / "jackpot" / "devil_deal" / "angel_deal" / "curse_room" / "sacrifice_room" — profile shortcuts
+- {"action":"use_item","itemId":N} — Active item only (triggers it like a pickup)
+- {"action":"spawn_item","itemId":N,"amount":1,"autoCollect":true} — item goes directly to inventory
+- {"action":"spawn_item","itemId":N,"amount":1,"autoCollect":false} — item drops on floor
+- {"action":"spawn_boss","bossId":"X","amount":1} — bossId = exact id from search results or BOSSES list, never a name
+
+Use ONLY itemId/bossId values from search results or the provided lists. Never invent ids. Give the preset a creative name.`;
     } else if (game === 'repo') {
-        systemContent = `You are a TikTok streaming preset builder for R.E.P.O. Call create_preset exactly once with all gift names as keys.
+        systemContent = `You are a TikTok streaming preset builder for R.E.P.O. Call create_preset exactly once.
+
+━━━ STRUCTURE — READ THIS FIRST ━━━
+commands = { "<TikTok gift name>": { "code": "<effect_id>", ... }, ... }
+
+  KEYS   = TikTok gift names from the PRESET GIFT KEYS list below
+  VALUES = objects where "code" is an effect/spawn id
+
+  ✗ WRONG: { "spawnenemy_Hunter": { "code": "<gift name>", "targetRandom": true } }
+  ✓ RIGHT: { "<gift name>":       { "code": "spawnenemy_Hunter", "targetRandom": true } }
+
+  ✗ WRONG: { "player_heal": { "code": "<gift name>", "targetRandom": false } }
+  ✓ RIGHT: { "<gift name>": { "code": "player_heal",  "targetRandom": false } }
+
+━━━ SEARCH RULE ━━━
+If the user mentions a specific enemy, item, or valuable by name, search for it first (search_enemy / search_item / search_valuable), then use its exact returned id as "code". Every search result MUST appear in the preset.
+
 ${donationSummary}
 ${giftCostHint}
 ${existingPresetsHint}
 ${context}
-Rules:
-- Each key = a gift name from the gift list. Values: {"code":"id","targetRandom":bool} or add "duration":N for timed effects.
-- "code" MUST be an exact id from the lists above. NEVER invent or guess a code.
-- For upgrades, use ONLY ids from UPGRADE EFFECTS (e.g. "player_upgrade_jump"). Do NOT use spawncollectable upgrade ids as codes.
-- Timed effects (timed:true) need "duration" in seconds (5-30). Instant effects must NOT have "duration".
-- Mix player effects, upgrade effects, gun/medical spawns, enemies and valuables.
-- Give the preset a creative name different from existing ones.`;
+━━━ VALUE FORMAT ━━━
+{ "code": "<exact id>", "targetRandom": bool }
+- Add "duration": N (5–30 s) ONLY when timed:true in the list above
+- "code" must be an exact id from search results or the lists above — never invent one
+- For upgrades use ONLY ids from the UPGRADE EFFECTS list
+- Mix player effects, upgrades, gun/medical spawns, enemies, valuables
+- Give the preset a creative name.`;
     } else if (game === 'goi') {
         systemContent = `You are a TikTok streaming preset builder for Getting Over It (GOI). Call create_preset exactly once.
 ${donationSummary}
 ${giftCostHint}
 ${existingPresetsHint}
-AVAILABLE EFFECT CODES — use ONLY these exact ids:
-  Instant (no duration): launch, shove_left, shove_right, reset_progress
-  Counted (add "count": N): spawn_hat, spawn_orange, spawn_gift
-  Timed (add "duration": seconds): low_gravity, high_gravity, zero_gravity, low_friction, high_friction, flip_camera, spin_camera, invert_mouse
-Format: { "code": "launch" } or { "code": "zero_gravity", "duration": 15 } or { "code": "spawn_hat", "count": 3 }
-Match chaos level to diamond cost — cheap gifts get minor effects (shove), expensive gifts get evil ones (reset_progress, zero_gravity).
+EFFECT CODES — use ONLY these. Each type has a DIFFERENT extra field:
+
+  INSTANT — no extra field at all:
+    launch, shove_left, shove_right, reset_progress
+    e.g. { "code": "launch" }
+
+  COUNTED — MUST have "count": N (integer ≥ 1), NEVER "duration":
+    spawn_hat, spawn_orange, spawn_gift
+    e.g. { "code": "spawn_hat", "count": 2 }
+    ✗ WRONG: { "code": "spawn_hat", "duration": 10 }
+    ✓ RIGHT: { "code": "spawn_hat", "count": 2 }
+
+  TIMED — MUST have "duration": N seconds (5–30), NEVER "count":
+    low_gravity, high_gravity, zero_gravity, low_friction, high_friction, flip_camera, spin_camera, invert_mouse
+    e.g. { "code": "zero_gravity", "duration": 15 }
+    ✗ WRONG: { "code": "zero_gravity", "count": 3 }
+    ✓ RIGHT: { "code": "zero_gravity", "duration": 15 }
+
+You MUST include spawn_hat, spawn_orange, AND spawn_gift (all three) — they spawn physical objects in the world.
+Match chaos to diamond cost — cheap gifts: shove_left/shove_right, expensive: reset_progress/zero_gravity.
 Give a creative name different from existing ones.`;
     } else {
         systemContent = `You are a Minecraft TikTok preset builder. Call create_preset once.
@@ -362,7 +465,7 @@ Each gift_commands value is an array of command strings. Match effect strength t
         { role: 'user',   content: userContent },
     ];
 
-    return runAgent(messages, [createTool], toolHandlers, `preset-${game}`);
+    return runAgent(messages, [...searchTools, createTool], toolHandlers, `preset-${game}`);
 }
 
 async function checkOllamaAvailable() {
