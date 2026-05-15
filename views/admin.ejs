@@ -2,213 +2,23 @@
 <html lang="en">
 <head>
   <%- include('partials/head', { title: 'Admin Panel' }) %>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: var(--bg1, #060912); color: var(--text, #e8eaf0); font-family: 'Inter', system-ui, sans-serif; }
-
-    .admin-layout { display: flex; min-height: 100vh; padding-top: 62px; }
-
-    /* Sidebar */
-    .admin-sidebar {
-      width: 220px; flex-shrink: 0; padding: 28px 0;
-      border-right: 1px solid rgba(255,255,255,0.05);
-      position: sticky; top: 62px; height: calc(100vh - 62px);
-      overflow-y: auto; background: rgba(6,9,18,0.6);
-    }
-    .sidebar-label {
-      font-size: 10px; font-weight: 800; letter-spacing: 1.6px; text-transform: uppercase;
-      color: rgba(255,255,255,0.2); padding: 0 20px 10px;
-    }
-    .sidebar-link {
-      display: flex; align-items: center; gap: 10px;
-      padding: 10px 20px; font-size: 13px; font-weight: 600;
-      color: rgba(255,255,255,0.4); text-decoration: none;
-      transition: all 0.15s; border-left: 2px solid transparent;
-    }
-    .sidebar-link:hover { color: #e8eaf0; background: rgba(255,255,255,0.03); }
-    .sidebar-link.active { color: #e8eaf0; border-left-color: #00f2ea; background: rgba(0,242,234,0.05); }
-    .sidebar-link svg { flex-shrink: 0; }
-    .sidebar-badge {
-      margin-left: auto; font-size: 10px; font-weight: 800;
-      background: rgba(255,255,255,0.08); border-radius: 20px;
-      padding: 2px 7px; color: rgba(255,255,255,0.4);
-    }
-    .sidebar-link.active .sidebar-badge { background: rgba(0,242,234,0.15); color: #00f2ea; }
-    .sidebar-divider { height: 1px; background: rgba(255,255,255,0.05); margin: 12px 0; }
-    .sidebar-section-label {
-      font-size: 10px; font-weight: 800; letter-spacing: 1.4px; text-transform: uppercase;
-      color: rgba(255,255,255,0.15); padding: 12px 20px 6px;
-    }
-
-    /* Main */
-    .admin-main { flex: 1; min-width: 0; padding: 32px 40px 60px; }
-
-    .page-heading { margin-bottom: 28px; }
-    .page-eyebrow { font-size: 10px; font-weight: 800; letter-spacing: 1.6px; text-transform: uppercase; color: #f43f5e; margin-bottom: 6px; }
-    .page-title { font-size: 26px; font-weight: 900; letter-spacing: -0.6px; }
-
-    /* Stats grid */
-    .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; margin-bottom: 32px; }
-    .stat-card {
-      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
-      border-radius: 12px; padding: 16px 18px;
-    }
-    .stat-label { font-size: 10px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: rgba(255,255,255,0.3); margin-bottom: 6px; }
-    .stat-value { font-size: 24px; font-weight: 900; letter-spacing: -0.8px; color: #e8eaf0; }
-    .stat-card.teal .stat-value { color: #00f2ea; }
-    .stat-card.danger .stat-value { color: #f43f5e; }
-
-    /* Toolbar */
-    .toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 18px; flex-wrap: wrap; }
-    .search-input {
-      flex: 1; min-width: 200px; background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.08); border-radius: 8px;
-      padding: 9px 14px; font-size: 13px; color: #e8eaf0; font-family: inherit;
-      transition: border-color 0.15s;
-    }
-    .search-input:focus { outline: none; border-color: #00f2ea; }
-    .search-input::placeholder { color: rgba(255,255,255,0.2); }
-    .btn-search {
-      padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 700;
-      cursor: pointer; font-family: inherit; background: #00f2ea;
-      border: none; color: #060912; transition: background 0.15s; white-space: nowrap;
-    }
-    .btn-search:hover { background: #00fff5; }
-    .btn-clear {
-      padding: 9px 16px; border-radius: 8px; font-size: 13px; font-weight: 600;
-      cursor: pointer; font-family: inherit; background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.4);
-      text-decoration: none; white-space: nowrap; transition: all 0.15s;
-    }
-    .btn-clear:hover { color: #e8eaf0; background: rgba(255,255,255,0.09); }
-
-    .results-count { font-size: 12px; color: rgba(255,255,255,0.3); padding: 4px 0; }
-
-    /* Table */
-    .table-wrap { overflow-x: auto; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; }
-    table { width: 100%; border-collapse: collapse; }
-    thead th {
-      font-size: 10px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase;
-      color: rgba(255,255,255,0.3); padding: 12px 16px; text-align: left;
-      border-bottom: 1px solid rgba(255,255,255,0.06); white-space: nowrap;
-      background: rgba(255,255,255,0.02);
-    }
-    thead th a {
-      display: inline-flex; align-items: center; gap: 5px;
-      color: inherit; text-decoration: none; transition: color 0.15s;
-    }
-    thead th a:hover { color: #e8eaf0; }
-    thead th.sort-active a { color: #00f2ea; }
-    .sort-icon { opacity: 0.4; }
-    thead th.sort-active .sort-icon { opacity: 1; color: #00f2ea; }
-    tbody td {
-      padding: 11px 16px; font-size: 13px; color: #c8cad8;
-      border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: middle;
-    }
-    tbody tr:last-child td { border-bottom: none; }
-    tbody tr:hover td { background: rgba(255,255,255,0.02); }
-
-    .gift-img { width: 30px; height: 30px; object-fit: contain; border-radius: 6px; }
-    .mono { font-family: monospace; font-size: 11px; color: rgba(255,255,255,0.3); }
-    .diamonds { color: #00f2ea; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; }
-    .diamonds svg { flex-shrink: 0; }
-    .badge {
-      display: inline-flex; align-items: center; gap: 4px;
-      font-size: 10px; font-weight: 800; border-radius: 20px; padding: 3px 8px;
-    }
-    .badge-teal { background: rgba(0,242,234,0.12); color: #00f2ea; }
-    .badge-dim { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.3); }
-    .badge-danger { background: rgba(244,63,94,0.12); color: #f43f5e; }
-    .badge-green { background: rgba(34,197,94,0.12); color: #22c55e; }
-
-    /* Action buttons */
-    .action-group { display: flex; gap: 6px; justify-content: flex-end; }
-    .btn-sm {
-      display: inline-flex; align-items: center; gap: 5px;
-      padding: 5px 12px; border-radius: 6px; font-size: 11px; font-weight: 700;
-      cursor: pointer; font-family: inherit; transition: all 0.15s; white-space: nowrap;
-    }
-    .btn-danger-sm { background: rgba(244,63,94,0.08); border: 1px solid rgba(244,63,94,0.2); color: #f43f5e; }
-    .btn-danger-sm:hover { background: rgba(244,63,94,0.18); border-color: #f43f5e; }
-    .btn-neutral-sm { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.5); }
-    .btn-neutral-sm:hover { background: rgba(255,255,255,0.09); color: #e8eaf0; }
-    .btn-teal-sm { background: rgba(0,242,234,0.08); border: 1px solid rgba(0,242,234,0.2); color: #00f2ea; }
-    .btn-teal-sm:hover { background: rgba(0,242,234,0.15); border-color: #00f2ea; }
-
-    /* Alert banners */
-    .alert {
-      display: flex; align-items: center; gap: 10px;
-      padding: 12px 16px; border-radius: 10px; font-size: 13px; font-weight: 600;
-      margin-bottom: 20px;
-    }
-    .alert-success { background: rgba(0,242,234,0.07); border: 1px solid rgba(0,242,234,0.2); color: #00f2ea; }
-    .alert-error { background: rgba(244,63,94,0.07); border: 1px solid rgba(244,63,94,0.2); color: #f43f5e; }
-
-    /* Game data section */
-    .game-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
-    .game-card {
-      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
-      border-radius: 12px; padding: 20px;
-    }
-    .game-card-title { font-size: 13px; font-weight: 800; margin-bottom: 4px; }
-    .game-card-sub { font-size: 12px; color: rgba(255,255,255,0.3); margin-bottom: 14px; }
-    .game-card-count { font-size: 32px; font-weight: 900; letter-spacing: -1px; color: #e8eaf0; }
-    .game-card-label { font-size: 11px; color: rgba(255,255,255,0.3); margin-top: 2px; }
-
-    /* Delete modal */
-    .modal-overlay {
-      position: fixed; inset: 0; z-index: 1000;
-      background: rgba(0,0,0,0.75); backdrop-filter: blur(4px);
-      display: flex; align-items: center; justify-content: center;
-      opacity: 0; pointer-events: none; transition: opacity 0.2s;
-    }
-    .modal-overlay.open { opacity: 1; pointer-events: all; }
-    .modal-box {
-      background: #0c1220; border: 1px solid rgba(244,63,94,0.2);
-      border-radius: 18px; padding: 30px 26px 22px; max-width: 400px; width: 90%;
-      transform: translateY(14px) scale(0.97); transition: transform 0.2s;
-      box-shadow: 0 30px 80px rgba(0,0,0,0.8);
-    }
-    .modal-overlay.open .modal-box { transform: none; }
-    .modal-icon {
-      width: 44px; height: 44px; border-radius: 50%;
-      background: rgba(244,63,94,0.1); border: 1px solid rgba(244,63,94,0.2);
-      display: flex; align-items: center; justify-content: center;
-      margin-bottom: 16px; color: #f43f5e;
-    }
-    .modal-title { font-size: 17px; font-weight: 900; margin-bottom: 8px; }
-    .modal-desc { font-size: 13px; color: rgba(255,255,255,0.4); line-height: 1.6; margin-bottom: 22px; }
-    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
-    .btn-modal-cancel {
-      padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 700;
-      cursor: pointer; font-family: inherit; transition: all 0.15s;
-      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
-      color: rgba(255,255,255,0.4);
-    }
-    .btn-modal-cancel:hover { color: #e8eaf0; background: rgba(255,255,255,0.09); }
-    .btn-modal-confirm {
-      padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 700;
-      cursor: pointer; font-family: inherit; transition: all 0.15s;
-      background: rgba(244,63,94,0.12); border: 1px solid rgba(244,63,94,0.3);
-      color: #f43f5e;
-    }
-    .btn-modal-confirm:hover { background: rgba(244,63,94,0.22); border-color: #f43f5e; }
-
-    .empty-state { text-align: center; padding: 48px 0; color: rgba(255,255,255,0.2); font-size: 13px; }
-  </style>
+  <%- include('partials/admin/styles') %>
 </head>
 <body>
 <%- include('partials/nav') %>
 
 <%
+  const diamondSvg = '<svg width="10" height="10" viewBox="0 0 640 640" fill="currentColor"><path d="M232.5 136L320 229L407.5 136L232.5 136zM447.9 163.1L375.6 240L504.6 240L448 163.1zM497.9 288L142.1 288L320 484.3L497.9 288zM135.5 240L264.5 240L192.2 163.1L135.6 240zM569.8 280.1L337.8 536.1C333.3 541.1 326.8 544 320 544C313.2 544 306.8 541.1 302.2 536.1L70.2 280.1C62.5 271.6 61.9 258.9 68.7 249.7L180.7 97.7C185.2 91.6 192.4 87.9 200 87.9L440 87.9C447.6 87.9 454.8 91.5 459.3 97.7L571.3 249.7C578.1 258.9 577.4 271.6 569.8 280.1z"/></svg>';
+  const trashSvg   = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>';
+
   const tabLinks = [
-    { id: 'gifts',    label: 'Gifts',    count: stats.gifts,    icon: '<path d="M20 12v10H4V12"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>' },
-    { id: 'accounts', label: 'Accounts', count: stats.accounts, icon: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>' },
-    { id: 'donors',   label: 'Viewers',  count: stats.donors,   icon: '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>' },
-    { id: 'donations',label: 'Donations',count: stats.donations, icon: '<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' },
-    { id: 'streamers',label: 'Streamers', count: stats.streamers, icon: '<circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/><circle cx="19" cy="8" r="2"/><path d="M22 20v-1a4 4 0 0 0-4-4"/>' },
-    { id: 'gamedata', label: 'Game Data', count: null,           icon: '<rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>' },
-    { id: 'aiGifts',  label: 'AI Gifts',  count: null,           icon: '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>' },
+    { id: 'gifts',    label: 'Gifts',     count: stats.gifts,     icon: '<path d="M20 12v10H4V12"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>' },
+    { id: 'accounts', label: 'Accounts',  count: stats.accounts,  icon: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>' },
+    { id: 'donors',   label: 'Viewers',   count: stats.donors,    icon: '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>' },
+    { id: 'donations',label: 'Donations', count: stats.donations,  icon: '<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' },
+    { id: 'streamers',label: 'Streamers', count: stats.streamers,  icon: '<circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/><circle cx="19" cy="8" r="2"/><path d="M22 20v-1a4 4 0 0 0-4-4"/>' },
+    { id: 'gamedata', label: 'Game Data', count: null,             icon: '<rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>' },
+    { id: 'aiGifts',  label: 'AI Gifts',  count: null,             icon: '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>' },
   ];
 
   function sortUrl(col) {
@@ -225,7 +35,6 @@
 
 <div class="admin-layout">
 
-  <!-- Sidebar -->
   <aside class="admin-sidebar">
     <div class="sidebar-label">Admin Panel</div>
     <% tabLinks.forEach(t => { %>
@@ -246,57 +55,30 @@
     </a>
   </aside>
 
-  <!-- Main content -->
   <main class="admin-main">
 
     <div class="page-heading">
       <div class="page-eyebrow">Admin Panel</div>
       <h1 class="page-title">
-        <% if (tab === 'gifts') { %>Gift Database
-        <% } else if (tab === 'accounts') { %>User Accounts
-        <% } else if (tab === 'donors') { %>TikTok Viewers
+        <% if (tab === 'gifts')     { %>Gift Database
+        <% } else if (tab === 'accounts')  { %>User Accounts
+        <% } else if (tab === 'donors')    { %>TikTok Viewers
         <% } else if (tab === 'donations') { %>Donation History
         <% } else if (tab === 'streamers') { %>Streamers
-        <% } else if (tab === 'aiGifts') { %>AI Preferred Gifts
-        <% } else { %>Game Data
-        <% } %>
+        <% } else if (tab === 'aiGifts')   { %>AI Preferred Gifts
+        <% } else { %>Game Data<% } %>
       </h1>
     </div>
 
-    <!-- Stats -->
     <div class="stats-grid">
-      <div class="stat-card teal">
-        <div class="stat-label">Accounts</div>
-        <div class="stat-value"><%= stats.accounts %></div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Gifts</div>
-        <div class="stat-value"><%= stats.gifts %></div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Donations</div>
-        <div class="stat-value"><%= stats.donations %></div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Viewers</div>
-        <div class="stat-value"><%= stats.donors %></div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Streamers</div>
-        <div class="stat-value"><%= stats.streamers %></div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Isaac Items</div>
-        <div class="stat-value"><%= stats.isaacItems %></div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Isaac Bosses</div>
-        <div class="stat-value"><%= stats.isaacBosses %></div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Repo Items</div>
-        <div class="stat-value"><%= stats.repoItems + stats.repoValuables + stats.repoEnemies %></div>
-      </div>
+      <div class="stat-card teal"><div class="stat-label">Accounts</div><div class="stat-value"><%= stats.accounts %></div></div>
+      <div class="stat-card"><div class="stat-label">Gifts</div><div class="stat-value"><%= stats.gifts %></div></div>
+      <div class="stat-card"><div class="stat-label">Donations</div><div class="stat-value"><%= stats.donations %></div></div>
+      <div class="stat-card"><div class="stat-label">Viewers</div><div class="stat-value"><%= stats.donors %></div></div>
+      <div class="stat-card"><div class="stat-label">Streamers</div><div class="stat-value"><%= stats.streamers %></div></div>
+      <div class="stat-card"><div class="stat-label">Isaac Items</div><div class="stat-value"><%= stats.isaacItems %></div></div>
+      <div class="stat-card"><div class="stat-label">Isaac Bosses</div><div class="stat-value"><%= stats.isaacBosses %></div></div>
+      <div class="stat-card"><div class="stat-label">Repo Items</div><div class="stat-value"><%= stats.repoItems + stats.repoValuables + stats.repoEnemies %></div></div>
     </div>
 
     <% if (success) { %>
@@ -312,427 +94,18 @@
     </div>
     <% } %>
 
-    <!-- ── GIFTS ──────────────────────────────────────── -->
-    <% if (tab === 'gifts') { %>
-    <form class="toolbar" method="GET" action="/admin">
-      <input type="hidden" name="tab" value="gifts">
-      <% if (sort) { %><input type="hidden" name="sort" value="<%= sort %>"><input type="hidden" name="dir" value="<%= dir %>"><% } %>
-      <input class="search-input" type="text" name="search" placeholder="Search by gift name..." value="<%= search %>">
-      <button class="btn-search" type="submit">Search</button>
-      <% if (search) { %><a class="btn-clear" href="/admin?tab=gifts<%= sort ? '&sort=' + sort + '&dir=' + dir : '' %>">Clear</a><% } %>
-    </form>
-    <div class="results-count"><%= gifts.length %> gift<%= gifts.length !== 1 ? 's' : '' %><% if (search) { %> matching "<%= search %>"<% } %></div>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th style="width:44px;"></th>
-            <th class="<%= sort === 'name' ? 'sort-active' : '' %>"><a href="<%- sortUrl('name') %>">Name <%- sortIcon('name') %></a></th>
-            <th class="<%= sort === 'id' ? 'sort-active' : '' %>"><a href="<%- sortUrl('id') %>">ID <%- sortIcon('id') %></a></th>
-            <th class="<%= sort === 'diamonds' ? 'sort-active' : '' %>"><a href="<%- sortUrl('diamonds') %>">Diamonds <%- sortIcon('diamonds') %></a></th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          <% if (gifts.length === 0) { %>
-          <tr><td colspan="5" class="empty-state">No gifts found</td></tr>
-          <% } %>
-          <% gifts.forEach(g => { %>
-          <tr>
-            <td><% if (g.imageUrl) { %><img src="<%= g.imageUrl %>" class="gift-img" alt=""><% } %></td>
-            <td><strong style="color:#e8eaf0;"><%= g.name %></strong></td>
-            <td><span class="mono"><%= g.id %></span></td>
-            <td><span class="diamonds"><svg width="10" height="10" viewBox="0 0 640 640" fill="currentColor"><path d="M232.5 136L320 229L407.5 136L232.5 136zM447.9 163.1L375.6 240L504.6 240L448 163.1zM497.9 288L142.1 288L320 484.3L497.9 288zM135.5 240L264.5 240L192.2 163.1L135.6 240zM569.8 280.1L337.8 536.1C333.3 541.1 326.8 544 320 544C313.2 544 306.8 541.1 302.2 536.1L70.2 280.1C62.5 271.6 61.9 258.9 68.7 249.7L180.7 97.7C185.2 91.6 192.4 87.9 200 87.9L440 87.9C447.6 87.9 454.8 91.5 459.3 97.7L571.3 249.7C578.1 258.9 577.4 271.6 569.8 280.1z"/></svg> <%= g.diamondCount %></span></td>
-            <td>
-              <div class="action-group">
-                <button type="button" class="btn-sm btn-danger-sm" onclick="openModal('gift','<%= g.id %>','<%= g.name.replace(/'/g, `\\'`) %>')">
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-                  Delete
-                </button>
-              </div>
-            </td>
-          </tr>
-          <% }) %>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- ── ACCOUNTS ──────────────────────────────────── -->
-    <% } else if (tab === 'accounts') { %>
-    <form class="toolbar" method="GET" action="/admin">
-      <input type="hidden" name="tab" value="accounts">
-      <% if (sort) { %><input type="hidden" name="sort" value="<%= sort %>"><input type="hidden" name="dir" value="<%= dir %>"><% } %>
-      <input class="search-input" type="text" name="search" placeholder="Search by username or email..." value="<%= search %>">
-      <button class="btn-search" type="submit">Search</button>
-      <% if (search) { %><a class="btn-clear" href="/admin?tab=accounts">Clear</a><% } %>
-    </form>
-    <div class="results-count"><%= accounts.length %> account<%= accounts.length !== 1 ? 's' : '' %></div>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th style="width:44px;"></th>
-            <th class="<%= sort === 'username' ? 'sort-active' : '' %>"><a href="<%- sortUrl('username') %>">Username <%- sortIcon('username') %></a></th>
-            <th class="<%= sort === 'email' ? 'sort-active' : '' %>"><a href="<%- sortUrl('email') %>">Email <%- sortIcon('email') %></a></th>
-            <th class="<%= sort === 'created' ? 'sort-active' : '' %>"><a href="<%- sortUrl('created') %>">Joined <%- sortIcon('created') %></a></th>
-            <th class="<%= sort === 'admin' ? 'sort-active' : '' %>"><a href="<%- sortUrl('admin') %>">Role <%- sortIcon('admin') %></a></th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          <% if (accounts.length === 0) { %>
-          <tr><td colspan="6" class="empty-state">No accounts found</td></tr>
-          <% } %>
-          <% accounts.forEach(a => { %>
-          <tr>
-            <td>
-              <img src="https://unavatar.io/tiktok/<%= a.username %>" style="width:30px;height:30px;border-radius:50%;object-fit:cover;background:rgba(0,242,234,0.08);" onerror="this.style.display='none'" alt="">
-            </td>
-            <td><strong style="color:#e8eaf0;">@<%= a.username %></strong></td>
-            <td><span style="color:rgba(255,255,255,0.5);font-size:12px;"><%= a.email %></span></td>
-            <td><span class="mono"><%= new Date(a.created_at).toLocaleDateString('en-GB') %></span></td>
-            <td>
-              <% if (a.is_admin) { %>
-                <span class="badge badge-teal">
-                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-                  Admin
-                </span>
-              <% } else { %>
-                <span class="badge badge-dim">User</span>
-              <% } %>
-            </td>
-            <td>
-              <div class="action-group">
-                <form method="POST" action="/admin/accounts/<%= a.id %>/toggle-admin" style="margin:0;">
-                  <button type="submit" class="btn-sm <%= a.is_admin ? 'btn-neutral-sm' : 'btn-teal-sm' %>">
-                    <% if (a.is_admin) { %>
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                      Remove admin
-                    <% } else { %>
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                      Make admin
-                    <% } %>
-                  </button>
-                </form>
-                <button type="button" class="btn-sm btn-danger-sm" onclick="openModal('account','<%= a.id %>','<%= a.username.replace(/'/g, `\\'`) %>')">
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-                  Delete
-                </button>
-              </div>
-            </td>
-          </tr>
-          <% }) %>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- ── VIEWERS ─────────────────────────────────── -->
-    <% } else if (tab === 'donors') { %>
-    <form class="toolbar" method="GET" action="/admin">
-      <input type="hidden" name="tab" value="donors">
-      <% if (sort) { %><input type="hidden" name="sort" value="<%= sort %>"><input type="hidden" name="dir" value="<%= dir %>"><% } %>
-      <input class="search-input" type="text" name="search" placeholder="Search by nickname or TikTok ID..." value="<%= search %>">
-      <button class="btn-search" type="submit">Search</button>
-      <% if (search) { %><a class="btn-clear" href="/admin?tab=donors">Clear</a><% } %>
-    </form>
-    <div class="results-count"><%= donors.length %> viewer<%= donors.length !== 1 ? 's' : '' %><% if (donors.length === 200) { %> (showing first 200)<% } %></div>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th class="<%= sort === 'nickname' ? 'sort-active' : '' %>"><a href="<%- sortUrl('nickname') %>">Nickname <%- sortIcon('nickname') %></a></th>
-            <th>TikTok ID</th>
-            <th class="<%= sort === 'diamonds' ? 'sort-active' : '' %>"><a href="<%- sortUrl('diamonds') %>">Total Diamonds <%- sortIcon('diamonds') %></a></th>
-            <th class="<%= sort === 'seen' ? 'sort-active' : '' %>"><a href="<%- sortUrl('seen') %>">Last Seen <%- sortIcon('seen') %></a></th>
-          </tr>
-        </thead>
-        <tbody>
-          <% if (donors.length === 0) { %>
-          <tr><td colspan="4" class="empty-state">No viewers yet — connect to a live stream to start tracking</td></tr>
-          <% } %>
-          <% donors.forEach(d => { %>
-          <tr>
-            <td><strong style="color:#e8eaf0;"><%= d.nickname || d.uniqueId || '—' %></strong></td>
-            <td><span class="mono"><%= d.uniqueId || d.userId || '—' %></span></td>
-            <td><span class="diamonds"><svg width="10" height="10" viewBox="0 0 640 640" fill="currentColor"><path d="M232.5 136L320 229L407.5 136L232.5 136zM447.9 163.1L375.6 240L504.6 240L448 163.1zM497.9 288L142.1 288L320 484.3L497.9 288zM135.5 240L264.5 240L192.2 163.1L135.6 240zM569.8 280.1L337.8 536.1C333.3 541.1 326.8 544 320 544C313.2 544 306.8 541.1 302.2 536.1L70.2 280.1C62.5 271.6 61.9 258.9 68.7 249.7L180.7 97.7C185.2 91.6 192.4 87.9 200 87.9L440 87.9C447.6 87.9 454.8 91.5 459.3 97.7L571.3 249.7C578.1 258.9 577.4 271.6 569.8 280.1z"/></svg> <%= d.totalDiamonds || 0 %></span></td>
-            <td><span class="mono"><%= d.lastSeen ? new Date(d.lastSeen).toLocaleDateString('en-GB') : '—' %></span></td>
-          </tr>
-          <% }) %>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- ── DONATIONS ──────────────────────────────── -->
-    <% } else if (tab === 'donations') { %>
-    <div class="results-count" style="margin-bottom:14px;"><%= donations.length %> donation<%= donations.length !== 1 ? 's' : '' %><% if (donations.length === 200) { %> (showing latest 200)<% } %></div>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Viewer</th>
-            <th>Gift</th>
-            <th>Count</th>
-            <th class="<%= sort === 'diamonds' ? 'sort-active' : '' %>"><a href="<%- sortUrl('diamonds') %>">Diamonds <%- sortIcon('diamonds') %></a></th>
-            <th class="<%= sort === 'date' ? 'sort-active' : '' %>"><a href="<%- sortUrl('date') %>">Date <%- sortIcon('date') %></a></th>
-          </tr>
-        </thead>
-        <tbody>
-          <% if (donations.length === 0) { %>
-          <tr><td colspan="5" class="empty-state">No donations recorded yet</td></tr>
-          <% } %>
-          <% donations.forEach(d => { %>
-          <tr>
-            <td><strong style="color:#e8eaf0;"><%= d.nickname || d.uniqueId || d.userId || '—' %></strong></td>
-            <td><%= d.giftName || `Gift #${d.giftId}` %></td>
-            <td><span class="mono">x<%= d.count %></span></td>
-            <td><span class="diamonds"><svg width="10" height="10" viewBox="0 0 640 640" fill="currentColor"><path d="M232.5 136L320 229L407.5 136L232.5 136zM447.9 163.1L375.6 240L504.6 240L448 163.1zM497.9 288L142.1 288L320 484.3L497.9 288zM135.5 240L264.5 240L192.2 163.1L135.6 240zM569.8 280.1L337.8 536.1C333.3 541.1 326.8 544 320 544C313.2 544 306.8 541.1 302.2 536.1L70.2 280.1C62.5 271.6 61.9 258.9 68.7 249.7L180.7 97.7C185.2 91.6 192.4 87.9 200 87.9L440 87.9C447.6 87.9 454.8 91.5 459.3 97.7L571.3 249.7C578.1 258.9 577.4 271.6 569.8 280.1z"/></svg> <%= d.totalDiamonds %></span></td>
-            <td><span class="mono"><%= d.timestamp ? new Date(d.timestamp).toLocaleDateString('en-GB') : '—' %></span></td>
-          </tr>
-          <% }) %>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- ── STREAMERS ────────────────────────────── -->
-    <% } else if (tab === 'streamers') { %>
-    <form class="toolbar" method="GET" action="/admin">
-      <input type="hidden" name="tab" value="streamers">
-      <% if (sort) { %><input type="hidden" name="sort" value="<%= sort %>"><input type="hidden" name="dir" value="<%= dir %>"><% } %>
-      <input class="search-input" type="text" name="search" placeholder="Search by TikTok ID or account..." value="<%= search %>">
-      <button class="btn-search" type="submit">Search</button>
-      <% if (search) { %><a class="btn-clear" href="/admin?tab=streamers<%= sort ? '&sort=' + sort + '&dir=' + dir : '' %>">Clear</a><% } %>
-    </form>
-    <div class="results-count"><%= streamers.length %> streamer<%= streamers.length !== 1 ? 's' : '' %><% if (search) { %> matching "<%= search %>"<% } %></div>
-    <% if (streamers.length === 0) { %>
-    <div class="empty-state" style="margin-top:16px;">No streamers yet — connect to a TikTok live to register a streamer session.</div>
-    <% } else { %>
-    <div class="table-wrap" style="margin-top:12px;">
-      <table>
-        <thead>
-          <tr>
-            <th style="width:44px;"></th>
-            <th class="<%= sort === 'uniqueId' ? 'sort-active' : '' %>"><a href="<%- sortUrl('uniqueId') %>">TikTok ID <%- sortIcon('uniqueId') %></a></th>
-            <th class="<%= sort === 'account' ? 'sort-active' : '' %>"><a href="<%- sortUrl('account') %>">Linked Account <%- sortIcon('account') %></a></th>
-            <th class="<%= sort === 'donations' ? 'sort-active' : '' %>"><a href="<%- sortUrl('donations') %>">Donations <%- sortIcon('donations') %></a></th>
-            <th class="<%= sort === 'diamonds' ? 'sort-active' : '' %>"><a href="<%- sortUrl('diamonds') %>">Total Diamonds <%- sortIcon('diamonds') %></a></th>
-          </tr>
-        </thead>
-        <tbody>
-          <% streamers.forEach(s => { %>
-          <tr>
-            <td>
-              <img src="https://unavatar.io/tiktok/<%= s.uniqueId %>" style="width:30px;height:30px;border-radius:50%;object-fit:cover;background:rgba(0,242,234,0.08);" onerror="this.style.display='none'" alt="">
-            </td>
-            <td><strong style="color:#e8eaf0;">@<%= s.uniqueId %></strong></td>
-            <td>
-              <% if (s.username) { %>
-                <span style="color:rgba(255,255,255,0.7);">@<%= s.username %></span>
-                <span class="mono" style="margin-left:6px;font-size:10px;"><%= s.email %></span>
-              <% } else { %>
-                <span style="color:rgba(255,255,255,0.2);">—</span>
-              <% } %>
-            </td>
-            <td><span class="mono"><%= s.donationCount %></span></td>
-            <td>
-              <span class="diamonds">
-                <svg width="10" height="10" viewBox="0 0 640 640" fill="currentColor"><path d="M232.5 136L320 229L407.5 136L232.5 136zM447.9 163.1L375.6 240L504.6 240L448 163.1zM497.9 288L142.1 288L320 484.3L497.9 288zM135.5 240L264.5 240L192.2 163.1L135.6 240zM569.8 280.1L337.8 536.1C333.3 541.1 326.8 544 320 544C313.2 544 306.8 541.1 302.2 536.1L70.2 280.1C62.5 271.6 61.9 258.9 68.7 249.7L180.7 97.7C185.2 91.6 192.4 87.9 200 87.9L440 87.9C447.6 87.9 454.8 91.5 459.3 97.7L571.3 249.7C578.1 258.9 577.4 271.6 569.8 280.1z"/></svg>
-                <%= s.totalDiamonds %>
-              </span>
-            </td>
-          </tr>
-          <% }) %>
-        </tbody>
-      </table>
-    </div>
-    <% } %>
-
-    <!-- ── AI PREFERRED GIFTS ───────────────────── -->
-    <% } else if (tab === 'aiGifts') { %>
-    <p style="font-size:13px;color:rgba(255,255,255,0.4);margin-bottom:20px;line-height:1.6;">
-      Gifts in this list are used by the AI preset generator as a secondary priority — after real viewer donations, before random fallback. Add gifts you commonly see viewers send.
-    </p>
-
-    <form method="POST" action="/admin/ai-gifts/add" style="display:flex;gap:10px;align-items:flex-end;margin-bottom:24px;flex-wrap:wrap;">
-      <div style="flex:1;min-width:220px;">
-        <label style="display:block;font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:6px;">Gift Name</label>
-        <div style="position:relative;">
-          <input id="aiGiftInput" name="giftName" class="search-input" type="text" placeholder="Type to search gifts..." autocomplete="off" style="width:100%;">
-          <div id="aiGiftDropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:100;background:#0c1220;border:1px solid rgba(255,255,255,0.1);border-radius:10px;overflow:hidden;max-height:240px;overflow-y:auto;"></div>
-        </div>
-      </div>
-      <button type="submit" class="btn-search" style="height:38px;">Add Gift</button>
-    </form>
-
-    <div style="font-size:12px;color:rgba(255,255,255,0.3);margin-bottom:12px;"><%= aiPreferredGifts.length %> preferred gift<%= aiPreferredGifts.length !== 1 ? 's' : '' %></div>
-
-    <% if (aiPreferredGifts.length === 0) { %>
-    <div class="empty-state">No preferred gifts yet. Add gifts above to help the AI make better presets.</div>
-    <% } else { %>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th style="width:44px;"></th>
-            <th>Gift Name</th>
-            <th>Diamonds</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          <% aiPreferredGifts.forEach(g => { %>
-          <%
-            const catalogEntry = allGifts.find(ag => ag.name.trim() === g.name.trim());
-            const imgUrl = catalogEntry && catalogEntry.imageUrl ? catalogEntry.imageUrl : null;
-            const diamonds = catalogEntry ? (catalogEntry.diamond_count || 0) : g.diamond_count;
-          %>
-          <tr>
-            <td><% if (imgUrl) { %><img src="<%= imgUrl %>" class="gift-img" alt=""><% } %></td>
-            <td><strong style="color:#e8eaf0;"><%= g.name %></strong></td>
-            <td><span class="diamonds"><svg width="10" height="10" viewBox="0 0 640 640" fill="currentColor"><path d="M232.5 136L320 229L407.5 136L232.5 136zM447.9 163.1L375.6 240L504.6 240L448 163.1zM497.9 288L142.1 288L320 484.3L497.9 288zM135.5 240L264.5 240L192.2 163.1L135.6 240zM569.8 280.1L337.8 536.1C333.3 541.1 326.8 544 320 544C313.2 544 306.8 541.1 302.2 536.1L70.2 280.1C62.5 271.6 61.9 258.9 68.7 249.7L180.7 97.7C185.2 91.6 192.4 87.9 200 87.9L440 87.9C447.6 87.9 454.8 91.5 459.3 97.7L571.3 249.7C578.1 258.9 577.4 271.6 569.8 280.1z"/></svg> <%= diamonds %></span></td>
-            <td>
-              <div class="action-group">
-                <form method="POST" action="/admin/ai-gifts/<%= g.id %>/delete" style="margin:0;">
-                  <button type="submit" class="btn-sm btn-danger-sm">
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-                    Remove
-                  </button>
-                </form>
-              </div>
-            </td>
-          </tr>
-          <% }) %>
-        </tbody>
-      </table>
-    </div>
-    <% } %>
-
-    <script>
-    (function() {
-      const allGifts = <%- JSON.stringify(allGifts.map(g => ({ name: g.name, diamonds: g.diamond_count || 0, imageUrl: g.imageUrl || null }))) %>;
-      const input = document.getElementById('aiGiftInput');
-      const dropdown = document.getElementById('aiGiftDropdown');
-
-      function renderDropdown(query) {
-        const q = (query || '').toLowerCase().trim();
-        const matches = allGifts
-          .filter(g => g.name.toLowerCase().includes(q))
-          .sort((a, b) => a.diamonds - b.diamonds)
-          .slice(0, 20);
-
-        if (matches.length === 0) { dropdown.style.display = 'none'; return; }
-
-        dropdown.innerHTML = matches.map(g => `
-          <div class="ai-gift-option" data-name="${g.name.replace(/"/g,'&quot;')}" style="display:flex;align-items:center;gap:10px;padding:8px 14px;cursor:pointer;font-size:13px;color:#c8cad8;transition:background 0.1s;">
-            ${g.imageUrl ? `<img src="${g.imageUrl}" style="width:24px;height:24px;object-fit:contain;border-radius:4px;flex-shrink:0;">` : '<div style="width:24px;height:24px;border-radius:4px;background:rgba(255,255,255,0.05);flex-shrink:0;"></div>'}
-            <span style="flex:1;">${g.name}</span>
-            <span style="color:#00f2ea;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:3px;"><svg width="9" height="9" viewBox="0 0 640 640" fill="currentColor"><path d="M232.5 136L320 229L407.5 136L232.5 136zM447.9 163.1L375.6 240L504.6 240L448 163.1zM497.9 288L142.1 288L320 484.3L497.9 288zM135.5 240L264.5 240L192.2 163.1L135.6 240zM569.8 280.1L337.8 536.1C333.3 541.1 326.8 544 320 544C313.2 544 306.8 541.1 302.2 536.1L70.2 280.1C62.5 271.6 61.9 258.9 68.7 249.7L180.7 97.7C185.2 91.6 192.4 87.9 200 87.9L440 87.9C447.6 87.9 454.8 91.5 459.3 97.7L571.3 249.7C578.1 258.9 577.4 271.6 569.8 280.1z"/></svg> ${g.diamonds}</span>
-          </div>
-        `).join('');
-
-        dropdown.querySelectorAll('.ai-gift-option').forEach(el => {
-          el.addEventListener('mouseenter', () => el.style.background = 'rgba(255,255,255,0.05)');
-          el.addEventListener('mouseleave', () => el.style.background = '');
-          el.addEventListener('mousedown', e => {
-            e.preventDefault();
-            input.value = el.dataset.name;
-            dropdown.style.display = 'none';
-          });
-        });
-
-        dropdown.style.display = 'block';
-      }
-
-      input.addEventListener('input', () => renderDropdown(input.value));
-      input.addEventListener('focus', () => { if (input.value) renderDropdown(input.value); });
-      document.addEventListener('click', e => { if (!input.contains(e.target) && !dropdown.contains(e.target)) dropdown.style.display = 'none'; });
-    })();
-    </script>
-
-    <!-- ── GAME DATA ──────────────────────────────── -->
-    <% } else if (tab === 'gamedata') { %>
-    <p style="font-size:13px;color:rgba(255,255,255,0.3);margin-bottom:24px;">Read-only game data loaded from the database. These tables are populated automatically.</p>
-    <div class="game-grid">
-      <div class="game-card">
-        <div class="game-card-title">Isaac Items</div>
-        <div class="game-card-sub">The Binding of Isaac</div>
-        <div class="game-card-count"><%= stats.isaacItems %></div>
-        <div class="game-card-label">items in database</div>
-      </div>
-      <div class="game-card">
-        <div class="game-card-title">Isaac Bosses</div>
-        <div class="game-card-sub">The Binding of Isaac</div>
-        <div class="game-card-count"><%= stats.isaacBosses %></div>
-        <div class="game-card-label">bosses in database</div>
-      </div>
-      <div class="game-card">
-        <div class="game-card-title">Repo Items</div>
-        <div class="game-card-sub">R.E.P.O.</div>
-        <div class="game-card-count"><%= stats.repoItems %></div>
-        <div class="game-card-label">items in database</div>
-      </div>
-      <div class="game-card">
-        <div class="game-card-title">Repo Valuables</div>
-        <div class="game-card-sub">R.E.P.O.</div>
-        <div class="game-card-count"><%= stats.repoValuables %></div>
-        <div class="game-card-label">valuables in database</div>
-      </div>
-      <div class="game-card">
-        <div class="game-card-title">Repo Enemies</div>
-        <div class="game-card-sub">R.E.P.O.</div>
-        <div class="game-card-count"><%= stats.repoEnemies %></div>
-        <div class="game-card-label">enemies in database</div>
-      </div>
-    </div>
+    <% if (tab === 'gifts')          { %><%- include('partials/admin/tab-gifts')    %>
+    <% } else if (tab === 'accounts')  { %><%- include('partials/admin/tab-accounts') %>
+    <% } else if (tab === 'donors')    { %><%- include('partials/admin/tab-donors')   %>
+    <% } else if (tab === 'donations') { %><%- include('partials/admin/tab-donations')%>
+    <% } else if (tab === 'streamers') { %><%- include('partials/admin/tab-streamers')%>
+    <% } else if (tab === 'aiGifts')   { %><%- include('partials/admin/tab-ai-gifts') %>
+    <% } else                          { %><%- include('partials/admin/tab-gamedata') %>
     <% } %>
 
   </main>
 </div>
 
-<!-- Delete modal -->
-<div class="modal-overlay" id="deleteModal">
-  <div class="modal-box">
-    <div class="modal-icon">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-        <path d="M10 11v6"/><path d="M14 11v6"/>
-      </svg>
-    </div>
-    <div class="modal-title" id="modalTitle">Delete?</div>
-    <div class="modal-desc" id="modalDesc"></div>
-    <div class="modal-actions">
-      <button class="btn-modal-cancel" id="modalCancel">Cancel</button>
-      <form id="modalForm" method="POST" style="margin:0;">
-        <button type="submit" class="btn-modal-confirm">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-          Yes, delete
-        </button>
-      </form>
-    </div>
-  </div>
-</div>
-
-<script>
-  const modal = document.getElementById('deleteModal');
-  const modalForm = document.getElementById('modalForm');
-  const modalTitle = document.getElementById('modalTitle');
-  const modalDesc = document.getElementById('modalDesc');
-
-  function openModal(type, id, name) {
-    if (type === 'gift') {
-      modalTitle.textContent = 'Delete gift?';
-      modalDesc.innerHTML = `Remove <strong style="color:#e8eaf0;">${name}</strong> from the database? This cannot be undone.`;
-      modalForm.action = `/admin/gifts/${id}/delete?tab=gifts&<%= sort ? 'sort=' + sort + '&dir=' + dir + '&' : '' %><%= search ? 'search=' + encodeURIComponent(search) : '' %>`;
-    } else {
-      modalTitle.textContent = 'Delete account?';
-      modalDesc.innerHTML = `Permanently delete <strong style="color:#e8eaf0;">@${name}</strong>? This cannot be undone.`;
-      modalForm.action = `/admin/accounts/${id}/delete`;
-    }
-    modal.classList.add('open');
-  }
-
-  document.getElementById('modalCancel').addEventListener('click', () => modal.classList.remove('open'));
-  modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') modal.classList.remove('open'); });
-</script>
+<%- include('partials/admin/delete-modal') %>
 </body>
 </html>

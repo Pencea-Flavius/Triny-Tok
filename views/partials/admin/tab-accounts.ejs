@@ -1,0 +1,60 @@
+<form class="toolbar" method="GET" action="/admin">
+  <input type="hidden" name="tab" value="accounts">
+  <% if (sort) { %><input type="hidden" name="sort" value="<%= sort %>"><input type="hidden" name="dir" value="<%= dir %>"><% } %>
+  <input class="search-input" type="text" name="search" placeholder="Search by username or email..." value="<%= search %>">
+  <button class="btn-search" type="submit">Search</button>
+  <% if (search) { %><a class="btn-clear" href="/admin?tab=accounts">Clear</a><% } %>
+</form>
+<div class="results-count"><%= accounts.length %> account<%= accounts.length !== 1 ? 's' : '' %></div>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th style="width:44px;"></th>
+        <th class="<%= sort === 'username' ? 'sort-active' : '' %>"><a href="<%- sortUrl('username') %>">Username <%- sortIcon('username') %></a></th>
+        <th class="<%= sort === 'email' ? 'sort-active' : '' %>"><a href="<%- sortUrl('email') %>">Email <%- sortIcon('email') %></a></th>
+        <th class="<%= sort === 'created' ? 'sort-active' : '' %>"><a href="<%- sortUrl('created') %>">Joined <%- sortIcon('created') %></a></th>
+        <th class="<%= sort === 'admin' ? 'sort-active' : '' %>"><a href="<%- sortUrl('admin') %>">Role <%- sortIcon('admin') %></a></th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% if (accounts.length === 0) { %>
+      <tr><td colspan="6" class="empty-state">No accounts found</td></tr>
+      <% } %>
+      <% accounts.forEach(a => { %>
+      <tr>
+        <td>
+          <img src="https://unavatar.io/tiktok/<%= a.username %>" style="width:30px;height:30px;border-radius:50%;object-fit:cover;background:rgba(0,242,234,0.08);" onerror="this.style.display='none'" alt="">
+        </td>
+        <td><strong style="color:#e8eaf0;">@<%= a.username %></strong></td>
+        <td><span style="color:rgba(255,255,255,0.5);font-size:12px;"><%= a.email %></span></td>
+        <td><span class="mono"><%= new Date(a.created_at).toLocaleDateString('en-GB') %></span></td>
+        <td>
+          <% if (a.is_admin) { %>
+            <span class="badge badge-teal"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Admin</span>
+          <% } else { %>
+            <span class="badge badge-dim">User</span>
+          <% } %>
+        </td>
+        <td>
+          <div class="action-group">
+            <form method="POST" action="/admin/accounts/<%= a.id %>/toggle-admin" style="margin:0;">
+              <button type="submit" class="btn-sm <%= a.is_admin ? 'btn-neutral-sm' : 'btn-teal-sm' %>">
+                <% if (a.is_admin) { %>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Remove admin
+                <% } else { %>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Make admin
+                <% } %>
+              </button>
+            </form>
+            <button type="button" class="btn-sm btn-danger-sm" onclick="openModal('account','<%= a.id %>','<%= a.username.replace(/'/g, `\\'`) %>')">
+              <%- trashSvg %> Delete
+            </button>
+          </div>
+        </td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
