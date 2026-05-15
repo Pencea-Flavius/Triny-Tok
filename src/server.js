@@ -2,6 +2,7 @@ process.env.DOTENV_CONFIG_QUIET = 'true';
 require('dotenv').config();
 
 const express  = require('express');
+const helmet   = require('helmet');
 const session  = require('express-session');
 const { createServer } = require('http');
 const { Server }       = require('socket.io');
@@ -45,19 +46,21 @@ const httpServer = createServer(app);
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, '../views'));
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.urlencoded({ extended: true }));
 
 const sessionMiddleware = session({
     secret: process.env.SESSION_SECRET || 'triny-tok-dev-secret-change-in-prod',
     resave: false,
     saveUninitialized: false,
-    cookie: { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000 },
+    cookie: { httpOnly: true, secure: process.env.NODE_ENV === 'production', maxAge: 7 * 24 * 60 * 60 * 1000 },
 });
 app.use(sessionMiddleware);
 app.use((req, res, next) => { res.locals.user = req.session.user || null; next(); });
 
 // ── Socket.io ─────────────────────────────────────────────────────────────────
-const io = new Server(httpServer, { cors: { origin: '*' } });
+const allowedOrigin = process.env.APP_ORIGIN || `http://localhost:${process.env.PORT || 8081}`;
+const io = new Server(httpServer, { cors: { origin: allowedOrigin, credentials: true } });
 ctx.io   = io;
 io.use((socket, next) => sessionMiddleware(socket.request, socket.request.res || {}, next));
 
