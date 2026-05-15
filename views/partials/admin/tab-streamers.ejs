@@ -1,0 +1,45 @@
+<form class="toolbar" method="GET" action="/admin">
+  <input type="hidden" name="tab" value="streamers">
+  <% if (sort) { %><input type="hidden" name="sort" value="<%= sort %>"><input type="hidden" name="dir" value="<%= dir %>"><% } %>
+  <input class="search-input" type="text" name="search" placeholder="Search by TikTok ID or account..." value="<%= search %>">
+  <button class="btn-search" type="submit">Search</button>
+  <% if (search) { %><a class="btn-clear" href="/admin?tab=streamers<%= sort ? '&sort=' + sort + '&dir=' + dir : '' %>">Clear</a><% } %>
+</form>
+<div class="results-count"><%= streamers.length %> streamer<%= streamers.length !== 1 ? 's' : '' %><% if (search) { %> matching "<%= search %>"<% } %></div>
+<% if (streamers.length === 0) { %>
+<div class="empty-state" style="margin-top:16px;">No streamers yet — connect to a TikTok live to register a streamer session.</div>
+<% } else { %>
+<div class="table-wrap" style="margin-top:12px;">
+  <table>
+    <thead>
+      <tr>
+        <th style="width:44px;"></th>
+        <th class="<%= sort === 'uniqueId' ? 'sort-active' : '' %>"><a href="<%- sortUrl('uniqueId') %>">TikTok ID <%- sortIcon('uniqueId') %></a></th>
+        <th class="<%= sort === 'account' ? 'sort-active' : '' %>"><a href="<%- sortUrl('account') %>">Linked Account <%- sortIcon('account') %></a></th>
+        <th class="<%= sort === 'donations' ? 'sort-active' : '' %>"><a href="<%- sortUrl('donations') %>">Donations <%- sortIcon('donations') %></a></th>
+        <th class="<%= sort === 'diamonds' ? 'sort-active' : '' %>"><a href="<%- sortUrl('diamonds') %>">Total Diamonds <%- sortIcon('diamonds') %></a></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% streamers.forEach(s => { %>
+      <tr>
+        <td>
+          <img src="https://unavatar.io/tiktok/<%= s.uniqueId %>" style="width:30px;height:30px;border-radius:50%;object-fit:cover;background:rgba(0,242,234,0.08);" onerror="this.style.display='none'" alt="">
+        </td>
+        <td><strong style="color:#e8eaf0;">@<%= s.uniqueId %></strong></td>
+        <td>
+          <% if (s.username) { %>
+            <span style="color:rgba(255,255,255,0.7);">@<%= s.username %></span>
+            <span class="mono" style="margin-left:6px;font-size:10px;"><%= s.email %></span>
+          <% } else { %>
+            <span style="color:rgba(255,255,255,0.2);">—</span>
+          <% } %>
+        </td>
+        <td><span class="mono"><%= s.donationCount %></span></td>
+        <td><span class="diamonds"><%- diamondSvg %> <%= s.totalDiamonds %></span></td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+<% } %>

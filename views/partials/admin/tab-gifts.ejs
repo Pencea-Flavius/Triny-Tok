@@ -1,0 +1,41 @@
+<form class="toolbar" method="GET" action="/admin">
+  <input type="hidden" name="tab" value="gifts">
+  <% if (sort) { %><input type="hidden" name="sort" value="<%= sort %>"><input type="hidden" name="dir" value="<%= dir %>"><% } %>
+  <input class="search-input" type="text" name="search" placeholder="Search by gift name..." value="<%= search %>">
+  <button class="btn-search" type="submit">Search</button>
+  <% if (search) { %><a class="btn-clear" href="/admin?tab=gifts<%= sort ? '&sort=' + sort + '&dir=' + dir : '' %>">Clear</a><% } %>
+</form>
+<div class="results-count"><%= gifts.length %> gift<%= gifts.length !== 1 ? 's' : '' %><% if (search) { %> matching "<%= search %>"<% } %></div>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th style="width:44px;"></th>
+        <th class="<%= sort === 'name' ? 'sort-active' : '' %>"><a href="<%- sortUrl('name') %>">Name <%- sortIcon('name') %></a></th>
+        <th class="<%= sort === 'id' ? 'sort-active' : '' %>"><a href="<%- sortUrl('id') %>">ID <%- sortIcon('id') %></a></th>
+        <th class="<%= sort === 'diamonds' ? 'sort-active' : '' %>"><a href="<%- sortUrl('diamonds') %>">Diamonds <%- sortIcon('diamonds') %></a></th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% if (gifts.length === 0) { %>
+      <tr><td colspan="5" class="empty-state">No gifts found</td></tr>
+      <% } %>
+      <% gifts.forEach(g => { %>
+      <tr>
+        <td><% if (g.imageUrl) { %><img src="<%= g.imageUrl %>" class="gift-img" alt=""><% } %></td>
+        <td><strong style="color:#e8eaf0;"><%= g.name %></strong></td>
+        <td><span class="mono"><%= g.id %></span></td>
+        <td><span class="diamonds"><%- diamondSvg %> <%= g.diamondCount %></span></td>
+        <td>
+          <div class="action-group">
+            <button type="button" class="btn-sm btn-danger-sm" onclick="openModal('gift','<%= g.id %>','<%= g.name.replace(/'/g, `\\'`) %>')">
+              <%- trashSvg %> Delete
+            </button>
+          </div>
+        </td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>

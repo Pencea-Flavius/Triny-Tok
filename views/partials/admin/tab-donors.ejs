@@ -1,0 +1,33 @@
+<form class="toolbar" method="GET" action="/admin">
+  <input type="hidden" name="tab" value="donors">
+  <% if (sort) { %><input type="hidden" name="sort" value="<%= sort %>"><input type="hidden" name="dir" value="<%= dir %>"><% } %>
+  <input class="search-input" type="text" name="search" placeholder="Search by nickname or TikTok ID..." value="<%= search %>">
+  <button class="btn-search" type="submit">Search</button>
+  <% if (search) { %><a class="btn-clear" href="/admin?tab=donors">Clear</a><% } %>
+</form>
+<div class="results-count"><%= donors.length %> viewer<%= donors.length !== 1 ? 's' : '' %><% if (donors.length === 200) { %> (showing first 200)<% } %></div>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th class="<%= sort === 'nickname' ? 'sort-active' : '' %>"><a href="<%- sortUrl('nickname') %>">Nickname <%- sortIcon('nickname') %></a></th>
+        <th>TikTok ID</th>
+        <th class="<%= sort === 'diamonds' ? 'sort-active' : '' %>"><a href="<%- sortUrl('diamonds') %>">Total Diamonds <%- sortIcon('diamonds') %></a></th>
+        <th class="<%= sort === 'seen' ? 'sort-active' : '' %>"><a href="<%- sortUrl('seen') %>">Last Seen <%- sortIcon('seen') %></a></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% if (donors.length === 0) { %>
+      <tr><td colspan="4" class="empty-state">No viewers yet — connect to a live stream to start tracking</td></tr>
+      <% } %>
+      <% donors.forEach(d => { %>
+      <tr>
+        <td><strong style="color:#e8eaf0;"><%= d.nickname || d.uniqueId || '—' %></strong></td>
+        <td><span class="mono"><%= d.uniqueId || d.userId || '—' %></span></td>
+        <td><span class="diamonds"><%- diamondSvg %> <%= d.totalDiamonds || 0 %></span></td>
+        <td><span class="mono"><%= d.lastSeen ? new Date(d.lastSeen).toLocaleDateString('en-GB') : '—' %></span></td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
