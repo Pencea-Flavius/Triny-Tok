@@ -1,0 +1,28 @@
+<div class="results-count" style="margin-bottom:14px;"><%= donations.length %> donation<%= donations.length !== 1 ? 's' : '' %><% if (donations.length === 200) { %> (showing latest 200)<% } %></div>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Viewer</th>
+        <th>Gift</th>
+        <th>Count</th>
+        <th class="<%= sort === 'diamonds' ? 'sort-active' : '' %>"><a href="<%- sortUrl('diamonds') %>">Diamonds <%- sortIcon('diamonds') %></a></th>
+        <th class="<%= sort === 'date' ? 'sort-active' : '' %>"><a href="<%- sortUrl('date') %>">Date <%- sortIcon('date') %></a></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% if (donations.length === 0) { %>
+      <tr><td colspan="5" class="empty-state">No donations recorded yet</td></tr>
+      <% } %>
+      <% donations.forEach(d => { %>
+      <tr>
+        <td><strong style="color:#e8eaf0;"><%= d.nickname || d.uniqueId || d.userId || '—' %></strong></td>
+        <td><%= d.giftName || `Gift #${d.giftId}` %></td>
+        <td><span class="mono">x<%= d.count %></span></td>
+        <td><span class="diamonds"><%- diamondSvg %> <%= d.totalDiamonds %></span></td>
+        <td><span class="mono"><%= d.timestamp ? new Date(d.timestamp).toLocaleDateString('en-GB') : '—' %></span></td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>

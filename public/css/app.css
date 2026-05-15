@@ -168,7 +168,7 @@ body::before {
   color: #07090f;
   letter-spacing: -0.5px;
   margin-bottom: 22px;
-  box-shadow: 0 0 20px rgba(37,244,238,0.35);
+  box-shadow: 0 0 20px rgba(var(--accent-rgb), 0.35);
   transition: box-shadow 0.5s, background 0.5s;
   flex-shrink: 0;
 }
