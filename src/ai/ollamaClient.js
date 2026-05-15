@@ -77,9 +77,12 @@ async function runAgent(messages, tools, toolHandlers, label = 'agent') {
             if (name === 'create_preset') {
                 if (result && result.error) {
                     calledCreatePreset = false;
-                    msgs.push({ role: 'user', content: `create_preset failed: ${result.error}\nCall create_preset again. Required fields: "name" (string, e.g. "Chaos Run") and "commands" (object mapping gift names to effects). Do not omit "name".` });
+                    const hadCommands = args.commands || args.gift_commands;
+                    const fixHint = hadCommands
+                        ? `You already provided the commands correctly. Just call create_preset again adding the missing "name" field. Example: ${JSON.stringify({ name: 'Gun Fight', ...args })}`
+                        : 'Call create_preset again with both "name" (string) and "commands" (object).';
+                    msgs.push({ role: 'user', content: `create_preset failed: ${result.error}. ${fixHint}` });
                 } else if (result && result.success) {
-                    // success — stop immediately, don't let AI call it again
                     console.log(`${tag} ─── done (preset saved) ──────────────\n`);
                     return result.message || 'Preset saved.';
                 }
