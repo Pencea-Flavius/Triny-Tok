@@ -19,6 +19,17 @@ module.exports = [
                 clearTimeout: 'readonly',
                 clearInterval: 'readonly',
                 Buffer: 'readonly',
+                fetch: 'readonly',
+                AbortSignal: 'readonly',
+                URL: 'readonly',
+                URLSearchParams: 'readonly',
+                Promise: 'readonly',
+                JSON: 'readonly',
+                Math: 'readonly',
+                Date: 'readonly',
+                Error: 'readonly',
+                Map: 'readonly',
+                Set: 'readonly',
             }
         },
         rules: {

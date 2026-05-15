@@ -37,7 +37,7 @@ async function getTopGames(limit = 10) {
         const token = await getAccessToken();
         const res = await fetch('https://api.twitch.tv/helix/streams?first=' + limit + '&type=live', {
             headers: {
-                'Client-ID': TWITCH_CLIENT_ID,
+                'Client-ID': process.env.TWITCH_CLIENT_ID,
                 'Authorization': 'Bearer ' + token,
             },
         });
