@@ -110,6 +110,7 @@
         <%- include('partials/app/tab-chat') %>
         <%- include('partials/app/tab-gift-log') %>
         <%- include('partials/app/tab-top-donors') %>
+        <%- include('partials/app/tab-ai-game-suggest') %>
         <%- include('partials/app/tab-minecraft') %>
         <%- include('partials/app/tab-commands') %>
         <%- include('partials/app/tab-isaac-effects') %>
@@ -218,6 +219,56 @@ document.addEventListener('click', function(e) {
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') document.querySelectorAll('.modal-overlay[style*="flex"]').forEach(m => m.style.display = 'none');
 });
+
+function _escAI(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+window.generatePresetAI = async function(game) {
+  const input = document.getElementById('aiPresetInput_' + game);
+  const resultEl = document.getElementById('aiPresetResult_' + game);
+  const btn = document.getElementById('aiPresetBtn_' + game);
+  const icon = document.getElementById('aiPresetBtnIcon_' + game);
+
+  resultEl.style.display = 'block';
+  resultEl.innerHTML = '<div style="font-size:12px;color:var(--dim);padding:10px 0;">AI is thinking...</div>';
+  btn.disabled = true;
+  if (icon) icon.style.animation = 'spin 1s linear infinite';
+
+  try {
+    const res = await fetch('/api/ai/preset-suggestion', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ game, prompt: input ? input.value : '' }),
+    });
+    const data = await res.json();
+
+    if (!data.success) {
+      resultEl.innerHTML = '<div style="background:rgba(244,63,94,0.08);border:1px solid rgba(244,63,94,0.25);border-radius:8px;padding:12px;font-size:12px;color:#f43f5e;">' + _escAI(data.error || 'Something went wrong.') + '</div>';
+      return;
+    }
+
+    let html = '<div style="background:rgba(0,242,234,0.04);border:1px solid rgba(0,242,234,0.15);border-radius:10px;padding:14px;">';
+    html += '<div style="font-size:11px;color:var(--dim);margin-bottom:8px;">' + _escAI(data.model || 'AI') + '</div>';
+    if (data.preset_created) {
+      html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;font-size:12px;font-weight:700;color:var(--teal);">';
+      html += '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+      html += 'Preset &ldquo;' + _escAI(data.preset_name) + '&rdquo; created!</div>';
+    }
+    html += '<div style="font-size:13px;line-height:1.7;color:var(--text);white-space:pre-wrap;">' + _escAI(data.suggestion || '(no response)') + '</div>';
+    html += '</div>';
+    resultEl.innerHTML = html;
+
+    if (data.preset_created && data.presets) {
+      _renderPresets(game, data.presets);
+    }
+  } catch (err) {
+    resultEl.innerHTML = '<div style="background:rgba(244,63,94,0.08);border:1px solid rgba(244,63,94,0.25);border-radius:8px;padding:12px;font-size:12px;color:#f43f5e;">Network error: ' + _escAI(err.message) + '</div>';
+  } finally {
+    btn.disabled = false;
+    if (icon) icon.style.animation = '';
+  }
+};
 </script>
 <% } %>
 

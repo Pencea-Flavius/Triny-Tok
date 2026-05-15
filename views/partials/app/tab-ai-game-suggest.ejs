@@ -1,0 +1,523 @@
+<style>
+  #aiGameSuggestContent {
+    display: none;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+  }
+  #aiGameSuggestContent.active {
+    display: flex;
+  }
+
+  .aig-layout {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  /* header bar */
+  .aig-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 24px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    flex-shrink: 0;
+  }
+  .aig-header-left { display: flex; flex-direction: column; gap: 2px; }
+  .aig-eyebrow {
+    font-size: 9px; font-weight: 800; letter-spacing: 1.8px; text-transform: uppercase;
+    color: var(--accent); display: flex; align-items: center; gap: 6px;
+  }
+  .aig-eyebrow-dot {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
+    box-shadow: 0 0 8px rgba(var(--accent-rgb),0.8);
+  }
+  .aig-title { font-size: 17px; font-weight: 900; letter-spacing: -0.3px; }
+  .aig-clear-btn {
+    background: none; border: 1px solid rgba(255,255,255,0.08); border-radius: 7px;
+    color: rgba(255,255,255,0.3); font-size: 11px; font-weight: 700;
+    padding: 5px 12px; cursor: pointer; font-family: inherit; transition: all 0.15s;
+  }
+  .aig-clear-btn:hover { color: #e8eaf0; border-color: rgba(255,255,255,0.2); }
+
+  /* messages area */
+  .aig-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    scroll-behavior: smooth;
+  }
+  .aig-messages::-webkit-scrollbar { width: 4px; }
+  .aig-messages::-webkit-scrollbar-track { background: transparent; }
+  .aig-messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+  /* empty state */
+  .aig-empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    text-align: center;
+    padding: 32px 28px 24px;
+    pointer-events: none;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* subtle grid bg */
+  .aig-empty::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(var(--accent-rgb),0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(var(--accent-rgb),0.03) 1px, transparent 1px);
+    background-size: 28px 28px;
+    mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 30%, transparent 80%);
+    pointer-events: none;
+  }
+
+  /* orb */
+  .aig-orb {
+    position: relative;
+    width: 72px; height: 72px;
+    margin-bottom: 22px;
+    flex-shrink: 0;
+  }
+  .aig-orb-ring {
+    position: absolute; inset: 0;
+    border-radius: 50%;
+    border: 1.5px solid rgba(var(--accent-rgb),0.25);
+    animation: aig-orb-pulse 3s ease-in-out infinite;
+  }
+  .aig-orb-ring:nth-child(2) {
+    inset: -10px;
+    border-color: rgba(var(--accent-rgb),0.10);
+    animation-delay: 0.6s;
+  }
+  .aig-orb-ring:nth-child(3) {
+    inset: -22px;
+    border-color: rgba(var(--accent-rgb),0.05);
+    animation-delay: 1.2s;
+  }
+  .aig-orb-core {
+    position: absolute; inset: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle at 38% 38%,
+      rgba(var(--accent-rgb),0.22) 0%,
+      rgba(var(--accent-rgb),0.07) 55%,
+      transparent 100%);
+    box-shadow:
+      0 0 24px rgba(var(--accent-rgb),0.18),
+      inset 0 1px 1px rgba(255,255,255,0.08);
+    border: 1px solid rgba(var(--accent-rgb),0.3);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .aig-orb-icon {
+    color: var(--accent);
+    opacity: 0.85;
+    filter: drop-shadow(0 0 6px rgba(var(--accent-rgb),0.7));
+  }
+  @keyframes aig-orb-pulse {
+    0%, 100% { opacity: 0.6; transform: scale(1); }
+    50%       { opacity: 1;   transform: scale(1.04); }
+  }
+
+  /* heading */
+  .aig-empty-heading {
+    font-size: 20px; font-weight: 900; letter-spacing: -0.4px;
+    color: rgba(255,255,255,0.88);
+    margin-bottom: 6px;
+    line-height: 1.2;
+  }
+  .aig-empty-heading em {
+    font-style: normal;
+    color: var(--accent);
+  }
+  .aig-empty-sub {
+    font-size: 12px; color: rgba(255,255,255,0.28);
+    line-height: 1.65; max-width: 240px;
+    margin-bottom: 26px;
+  }
+
+  /* suggestion chips */
+  .aig-chips {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    width: 100%;
+    max-width: 340px;
+    pointer-events: none;
+  }
+  .aig-chip {
+    pointer-events: auto;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 10px;
+    padding: 10px 12px;
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.18s cubic-bezier(0.16,1,0.3,1);
+    display: flex; flex-direction: column; gap: 3px;
+  }
+  .aig-chip:hover {
+    background: rgba(var(--accent-rgb),0.08);
+    border-color: rgba(var(--accent-rgb),0.3);
+    transform: translateY(-1px);
+  }
+  .aig-chip-icon {
+    line-height: 1;
+    margin-bottom: 2px;
+    color: rgba(var(--accent-rgb), 0.6);
+  }
+  .aig-chip:hover .aig-chip-icon { color: var(--accent); }
+  .aig-chip-label {
+    font-size: 11px; font-weight: 800;
+    color: rgba(255,255,255,0.75);
+    letter-spacing: 0.1px;
+  }
+  .aig-chip-sub {
+    font-size: 10px; color: rgba(255,255,255,0.28);
+    line-height: 1.3;
+  }
+
+  /* message bubbles */
+  .aig-msg {
+    display: flex; flex-direction: column; gap: 4px;
+    animation: aig-slide 0.25s cubic-bezier(0.16,1,0.3,1);
+  }
+  @keyframes aig-slide { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  .aig-msg-user { align-items: flex-end; }
+  .aig-msg-ai   { align-items: flex-start; }
+
+  .aig-bubble {
+    max-width: 78%;
+    padding: 11px 15px;
+    border-radius: 14px;
+    font-size: 13px;
+    line-height: 1.65;
+  }
+  .aig-bubble-user {
+    background: rgba(var(--accent-rgb),0.14);
+    border: 1px solid rgba(var(--accent-rgb),0.25);
+    color: #e8eaf0;
+    border-bottom-right-radius: 4px;
+  }
+  .aig-bubble-ai {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: #d8dae8;
+    border-bottom-left-radius: 4px;
+    white-space: pre-wrap;
+  }
+  .aig-bubble-error {
+    background: rgba(244,63,94,0.07);
+    border: 1px solid rgba(244,63,94,0.2);
+    color: #f43f5e;
+    border-bottom-left-radius: 4px;
+  }
+  .aig-label {
+    font-size: 9px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase;
+    color: rgba(255,255,255,0.2); padding: 0 4px;
+  }
+
+  /* typing indicator */
+  .aig-typing {
+    display: flex; align-items: center; gap: 5px;
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+    padding: 11px 15px; border-radius: 14px; border-bottom-left-radius: 4px;
+    width: fit-content;
+  }
+  .aig-typing span {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: rgba(255,255,255,0.3);
+    animation: aig-bounce 1.2s ease-in-out infinite;
+  }
+  .aig-typing span:nth-child(2) { animation-delay: 0.15s; }
+  .aig-typing span:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes aig-bounce {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-5px); }
+  }
+
+  /* input bar */
+  .aig-input-bar {
+    flex-shrink: 0;
+    padding: 14px 24px 18px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    display: flex; gap: 10px; align-items: flex-end;
+  }
+  .aig-textarea {
+    flex: 1;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 11px 14px;
+    font-size: 13px; color: #e8eaf0;
+    font-family: inherit;
+    resize: none;
+    outline: none;
+    line-height: 1.5;
+    max-height: 100px;
+    overflow-y: auto;
+    transition: border-color 0.15s;
+  }
+  .aig-textarea:focus { border-color: rgba(var(--accent-rgb),0.4); }
+  .aig-textarea::placeholder { color: rgba(255,255,255,0.2); }
+  .aig-send-btn {
+    width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+    background: rgba(var(--accent-rgb),0.15); border: 1px solid rgba(var(--accent-rgb),0.3);
+    color: var(--accent); cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+  .aig-send-btn:hover:not(:disabled) { background: rgba(var(--accent-rgb),0.28); border-color: var(--accent); }
+  .aig-send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .aig-send-btn.loading svg { animation: aig-spin 0.8s linear infinite; }
+  @keyframes aig-spin { to { transform: rotate(360deg); } }
+</style>
+
+<div class="tab-content" id="aiGameSuggestContent">
+  <% if (!user) { %>
+  <div style="display:flex;align-items:center;justify-content:center;height:100%;padding:40px;text-align:center;">
+    <div>
+      <div style="font-size:13px;color:var(--dim);margin-bottom:14px;">You need to be logged in to use AI suggestions.</div>
+      <a href="/login" class="btn-primary" style="display:inline-block;text-decoration:none;font-size:13px;">Sign in</a>
+    </div>
+  </div>
+  <% } else { %>
+
+  <div class="aig-layout">
+
+    <div class="aig-header">
+      <div class="aig-header-left">
+        <div class="aig-eyebrow"><div class="aig-eyebrow-dot"></div> AI Assistant</div>
+        <div class="aig-title">What should I stream?</div>
+      </div>
+      <button class="aig-clear-btn" onclick="aigClear()">Clear</button>
+    </div>
+
+    <div class="aig-messages" id="aigMessages">
+      <div class="aig-empty" id="aigEmpty">
+        <div class="aig-orb">
+          <div class="aig-orb-ring"></div>
+          <div class="aig-orb-ring"></div>
+          <div class="aig-orb-ring"></div>
+          <div class="aig-orb-core">
+            <svg class="aig-orb-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2a4 4 0 0 1 4 4v1h1a3 3 0 0 1 0 6h-1v1a4 4 0 0 1-8 0v-1H7a3 3 0 0 1 0-6h1V6a4 4 0 0 1 4-4z"/>
+              <circle cx="9" cy="9" r="1" fill="currentColor" stroke="none"/>
+              <circle cx="15" cy="9" r="1" fill="currentColor" stroke="none"/>
+            </svg>
+          </div>
+        </div>
+        <div class="aig-empty-heading">What should you<br><em>stream today?</em></div>
+        <div class="aig-empty-sub">Tell me the vibe and I'll pick the perfect game for your next stream.</div>
+        <div class="aig-chips">
+          <button class="aig-chip" onclick="aigQuick('Something chill and relaxing')">
+            <div class="aig-chip-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10"/><path d="M12 6v6l4 2"/></svg></div>
+            <div class="aig-chip-label">Chill session</div>
+            <div class="aig-chip-sub">Low stress, good vibes</div>
+          </button>
+          <button class="aig-chip" onclick="aigQuick('Something where viewers can troll me')">
+            <div class="aig-chip-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+            <div class="aig-chip-label">Let viewers troll</div>
+            <div class="aig-chip-sub">Give chat the power</div>
+          </button>
+          <button class="aig-chip" onclick="aigQuick('Most competitive game')">
+            <div class="aig-chip-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+            <div class="aig-chip-label">Competitive</div>
+            <div class="aig-chip-sub">High skill, high stakes</div>
+          </button>
+          <button class="aig-chip" onclick="aigQuick('Something funny to watch')">
+            <div class="aig-chip-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></div>
+            <div class="aig-chip-label">Entertaining</div>
+            <div class="aig-chip-sub">Funny moments incoming</div>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="aig-input-bar">
+      <textarea class="aig-textarea" id="aigInput" rows="1"
+        placeholder="Ask what to stream..."
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();aigSend();}"
+        oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px'"></textarea>
+      <button class="aig-send-btn" id="aigSendBtn" onclick="aigSend()">
+        <svg id="aigSendIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
+    </div>
+
+  </div>
+
+  <% } %>
+</div>
+
+<% if (user) { %>
+<script>
+(function() {
+  const MODEL_LABEL = 'qwen2.5:7b';
+  let isLoading = false;
+
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function showEmpty(v) {
+    const el = document.getElementById('aigEmpty');
+    if (el) el.style.display = v ? 'flex' : 'none';
+  }
+
+  function scrollBottom() {
+    const msgs = document.getElementById('aigMessages');
+    if (msgs) msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function appendMsg(role, text, isError) {
+    showEmpty(false);
+    const msgs = document.getElementById('aigMessages');
+    const wrap = document.createElement('div');
+    wrap.className = 'aig-msg aig-msg-' + role;
+
+    const label = document.createElement('div');
+    label.className = 'aig-label';
+    label.textContent = role === 'user' ? 'You' : MODEL_LABEL;
+
+    const bubble = document.createElement('div');
+    bubble.className = 'aig-bubble ' + (role === 'user' ? 'aig-bubble-user' : isError ? 'aig-bubble-error' : 'aig-bubble-ai');
+    bubble.textContent = text;
+
+    wrap.appendChild(label);
+    wrap.appendChild(bubble);
+    msgs.appendChild(wrap);
+    scrollBottom();
+    return wrap;
+  }
+
+  function addTyping() {
+    showEmpty(false);
+    const msgs = document.getElementById('aigMessages');
+    const wrap = document.createElement('div');
+    wrap.className = 'aig-msg aig-msg-ai';
+    wrap.id = 'aigTyping';
+
+    const label = document.createElement('div');
+    label.className = 'aig-label';
+    label.textContent = MODEL_LABEL;
+
+    const t = document.createElement('div');
+    t.className = 'aig-typing';
+    t.innerHTML = '<span></span><span></span><span></span>';
+
+    wrap.appendChild(label);
+    wrap.appendChild(t);
+    msgs.appendChild(wrap);
+    scrollBottom();
+  }
+
+  function removeTyping() {
+    const t = document.getElementById('aigTyping');
+    if (t) t.remove();
+  }
+
+  async function send(prompt) {
+    if (isLoading || !prompt.trim()) return;
+    isLoading = true;
+
+    const btn = document.getElementById('aigSendBtn');
+    btn.disabled = true;
+    btn.classList.add('loading');
+
+    appendMsg('user', prompt);
+    addTyping();
+
+    try {
+      const res  = await fetch('/api/ai/game-suggestion?prompt=' + encodeURIComponent(prompt));
+      const data = await res.json();
+      removeTyping();
+      if (data.success) {
+        appendMsg('ai', data.suggestion || '(no response)', false);
+      } else {
+        appendMsg('ai', data.error || 'Something went wrong.', true);
+      }
+    } catch (err) {
+      removeTyping();
+      appendMsg('ai', 'Network error: ' + err.message, true);
+    } finally {
+      isLoading = false;
+      btn.disabled = false;
+      btn.classList.remove('loading');
+    }
+  }
+
+  window.aigSend = function() {
+    const input = document.getElementById('aigInput');
+    const val = input.value.trim();
+    if (!val) return;
+    input.value = '';
+    input.style.height = 'auto';
+    send(val);
+  };
+
+  window.aigQuick = function(text) {
+    send(text);
+  };
+
+  window.aigClear = function() {
+    const msgs = document.getElementById('aigMessages');
+    msgs.innerHTML = '';
+    const empty = document.createElement('div');
+    empty.className = 'aig-empty';
+    empty.id = 'aigEmpty';
+    empty.innerHTML =
+      '<div class="aig-orb">' +
+        '<div class="aig-orb-ring"></div>' +
+        '<div class="aig-orb-ring"></div>' +
+        '<div class="aig-orb-ring"></div>' +
+        '<div class="aig-orb-core">' +
+          '<svg class="aig-orb-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
+            '<path d="M12 2a4 4 0 0 1 4 4v1h1a3 3 0 0 1 0 6h-1v1a4 4 0 0 1-8 0v-1H7a3 3 0 0 1 0-6h1V6a4 4 0 0 1 4-4z"/>' +
+            '<circle cx="9" cy="9" r="1" fill="currentColor" stroke="none"/>' +
+            '<circle cx="15" cy="9" r="1" fill="currentColor" stroke="none"/>' +
+          '</svg>' +
+        '</div>' +
+      '</div>' +
+      '<div class="aig-empty-heading">What should you<br><em>stream today?</em></div>' +
+      '<div class="aig-empty-sub">Tell me the vibe and I\'ll pick the perfect game for your next stream.</div>' +
+      '<div class="aig-chips">' +
+        '<button class="aig-chip" onclick="aigQuick(\'Something chill and relaxing\')">' +
+          '<div class="aig-chip-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10"/><path d="M12 6v6l4 2"/></svg></div>' +
+          '<div class="aig-chip-label">Chill session</div>' +
+          '<div class="aig-chip-sub">Low stress, good vibes</div>' +
+        '</button>' +
+        '<button class="aig-chip" onclick="aigQuick(\'Something where viewers can troll me\')">' +
+          '<div class="aig-chip-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>' +
+          '<div class="aig-chip-label">Let viewers troll</div>' +
+          '<div class="aig-chip-sub">Give chat the power</div>' +
+        '</button>' +
+        '<button class="aig-chip" onclick="aigQuick(\'Most competitive game\')">' +
+          '<div class="aig-chip-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>' +
+          '<div class="aig-chip-label">Competitive</div>' +
+          '<div class="aig-chip-sub">High skill, high stakes</div>' +
+        '</button>' +
+        '<button class="aig-chip" onclick="aigQuick(\'Something funny to watch\')">' +
+          '<div class="aig-chip-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></div>' +
+          '<div class="aig-chip-label">Entertaining</div>' +
+          '<div class="aig-chip-sub">Funny moments incoming</div>' +
+        '</button>' +
+      '</div>';
+    msgs.appendChild(empty);
+  };
+})();
+</script>
+<% } %>

@@ -42,7 +42,8 @@ export class GiftDropdown {
     }
 
     updateImagePreview(name) {
-        const gift = this.availableGifts.find(g => g.name === name);
+        const trimmed = (name || '').trim();
+        const gift = this.availableGifts.find(g => g.name.trim() === trimmed);
         if (gift && gift.image && gift.image.url_list && gift.image.url_list[0]) {
             this.preview.html(`<img src="${gift.image.url_list[0]}" style="width: 100%; height: 100%; object-fit: cover;">`);
         } else {
@@ -55,7 +56,7 @@ export class GiftDropdown {
         
         const sortedGifts = [...this.availableGifts].sort((a, b) => (a.diamond_count || 0) - (b.diamond_count || 0));
         const filtered = sortedGifts.filter(gift =>
-            gift.name.toLowerCase().includes(query.toLowerCase())
+            gift.name.trim().toLowerCase().includes(query.toLowerCase())
         );
 
         if (filtered.length === 0) {
