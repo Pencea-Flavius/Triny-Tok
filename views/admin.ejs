@@ -110,7 +110,8 @@
 
     .gift-img { width: 30px; height: 30px; object-fit: contain; border-radius: 6px; }
     .mono { font-family: monospace; font-size: 11px; color: rgba(255,255,255,0.3); }
-    .diamonds { color: #00f2ea; font-weight: 700; }
+    .diamonds { color: #00f2ea; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; }
+    .diamonds svg { flex-shrink: 0; }
     .badge {
       display: inline-flex; align-items: center; gap: 4px;
       font-size: 10px; font-weight: 800; border-radius: 20px; padding: 3px 8px;
@@ -205,7 +206,9 @@
     { id: 'accounts', label: 'Accounts', count: stats.accounts, icon: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>' },
     { id: 'donors',   label: 'Viewers',  count: stats.donors,   icon: '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>' },
     { id: 'donations',label: 'Donations',count: stats.donations, icon: '<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' },
+    { id: 'streamers',label: 'Streamers', count: stats.streamers, icon: '<circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/><circle cx="19" cy="8" r="2"/><path d="M22 20v-1a4 4 0 0 0-4-4"/>' },
     { id: 'gamedata', label: 'Game Data', count: null,           icon: '<rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>' },
+    { id: 'aiGifts',  label: 'AI Gifts',  count: null,           icon: '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>' },
   ];
 
   function sortUrl(col) {
@@ -253,6 +256,8 @@
         <% } else if (tab === 'accounts') { %>User Accounts
         <% } else if (tab === 'donors') { %>TikTok Viewers
         <% } else if (tab === 'donations') { %>Donation History
+        <% } else if (tab === 'streamers') { %>Streamers
+        <% } else if (tab === 'aiGifts') { %>AI Preferred Gifts
         <% } else { %>Game Data
         <% } %>
       </h1>
@@ -277,8 +282,16 @@
         <div class="stat-value"><%= stats.donors %></div>
       </div>
       <div class="stat-card">
+        <div class="stat-label">Streamers</div>
+        <div class="stat-value"><%= stats.streamers %></div>
+      </div>
+      <div class="stat-card">
         <div class="stat-label">Isaac Items</div>
         <div class="stat-value"><%= stats.isaacItems %></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Isaac Bosses</div>
+        <div class="stat-value"><%= stats.isaacBosses %></div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Repo Items</div>
@@ -329,7 +342,7 @@
             <td><% if (g.imageUrl) { %><img src="<%= g.imageUrl %>" class="gift-img" alt=""><% } %></td>
             <td><strong style="color:#e8eaf0;"><%= g.name %></strong></td>
             <td><span class="mono"><%= g.id %></span></td>
-            <td><span class="diamonds">◆ <%= g.diamondCount %></span></td>
+            <td><span class="diamonds"><svg width="10" height="10" viewBox="0 0 640 640" fill="currentColor"><path d="M232.5 136L320 229L407.5 136L232.5 136zM447.9 163.1L375.6 240L504.6 240L448 163.1zM497.9 288L142.1 288L320 484.3L497.9 288zM135.5 240L264.5 240L192.2 163.1L135.6 240zM569.8 280.1L337.8 536.1C333.3 541.1 326.8 544 320 544C313.2 544 306.8 541.1 302.2 536.1L70.2 280.1C62.5 271.6 61.9 258.9 68.7 249.7L180.7 97.7C185.2 91.6 192.4 87.9 200 87.9L440 87.9C447.6 87.9 454.8 91.5 459.3 97.7L571.3 249.7C578.1 258.9 577.4 271.6 569.8 280.1z"/></svg> <%= g.diamondCount %></span></td>
             <td>
               <div class="action-group">
                 <button type="button" class="btn-sm btn-danger-sm" onclick="openModal('gift','<%= g.id %>','<%= g.name.replace(/'/g, `\\'`) %>')">
@@ -441,7 +454,7 @@
           <tr>
             <td><strong style="color:#e8eaf0;"><%= d.nickname || d.uniqueId || '—' %></strong></td>
             <td><span class="mono"><%= d.uniqueId || d.userId || '—' %></span></td>
-            <td><span class="diamonds">◆ <%= d.totalDiamonds || 0 %></span></td>
+            <td><span class="diamonds"><svg width="10" height="10" viewBox="0 0 640 640" fill="currentColor"><path d="M232.5 136L320 229L407.5 136L232.5 136zM447.9 163.1L375.6 240L504.6 240L448 163.1zM497.9 288L142.1 288L320 484.3L497.9 288zM135.5 240L264.5 240L192.2 163.1L135.6 240zM569.8 280.1L337.8 536.1C333.3 541.1 326.8 544 320 544C313.2 544 306.8 541.1 302.2 536.1L70.2 280.1C62.5 271.6 61.9 258.9 68.7 249.7L180.7 97.7C185.2 91.6 192.4 87.9 200 87.9L440 87.9C447.6 87.9 454.8 91.5 459.3 97.7L571.3 249.7C578.1 258.9 577.4 271.6 569.8 280.1z"/></svg> <%= d.totalDiamonds || 0 %></span></td>
             <td><span class="mono"><%= d.lastSeen ? new Date(d.lastSeen).toLocaleDateString('en-GB') : '—' %></span></td>
           </tr>
           <% }) %>
@@ -472,13 +485,168 @@
             <td><strong style="color:#e8eaf0;"><%= d.nickname || d.uniqueId || d.userId || '—' %></strong></td>
             <td><%= d.giftName || `Gift #${d.giftId}` %></td>
             <td><span class="mono">x<%= d.count %></span></td>
-            <td><span class="diamonds">◆ <%= d.totalDiamonds %></span></td>
+            <td><span class="diamonds"><svg width="10" height="10" viewBox="0 0 640 640" fill="currentColor"><path d="M232.5 136L320 229L407.5 136L232.5 136zM447.9 163.1L375.6 240L504.6 240L448 163.1zM497.9 288L142.1 288L320 484.3L497.9 288zM135.5 240L264.5 240L192.2 163.1L135.6 240zM569.8 280.1L337.8 536.1C333.3 541.1 326.8 544 320 544C313.2 544 306.8 541.1 302.2 536.1L70.2 280.1C62.5 271.6 61.9 258.9 68.7 249.7L180.7 97.7C185.2 91.6 192.4 87.9 200 87.9L440 87.9C447.6 87.9 454.8 91.5 459.3 97.7L571.3 249.7C578.1 258.9 577.4 271.6 569.8 280.1z"/></svg> <%= d.totalDiamonds %></span></td>
             <td><span class="mono"><%= d.timestamp ? new Date(d.timestamp).toLocaleDateString('en-GB') : '—' %></span></td>
           </tr>
           <% }) %>
         </tbody>
       </table>
     </div>
+
+    <!-- ── STREAMERS ────────────────────────────── -->
+    <% } else if (tab === 'streamers') { %>
+    <form class="toolbar" method="GET" action="/admin">
+      <input type="hidden" name="tab" value="streamers">
+      <% if (sort) { %><input type="hidden" name="sort" value="<%= sort %>"><input type="hidden" name="dir" value="<%= dir %>"><% } %>
+      <input class="search-input" type="text" name="search" placeholder="Search by TikTok ID or account..." value="<%= search %>">
+      <button class="btn-search" type="submit">Search</button>
+      <% if (search) { %><a class="btn-clear" href="/admin?tab=streamers<%= sort ? '&sort=' + sort + '&dir=' + dir : '' %>">Clear</a><% } %>
+    </form>
+    <div class="results-count"><%= streamers.length %> streamer<%= streamers.length !== 1 ? 's' : '' %><% if (search) { %> matching "<%= search %>"<% } %></div>
+    <% if (streamers.length === 0) { %>
+    <div class="empty-state" style="margin-top:16px;">No streamers yet — connect to a TikTok live to register a streamer session.</div>
+    <% } else { %>
+    <div class="table-wrap" style="margin-top:12px;">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:44px;"></th>
+            <th class="<%= sort === 'uniqueId' ? 'sort-active' : '' %>"><a href="<%- sortUrl('uniqueId') %>">TikTok ID <%- sortIcon('uniqueId') %></a></th>
+            <th class="<%= sort === 'account' ? 'sort-active' : '' %>"><a href="<%- sortUrl('account') %>">Linked Account <%- sortIcon('account') %></a></th>
+            <th class="<%= sort === 'donations' ? 'sort-active' : '' %>"><a href="<%- sortUrl('donations') %>">Donations <%- sortIcon('donations') %></a></th>
+            <th class="<%= sort === 'diamonds' ? 'sort-active' : '' %>"><a href="<%- sortUrl('diamonds') %>">Total Diamonds <%- sortIcon('diamonds') %></a></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% streamers.forEach(s => { %>
+          <tr>
+            <td>
+              <img src="https://unavatar.io/tiktok/<%= s.uniqueId %>" style="width:30px;height:30px;border-radius:50%;object-fit:cover;background:rgba(0,242,234,0.08);" onerror="this.style.display='none'" alt="">
+            </td>
+            <td><strong style="color:#e8eaf0;">@<%= s.uniqueId %></strong></td>
+            <td>
+              <% if (s.username) { %>
+                <span style="color:rgba(255,255,255,0.7);">@<%= s.username %></span>
+                <span class="mono" style="margin-left:6px;font-size:10px;"><%= s.email %></span>
+              <% } else { %>
+                <span style="color:rgba(255,255,255,0.2);">—</span>
+              <% } %>
+            </td>
+            <td><span class="mono"><%= s.donationCount %></span></td>
+            <td>
+              <span class="diamonds">
+                <svg width="10" height="10" viewBox="0 0 640 640" fill="currentColor"><path d="M232.5 136L320 229L407.5 136L232.5 136zM447.9 163.1L375.6 240L504.6 240L448 163.1zM497.9 288L142.1 288L320 484.3L497.9 288zM135.5 240L264.5 240L192.2 163.1L135.6 240zM569.8 280.1L337.8 536.1C333.3 541.1 326.8 544 320 544C313.2 544 306.8 541.1 302.2 536.1L70.2 280.1C62.5 271.6 61.9 258.9 68.7 249.7L180.7 97.7C185.2 91.6 192.4 87.9 200 87.9L440 87.9C447.6 87.9 454.8 91.5 459.3 97.7L571.3 249.7C578.1 258.9 577.4 271.6 569.8 280.1z"/></svg>
+                <%= s.totalDiamonds %>
+              </span>
+            </td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <% } %>
+
+    <!-- ── AI PREFERRED GIFTS ───────────────────── -->
+    <% } else if (tab === 'aiGifts') { %>
+    <p style="font-size:13px;color:rgba(255,255,255,0.4);margin-bottom:20px;line-height:1.6;">
+      Gifts in this list are used by the AI preset generator as a secondary priority — after real viewer donations, before random fallback. Add gifts you commonly see viewers send.
+    </p>
+
+    <form method="POST" action="/admin/ai-gifts/add" style="display:flex;gap:10px;align-items:flex-end;margin-bottom:24px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:220px;">
+        <label style="display:block;font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:6px;">Gift Name</label>
+        <div style="position:relative;">
+          <input id="aiGiftInput" name="giftName" class="search-input" type="text" placeholder="Type to search gifts..." autocomplete="off" style="width:100%;">
+          <div id="aiGiftDropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:100;background:#0c1220;border:1px solid rgba(255,255,255,0.1);border-radius:10px;overflow:hidden;max-height:240px;overflow-y:auto;"></div>
+        </div>
+      </div>
+      <button type="submit" class="btn-search" style="height:38px;">Add Gift</button>
+    </form>
+
+    <div style="font-size:12px;color:rgba(255,255,255,0.3);margin-bottom:12px;"><%= aiPreferredGifts.length %> preferred gift<%= aiPreferredGifts.length !== 1 ? 's' : '' %></div>
+
+    <% if (aiPreferredGifts.length === 0) { %>
+    <div class="empty-state">No preferred gifts yet. Add gifts above to help the AI make better presets.</div>
+    <% } else { %>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:44px;"></th>
+            <th>Gift Name</th>
+            <th>Diamonds</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% aiPreferredGifts.forEach(g => { %>
+          <%
+            const catalogEntry = allGifts.find(ag => ag.name.trim() === g.name.trim());
+            const imgUrl = catalogEntry && catalogEntry.imageUrl ? catalogEntry.imageUrl : null;
+            const diamonds = catalogEntry ? (catalogEntry.diamond_count || 0) : g.diamond_count;
+          %>
+          <tr>
+            <td><% if (imgUrl) { %><img src="<%= imgUrl %>" class="gift-img" alt=""><% } %></td>
+            <td><strong style="color:#e8eaf0;"><%= g.name %></strong></td>
+            <td><span class="diamonds"><svg width="10" height="10" viewBox="0 0 640 640" fill="currentColor"><path d="M232.5 136L320 229L407.5 136L232.5 136zM447.9 163.1L375.6 240L504.6 240L448 163.1zM497.9 288L142.1 288L320 484.3L497.9 288zM135.5 240L264.5 240L192.2 163.1L135.6 240zM569.8 280.1L337.8 536.1C333.3 541.1 326.8 544 320 544C313.2 544 306.8 541.1 302.2 536.1L70.2 280.1C62.5 271.6 61.9 258.9 68.7 249.7L180.7 97.7C185.2 91.6 192.4 87.9 200 87.9L440 87.9C447.6 87.9 454.8 91.5 459.3 97.7L571.3 249.7C578.1 258.9 577.4 271.6 569.8 280.1z"/></svg> <%= diamonds %></span></td>
+            <td>
+              <div class="action-group">
+                <form method="POST" action="/admin/ai-gifts/<%= g.id %>/delete" style="margin:0;">
+                  <button type="submit" class="btn-sm btn-danger-sm">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                    Remove
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <% } %>
+
+    <script>
+    (function() {
+      const allGifts = <%- JSON.stringify(allGifts.map(g => ({ name: g.name, diamonds: g.diamond_count || 0, imageUrl: g.imageUrl || null }))) %>;
+      const input = document.getElementById('aiGiftInput');
+      const dropdown = document.getElementById('aiGiftDropdown');
+
+      function renderDropdown(query) {
+        const q = (query || '').toLowerCase().trim();
+        const matches = allGifts
+          .filter(g => g.name.toLowerCase().includes(q))
+          .sort((a, b) => a.diamonds - b.diamonds)
+          .slice(0, 20);
+
+        if (matches.length === 0) { dropdown.style.display = 'none'; return; }
+
+        dropdown.innerHTML = matches.map(g => `
+          <div class="ai-gift-option" data-name="${g.name.replace(/"/g,'&quot;')}" style="display:flex;align-items:center;gap:10px;padding:8px 14px;cursor:pointer;font-size:13px;color:#c8cad8;transition:background 0.1s;">
+            ${g.imageUrl ? `<img src="${g.imageUrl}" style="width:24px;height:24px;object-fit:contain;border-radius:4px;flex-shrink:0;">` : '<div style="width:24px;height:24px;border-radius:4px;background:rgba(255,255,255,0.05);flex-shrink:0;"></div>'}
+            <span style="flex:1;">${g.name}</span>
+            <span style="color:#00f2ea;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:3px;"><svg width="9" height="9" viewBox="0 0 640 640" fill="currentColor"><path d="M232.5 136L320 229L407.5 136L232.5 136zM447.9 163.1L375.6 240L504.6 240L448 163.1zM497.9 288L142.1 288L320 484.3L497.9 288zM135.5 240L264.5 240L192.2 163.1L135.6 240zM569.8 280.1L337.8 536.1C333.3 541.1 326.8 544 320 544C313.2 544 306.8 541.1 302.2 536.1L70.2 280.1C62.5 271.6 61.9 258.9 68.7 249.7L180.7 97.7C185.2 91.6 192.4 87.9 200 87.9L440 87.9C447.6 87.9 454.8 91.5 459.3 97.7L571.3 249.7C578.1 258.9 577.4 271.6 569.8 280.1z"/></svg> ${g.diamonds}</span>
+          </div>
+        `).join('');
+
+        dropdown.querySelectorAll('.ai-gift-option').forEach(el => {
+          el.addEventListener('mouseenter', () => el.style.background = 'rgba(255,255,255,0.05)');
+          el.addEventListener('mouseleave', () => el.style.background = '');
+          el.addEventListener('mousedown', e => {
+            e.preventDefault();
+            input.value = el.dataset.name;
+            dropdown.style.display = 'none';
+          });
+        });
+
+        dropdown.style.display = 'block';
+      }
+
+      input.addEventListener('input', () => renderDropdown(input.value));
+      input.addEventListener('focus', () => { if (input.value) renderDropdown(input.value); });
+      document.addEventListener('click', e => { if (!input.contains(e.target) && !dropdown.contains(e.target)) dropdown.style.display = 'none'; });
+    })();
+    </script>
 
     <!-- ── GAME DATA ──────────────────────────────── -->
     <% } else if (tab === 'gamedata') { %>
@@ -489,6 +657,12 @@
         <div class="game-card-sub">The Binding of Isaac</div>
         <div class="game-card-count"><%= stats.isaacItems %></div>
         <div class="game-card-label">items in database</div>
+      </div>
+      <div class="game-card">
+        <div class="game-card-title">Isaac Bosses</div>
+        <div class="game-card-sub">The Binding of Isaac</div>
+        <div class="game-card-count"><%= stats.isaacBosses %></div>
+        <div class="game-card-label">bosses in database</div>
       </div>
       <div class="game-card">
         <div class="game-card-title">Repo Items</div>

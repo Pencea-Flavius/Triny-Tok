@@ -416,8 +416,11 @@ export function initRepoUI(ioConnection) {
         $('#repoDelayValueDisplay').text('0.2s');
     }
 
+    let editingGiftName = null;
+
     function openModal(editGiftName) {
         resetModal();
+        editingGiftName = editGiftName || null;
         if (editGiftName) {
             giftDropdown.setValue(editGiftName);
             $('#repoModalTitle').text('Edit R.E.P.O. Effect');
@@ -520,10 +523,9 @@ export function initRepoUI(ioConnection) {
             payload = { code, waitForStreak, targetRandom: $('#repoTargetRandom').is(':checked'), ...(executeDelay !== undefined ? { executeDelay } : {}) };
         }
 
-        const isEdit = $('#repoModalTitle').text().includes('Edit');
-        if (!isEdit && currentCommands[giftName]) { showToast(`"${giftName}" already mapped! Delete it first.`, 'error'); return; }
+        if (currentCommands[giftName] && giftName !== editingGiftName) { showToast(`"${giftName}" already mapped! Delete it first.`, 'error'); return; }
 
-        saveMapping(giftName, payload, 'save', () => { $('#repoEffectModal').hide(); resetModal(); });
+        saveMapping(giftName, payload, 'save', editingGiftName !== giftName ? editingGiftName : null, () => { $('#repoEffectModal').hide(); resetModal(); editingGiftName = null; });
     }
 
     function isSpawnCode(code) {
@@ -591,9 +593,11 @@ export function initRepoUI(ioConnection) {
         });
     }
 
-    async function saveMapping(giftName, effect, action, onSuccess) {
+    async function saveMapping(giftName, effect, action, oldGiftName, onSuccess) {
+        // support old callers that pass onSuccess as 4th arg (delete flow)
+        if (typeof oldGiftName === 'function') { onSuccess = oldGiftName; oldGiftName = null; }
         try {
-            const r = await fetch('/api/repo/commands', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ giftName, effect, action }) });
+            const r = await fetch('/api/repo/commands', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ giftName, effect, action, oldGiftName }) });
             const d = await r.json();
             if (d.success) {
                 currentCommands = d.commands;

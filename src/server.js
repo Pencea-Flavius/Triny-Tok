@@ -15,6 +15,7 @@ const path = require('path');
 const fs = require('fs');
 const db = require('./database/db_manager');
 const auth = require('./auth/auth');
+const { suggestGame, suggestPreset, checkOllamaAvailable } = require('./ai/ollamaClient');
 
 // read settings
 const configPath = path.join(__dirname, '../config/config.json');
@@ -51,11 +52,52 @@ try {
 // get available gifts
 let availableGifts = [];
 
+const GIFT_IMG_DIR = path.join(__dirname, '../public/images/gifts');
+if (!fs.existsSync(GIFT_IMG_DIR)) fs.mkdirSync(GIFT_IMG_DIR, { recursive: true });
+
+function localGiftImagePath(giftId, remoteUrl) {
+    const ext = remoteUrl.includes('.png') ? '.png' : '.webp';
+    return path.join(GIFT_IMG_DIR, `${giftId}${ext}`);
+}
+
+function localGiftImageUrl(giftId, remoteUrl) {
+    const ext = remoteUrl.includes('.png') ? '.png' : '.webp';
+    return `/images/gifts/${giftId}${ext}`;
+}
+
+async function downloadGiftImage(giftId, remoteUrl) {
+    if (!giftId || !remoteUrl) return;
+    const dest = localGiftImagePath(giftId, remoteUrl);
+    if (fs.existsSync(dest)) return; // already cached
+    try {
+        const res = await fetch(remoteUrl, { signal: AbortSignal.timeout(8000) });
+        if (!res.ok) return;
+        const buf = Buffer.from(await res.arrayBuffer());
+        fs.writeFileSync(dest, buf);
+    } catch {
+        // network error or timeout — skip silently
+    }
+}
+
 async function initDatabase() {
     try {
         await db.connectGlobal();
-        availableGifts = await db.getGifts();
+        availableGifts = (await db.getGifts()).map(g => ({ ...g, name: (g.name || '').trim() }));
         console.info(`[DB] Loaded ${availableGifts.length} gifts from SQLite.`);
+        // Download missing gift images in the background (rate-limited to avoid hammering CDN)
+        (async () => {
+            let downloaded = 0;
+            for (const g of availableGifts) {
+                const url = g.imageUrl || g.image?.url_list?.[0];
+                if (!url) continue;
+                const dest = localGiftImagePath(g.id, url);
+                if (fs.existsSync(dest)) continue;
+                await downloadGiftImage(g.id, url);
+                downloaded++;
+                if (downloaded % 50 === 0) await new Promise(r => setTimeout(r, 500)); // pause every 50
+            }
+            if (downloaded > 0) console.info(`[Gifts] Cached ${downloaded} gift images locally.`);
+        })();
     } catch (e) {
         console.error('[DB] Failed to load gifts from database', e);
     }
@@ -276,20 +318,27 @@ async function finalizeGift(msg, updateDbAndCommand = true) {
                 .catch(err => console.error('[DB] Failed to record donation', err));
         }
 
-        // auto learn new gifts
+        // auto learn new gifts + refresh stale image URLs
+        const freshImageUrl = (msg.giftDetails && msg.giftDetails.giftImage && msg.giftDetails.giftImage.urlList && msg.giftDetails.giftImage.urlList[0]) || msg.giftPictureUrl || '';
         const exists = availableGifts.find(g => g.id === msg.giftId);
         if (!exists && msg.giftId && msg.giftName && db) {
-            const newGift = {
-                id: msg.giftId,
-                name: msg.giftName,
-                diamondCount: msg.diamondCount || 0,
-                imageUrl: (msg.giftDetails && msg.giftDetails.giftImage && msg.giftDetails.giftImage.urlList && msg.giftDetails.giftImage.urlList[0]) || msg.giftPictureUrl || ''
-            };
-            availableGifts.push(newGift); // update local ram
-            io.emit('giftsUpdated');      // tell frontend
+            const newGift = { id: msg.giftId, name: msg.giftName, diamondCount: msg.diamondCount || 0, imageUrl: freshImageUrl };
+            availableGifts.push(newGift);
+            io.emit('giftsUpdated');
             db.upsertGift(newGift).then(() => {
                 console.info(`[DB] Auto-learned new gift: ${msg.giftName}`);
             }).catch(err => console.error('[DB] Failed to learn new gift', err));
+            if (freshImageUrl) downloadGiftImage(msg.giftId, freshImageUrl);
+        } else if (exists && freshImageUrl && freshImageUrl !== (exists.imageUrl || exists.image?.url_list?.[0] || '')) {
+            // Stale CDN URL — refresh with the fresh URL from the event
+            exists.imageUrl = freshImageUrl;
+            if (exists.image) exists.image.url_list = [freshImageUrl];
+            io.emit('giftsUpdated');
+            if (db && exists.id) {
+                db.upsertGift({ id: exists.id, name: exists.name, diamondCount: exists.diamond_count || exists.diamondCount || 0, imageUrl: freshImageUrl })
+                    .catch(err => console.error('[DB] Failed to refresh gift image', err));
+            }
+            downloadGiftImage(exists.id, freshImageUrl);
         }
     }
     
@@ -809,6 +858,14 @@ app.get('/api/commands', (req, res) => {
     res.json({ success: true, commands: config.giftCommands, followCommand: config.followCommand, likeCommand: config.likeCommand });
 });
 
+function renameKey(obj, oldKey, newKey, newValue) {
+    const result = {};
+    for (const [k, v] of Object.entries(obj)) {
+        result[k === oldKey ? newKey : k] = k === oldKey ? newValue : v;
+    }
+    return result;
+}
+
 app.post('/api/commands', express.json(), (req, res) => {
     const { giftName, oldGiftName, command, action, followCommand, likeCommand } = req.body;
 
@@ -819,16 +876,11 @@ app.post('/api/commands', express.json(), (req, res) => {
         if (action === 'delete') {
             delete config.giftCommands[giftName];
         } else {
-            // clean up old name if they renamed
+            const value = typeof command === 'object' ? command : { command };
             if (oldGiftName && oldGiftName !== giftName) {
-                delete config.giftCommands[oldGiftName];
-            }
-
-            // save complex obj or simple string
-            if (typeof command === 'object') {
-                config.giftCommands[giftName] = command;
+                config.giftCommands = renameKey(config.giftCommands, oldGiftName, giftName, value);
             } else {
-                config.giftCommands[giftName] = { command };
+                config.giftCommands[giftName] = value;
             }
         }
     }
@@ -842,14 +894,41 @@ app.post('/api/commands', express.json(), (req, res) => {
 });
 
 app.get('/api/gifts', (req, res) => {
-    // fix the db format to match what the frontend expects
-    const normalized = availableGifts.map(g => ({
-        id: g.id,
-        name: g.name,
-        diamond_count: g.diamond_count ?? g.diamondCount ?? 0,
-        image: { url_list: g.imageUrl ? [g.imageUrl] : (g.image?.url_list || []) }
-    }));
+    const normalized = availableGifts.map(g => {
+        const remoteUrl = g.imageUrl || g.image?.url_list?.[0] || '';
+        let imageUrl = remoteUrl;
+        if (remoteUrl && g.id) {
+            const local = localGiftImagePath(g.id, remoteUrl);
+            if (fs.existsSync(local)) imageUrl = localGiftImageUrl(g.id, remoteUrl);
+        }
+        return {
+            id: g.id,
+            name: g.name,
+            diamond_count: g.diamond_count ?? g.diamondCount ?? 0,
+            image: { url_list: imageUrl ? [imageUrl] : [] },
+        };
+    });
     res.json({ success: true, gifts: normalized });
+});
+
+// receive image blob from browser cache and save locally
+app.post('/api/gifts/:id/cache-image', express.raw({ type: ['image/*', 'application/octet-stream'], limit: '2mb' }), (req, res) => {
+    const giftId = req.params.id;
+    const contentType = req.headers['content-type'] || '';
+    const ext = contentType.includes('png') ? '.png' : '.webp';
+    const dest = path.join(GIFT_IMG_DIR, `${giftId}${ext}`);
+    // also remove stale opposite-ext file if present
+    const otherExt = ext === '.png' ? '.webp' : '.png';
+    const other = path.join(GIFT_IMG_DIR, `${giftId}${otherExt}`);
+    try {
+        if (req.body && req.body.length > 0) {
+            if (fs.existsSync(other)) fs.unlinkSync(other);
+            fs.writeFileSync(dest, req.body);
+        }
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
 });
 
 // delete gift from db — admin only
@@ -1027,6 +1106,340 @@ app.delete('/api/presets/:id', auth.requireAuth, async (req, res) => {
     }
 });
 
+// ── AI Agents ──────────────────────────────────────────────────────────────
+
+app.get('/api/ai/status', async (req, res) => {
+    const available = await checkOllamaAvailable();
+    res.json({ available, model: process.env.OLLAMA_MODEL || 'qwen2.5:7b' });
+});
+
+app.get('/api/ai/game-suggestion', auth.requireAuth, async (req, res) => {
+    try {
+        const available = await checkOllamaAvailable();
+        if (!available) {
+            return res.status(503).json({ success: false, error: 'Ollama is not running. Start it with: ollama serve' });
+        }
+        const userPrefs = await db.getUserPreferences(req.session.user.id);
+        const prefsLoader = async () => {
+            if (!userPrefs) return { note: 'No preferences set — go to account page to set them' };
+            const parse = (v) => { try { return JSON.parse(v); } catch { return []; } };
+            return {
+                favorite_games: parse(userPrefs.favorite_games),
+                streaming_style: parse(userPrefs.streaming_genre),
+                audience: parse(userPrefs.target_audience),
+                schedule: parse(userPrefs.streaming_schedule),
+                game_genres: parse(userPrefs.game_genres),
+            };
+        };
+        const userPrompt = req.query.prompt || '';
+        const suggestion = await suggestGame(prefsLoader, userPrompt);
+        res.json({ success: true, suggestion, model: process.env.OLLAMA_MODEL || 'qwen2.5:7b' });
+    } catch (e) {
+        console.error('[AI game-suggestion]', e.message);
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+app.post('/api/ai/preset-suggestion', express.json(), auth.requireAuth, async (req, res) => {
+    try {
+        const available = await checkOllamaAvailable();
+        if (!available) {
+            return res.status(503).json({ success: false, error: 'Ollama is not running. Start it with: ollama serve' });
+        }
+
+        const { game, prompt: userPrompt } = req.body;
+        const validGames = ['minecraft', 'isaac', 'repo', 'goi'];
+        if (!game || !validGames.includes(game)) {
+            return res.status(400).json({ success: false, error: 'Invalid game' });
+        }
+
+        const globalDb = await db.connectGlobal();
+        const streamerId = db.currentStreamerId;
+
+        // helper — pick N random elements from an array
+        const rnd = (arr, n) => {
+            const copy = [...arr];
+            for (let i = copy.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [copy[i], copy[j]] = [copy[j], copy[i]];
+            }
+            return copy.slice(0, n);
+        };
+
+        // ── getDonations handler ──────────────────────────────────────────
+        const MIN_GIFTS = 8; // minimum gifts needed for a useful preset
+        const getDonations = async () => {
+            const preferredRaw = await db.getAiPreferredGifts();
+            const preferredGifts = preferredRaw.map(p => {
+                const match = availableGifts.find(g => g.name.trim() === p.name.trim());
+                return match
+                    ? { gift: match.name, diamonds: match.diamond_count ?? match.diamondCount ?? 0, preferred: true }
+                    : { gift: p.name, diamonds: p.diamond_count || 0, preferred: true };
+            });
+
+            if (!streamerId) {
+                const prefNames = new Set(preferredGifts.map(g => g.gift));
+                const pool = availableGifts.filter(g => !prefNames.has(g.name));
+                const needed = Math.max(0, MIN_GIFTS - preferredGifts.length);
+                const fallbackGifts = needed > 0
+                    ? rnd(pool, needed).map(g => ({ gift: g.name, diamonds: g.diamond_count ?? g.diamondCount ?? 0 }))
+                    : [];
+                return { topGifts: [], preferredGifts, fallbackGifts, note: 'No stream session — using preferred + catalog gifts' };
+            }
+
+            const rows = await db.getRecentDonations(streamerId, 50);
+            const summary = {};
+            for (const d of rows) {
+                const n = d.giftName || 'Unknown';
+                if (!summary[n]) summary[n] = { count: 0, diamonds: d.giftDiamonds || 0 };
+                summary[n].count += d.count || 1;
+            }
+            const topGifts = Object.entries(summary)
+                .sort((a, b) => b[1].count - a[1].count)
+                .slice(0, 15)
+                .map(([name, stats]) => ({ gift: name, count: stats.count, diamonds: stats.diamonds }));
+
+            const realNames = new Set(topGifts.map(g => g.gift));
+            const preferredExtra = preferredGifts.filter(p => !realNames.has(p.gift));
+
+            let fallbackGifts = [];
+            const coveredCount = topGifts.length + preferredExtra.length;
+            if (coveredCount < MIN_GIFTS) {
+                const knownNames = new Set([...realNames, ...preferredExtra.map(p => p.gift)]);
+                const pool = availableGifts.filter(g => !knownNames.has(g.name));
+                const needed = MIN_GIFTS - coveredCount;
+                fallbackGifts = rnd(pool, needed).map(g => ({ gift: g.name, diamonds: g.diamond_count ?? g.diamondCount ?? 0 }));
+            }
+            return { topGifts, preferredGifts: preferredExtra, fallbackGifts };
+        };
+
+        // ── random catalog handlers ───────────────────────────────────────
+        const isaacProfiles = isaacBridge.profiles.length > 0
+            ? isaacBridge.profiles
+            : (config.isaacProfiles || ISAAC_DEFAULT_PROFILES);
+
+        let allIsaacItems = [], allIsaacBosses = [], allRepoItems = [], allRepoEnemies = [], allRepoValuables = [];
+        if (game === 'isaac') {
+            [allIsaacItems, allIsaacBosses] = await Promise.all([db.getIsaacItems(), db.getIsaacBosses()]);
+        } else if (game === 'repo') {
+            [allRepoItems, allRepoEnemies, allRepoValuables] = await Promise.all([
+                db.getRepoItems(),
+                db.getRepoEnemies(),
+                db.getRepoValuables(),
+            ]);
+        }
+
+        const getProfiles = (category) => {
+            let pool = isaacProfiles;
+            if (category) pool = pool.filter(p => p.category && p.category.toLowerCase() === category.toLowerCase());
+            return pool.map(p => ({ id: p.id, name: p.name, desc: p.desc, category: p.category }));
+        };
+        const getItems = (filters, n) => {
+            if (game === 'isaac') {
+                let pool = allIsaacItems;
+                if (filters.quality) pool = pool.filter(r => (r.quality || 0) >= filters.quality);
+                if (filters.pool)    pool = pool.filter(r => r.pool && r.pool.toLowerCase().includes(filters.pool.toLowerCase()));
+                if (filters.type)    pool = pool.filter(r => r.type && r.type.toLowerCase().includes(filters.type.toLowerCase()));
+                return rnd(pool, n).map(r => ({ itemId: r.id, name: r.name, quality: r.quality, pool: r.pool || null, type: r.type || null }));
+            }
+            let pool = allRepoItems;
+            if (filters.type) pool = pool.filter(r => r.item_type && r.item_type.toLowerCase() === filters.type.toLowerCase());
+            return rnd(pool, n).map(r => ({ id: r.id, name: r.name, type: r.item_type || null }));
+        };
+        const getBosses = (n) => rnd(allIsaacBosses, n).map(r => ({ bossId: r.id, name: r.name }));
+        const getEnemies   = (danger, n) => {
+            let pool = allRepoEnemies;
+            if (danger !== null && danger !== undefined) {
+                const lvl = { low: 1, medium: 2, high: 3 }[String(danger).toLowerCase()] || Number(danger);
+                if (lvl) pool = pool.filter(r => r.danger_level === lvl);
+            }
+            return rnd(pool, n).map(r => ({ id: r.id, name: r.name, danger_level: r.danger_level, hp: r.hp }));
+        };
+        const getValuables = (n) => rnd(allRepoValuables, n).map(r => ({ id: r.id, name: r.name }));
+
+        const REPO_UPGRADE_TO_EFFECT = {
+            'spawncollectable_ItemUpgradePlayerEnergy':      'player_upgrade_energy',
+            'spawncollectable_ItemUpgradePlayerHealth':       'player_upgrade_health',
+            'spawncollectable_ItemUpgradePlayerExtraJump':    'player_upgrade_jump',
+            'spawncollectable_ItemUpgradePlayerGrabRange':    'player_upgrade_grabrange',
+            'spawncollectable_ItemUpgradePlayerGrabStrength': 'player_upgrade_grabstrength',
+            'spawncollectable_ItemUpgradePlayerSprintSpeed':  'player_upgrade_sprint',
+            'spawncollectable_ItemUpgradePlayerTumbleLaunch': 'player_upgrade_tumble',
+            'spawncollectable_ItemUpgradeMapPlayerCount':     'player_upgrade_map',
+        };
+        const getEffects = () => [
+            { id: 'player_heal',              name: 'Heal',                  category: 'Player',   desc: '+100 health',                timed: false },
+            { id: 'player_hurt',              name: 'Hurt',                  category: 'Player',   desc: '-25 health',                 timed: false },
+            { id: 'player_kill',              name: 'Kill',                  category: 'Player',   desc: 'Instant death',              timed: false },
+            { id: 'player_refill_energy',     name: 'Refill Stamina',        category: 'Player',   desc: 'Full stamina',               timed: false },
+            { id: 'player_drain_energy',      name: 'Drain Stamina',         category: 'Player',   desc: 'Zero stamina',               timed: false },
+            { id: 'player_invincible',        name: 'Invincible',            category: 'Toggle',   desc: 'God mode',                   timed: true  },
+            { id: 'player_infinitestam',      name: 'Infinite Stamina',      category: 'Toggle',   desc: 'Infinite stamina',           timed: true  },
+            { id: 'player_disableinput',      name: 'Disable Input',         category: 'Toggle',   desc: 'Freeze controls',            timed: true  },
+            { id: 'player_disablecrouch',     name: 'Disable Crouch',        category: 'Toggle',   desc: "Can't crouch",               timed: true  },
+            { id: 'player_fast',              name: 'Speed Boost',           category: 'Movement', desc: '2x speed',                   timed: true  },
+            { id: 'player_slow',              name: 'Slow',                  category: 'Movement', desc: '0.5x speed',                 timed: true  },
+            { id: 'player_antigravity',       name: 'Anti Gravity',          category: 'Movement', desc: 'Float',                      timed: true  },
+            { id: 'player_teleport_random',   name: 'TP to Random Player',   category: 'Movement', desc: 'TP to a random player',      timed: false },
+            { id: 'player_teleport_extraction', name: 'TP to Extraction',    category: 'Movement', desc: 'TP to nearest exit',         timed: false },
+            { id: 'player_teleport_truck',    name: 'TP to Truck',           category: 'Movement', desc: 'TP back to truck',           timed: false },
+            { id: 'player_teleport_room',     name: 'TP to Random Room',     category: 'Movement', desc: 'TP to random level point',   timed: false },
+            { id: 'playerPitch_high',         name: 'High Pitch',            category: 'Voice',    desc: 'Chipmunk voice',             timed: true  },
+            { id: 'playerPitch_low',          name: 'Low Pitch',             category: 'Voice',    desc: 'Deep voice',                 timed: true  },
+            { id: 'revive_all',               name: 'Revive All',            category: 'World',    desc: 'Revives all dead players',   timed: false },
+            { id: 'closeAllDoors',            name: 'Close All Doors',       category: 'World',    desc: 'Slams every door',           timed: false },
+            { id: 'increase_haul_goal',       name: 'Increase Quota (1.5x)', category: 'World',    desc: 'Multiplies quota by 1.5',    timed: false },
+            { id: 'decrease_haul_goal',       name: 'Decrease Quota (0.5x)', category: 'World',    desc: 'Multiplies quota by 0.5',    timed: false },
+            { id: 'destroy_random_item',      name: 'Destroy Random Item',   category: 'World',    desc: 'Destroys a random valuable', timed: false },
+            { id: 'player_upgrade_energy',      name: 'Upgrade Stamina',     category: 'Upgrade',  desc: 'Apply stamina upgrade directly',    timed: false },
+            { id: 'player_upgrade_health',      name: 'Upgrade Health',      category: 'Upgrade',  desc: 'Apply health upgrade directly',     timed: false },
+            { id: 'player_upgrade_jump',        name: 'Upgrade Extra Jump',  category: 'Upgrade',  desc: 'Apply extra jump upgrade directly', timed: false },
+            { id: 'player_upgrade_grabrange',   name: 'Upgrade Grab Range',  category: 'Upgrade',  desc: 'Apply grab range upgrade directly', timed: false },
+            { id: 'player_upgrade_grabstrength',name: 'Upgrade Grab Strength',category:'Upgrade',  desc: 'Apply grab strength upgrade',       timed: false },
+            { id: 'player_upgrade_sprint',      name: 'Upgrade Sprint Speed',category: 'Upgrade',  desc: 'Apply sprint speed upgrade directly',timed: false},
+            { id: 'player_upgrade_tumble',      name: 'Upgrade Tumble',      category: 'Upgrade',  desc: 'Apply tumble launch upgrade',       timed: false },
+            { id: 'player_upgrade_map',         name: 'Upgrade Map Count',   category: 'Upgrade',  desc: 'Add player slot to map',            timed: false },
+        ];
+
+        // ── createPreset handler (saves to DB) ─────────────────────────
+        let createdPreset = null;
+        const createPreset = async (args) => {
+            const rawName = (args.name || '').trim();
+            if (!rawName) return { error: 'name is required. You must provide a name field.' };
+            // normalize: CamelCase → spaces, underscores/hyphens → spaces, title case
+            const pname = rawName
+                .replace(/([a-z])([A-Z])/g, '$1 $2')
+                .replace(/[_-]+/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim()
+                .replace(/\b\w/g, c => c.toUpperCase());
+            const cmdCount = Object.keys(args.commands || args.gift_commands || {}).length;
+            if (cmdCount < 5) return { error: `Too few gift mappings (${cmdCount}). You must map at least 5 gifts — use all the gift names from the PRESET GIFT KEYS list in the system prompt.` };
+            const detail = PRESET_DETAIL_TABLE[game];
+            let data;
+            // sanitize: remove keys that are obviously not gift names (leaked object properties)
+            const INVALID_KEYS = new Set(['action','itemId','bossId','amount','autoCollect','code','duration','targetRandom','type','quality','pool']);
+            const sanitizeCommands = (cmds) => {
+                if (!cmds || typeof cmds !== 'object') return {};
+                return Object.fromEntries(Object.entries(cmds).filter(([k]) => !INVALID_KEYS.has(k)));
+            };
+
+            // validate: fix use_item on non-Active items → downgrade to spawn_item
+            const fixIsaacCommands = async (cmds) => {
+                const activeIds = new Set(
+                    (await globalDb.all(`SELECT i.id FROM isaac_items i JOIN isaac_item_types it ON i.id=it.item_id JOIN isaac_types t ON it.type_id=t.id WHERE t.name='Active'`))
+                    .map(r => r.id)
+                );
+                const fixed = {};
+                for (const [gift, val] of Object.entries(cmds)) {
+                    if (val && typeof val === 'object' && val.action === 'use_item' && !activeIds.has(val.itemId)) {
+                        console.log(`[AI] fixed use_item→spawn_item for itemId ${val.itemId} (not Active)`);
+                        fixed[gift] = { action: 'spawn_item', itemId: val.itemId, amount: 1, autoCollect: false };
+                    } else {
+                        fixed[gift] = val;
+                    }
+                }
+                return fixed;
+            };
+
+            if (game === 'isaac') {
+                const sanitized = sanitizeCommands(args.commands);
+                const fixed = await fixIsaacCommands(sanitized);
+                data = { isaac_commands: JSON.stringify(fixed) };
+            } else if (game === 'repo') { data = { repo_commands: JSON.stringify(sanitizeCommands(args.commands)) };
+            } else if (game === 'goi')  { data = { goi_commands:  JSON.stringify(sanitizeCommands(args.commands)) };
+            } else {
+                console.log('[AI minecraft] raw args:', JSON.stringify(args));
+                const rawGiftCmds = args.gift_commands || args.commands || {};
+                // normalize to { command: "cmd1\ncmd2", cooldown: 0 } — the format bridge + UI expect
+                const normalizedGiftCmds = Object.fromEntries(
+                    Object.entries(rawGiftCmds).map(([gift, val]) => {
+                        if (Array.isArray(val))        return [gift, { command: val.join('\n'), cooldown: 0 }];
+                        if (typeof val === 'string')   return [gift, { command: val, cooldown: 0 }];
+                        if (val && typeof val === 'object') {
+                            if (typeof val.command === 'string') return [gift, val];
+                            if (Array.isArray(val.commands))     return [gift, { command: val.commands.join('\n'), cooldown: val.cooldown || 0 }];
+                        }
+                        return [gift, val];
+                    })
+                );
+                console.log('[AI minecraft] normalized:', JSON.stringify(normalizedGiftCmds));
+                data = {
+                    host: (config.minecraft && config.minecraft.host) || 'localhost',
+                    port: (config.minecraft && config.minecraft.port) || 25575,
+                    auto_connect: 0,
+                    target_players: JSON.stringify(config.targetPlayers || []),
+                    gift_commands:  JSON.stringify(normalizedGiftCmds),
+                    follow_command: JSON.stringify(args.follow_command || {}),
+                    like_command:   JSON.stringify(args.like_command   || {}),
+                };
+            }
+            const cols = Object.keys(data);
+            const vals = Object.values(data);
+            const existing = await globalDb.get(
+                'SELECT id FROM presets WHERE account_id = ? AND name = ? AND game = ?',
+                [req.session.user.id, pname, game]
+            );
+            let presetId;
+            if (existing) {
+                presetId = existing.id;
+                await globalDb.run('UPDATE presets SET created_at = CURRENT_TIMESTAMP WHERE id = ?', [presetId]);
+                await globalDb.run('UPDATE ' + detail + ' SET ' + cols.map(c => c + ' = ?').join(', ') + ' WHERE preset_id = ?', [...vals, presetId]);
+            } else {
+                const r = await globalDb.run('INSERT INTO presets (account_id, name, game) VALUES (?, ?, ?)', [req.session.user.id, pname, game]);
+                presetId = r.lastID;
+                await globalDb.run('INSERT INTO ' + detail + ' (preset_id, ' + cols.join(', ') + ') VALUES (?, ' + cols.map(() => '?').join(', ') + ')', [presetId, ...vals]);
+            }
+            createdPreset = { id: presetId, name: pname };
+            return { success: true, message: 'Preset "' + pname + '" saved.' };
+        };
+
+        // ── existing presets handler ───────────────────────────────────
+        const commandCol = { isaac: 'isaac_commands', repo: 'repo_commands', goi: 'goi_commands', minecraft: 'gift_commands' }[game];
+        const getExistingPresets = async () => {
+            const detail = PRESET_DETAIL_TABLE[game];
+            const rows = await globalDb.all(
+                `SELECT p.name, d.${commandCol} as cmds FROM presets p JOIN ${detail} d ON d.preset_id = p.id WHERE p.account_id = ? AND p.game = ? ORDER BY p.created_at DESC LIMIT 5`,
+                [req.session.user.id, game]
+            );
+            const giftCostMap = Object.fromEntries(availableGifts.map(g => [g.name, g.diamond_count || 0]));
+            return rows.map(r => {
+                const commands = (() => { try { return JSON.parse(r.cmds || '{}'); } catch { return {}; } })();
+                const giftsUsed = Object.keys(commands).map(g => ({ gift: g, diamonds: giftCostMap[g] ?? null }));
+                return { name: r.name, commands, giftsUsed };
+            });
+        };
+
+        // ── call AI ───────────────────────────────────────────────────
+        const suggestion = await suggestPreset(game, {
+            getDonations, getProfiles, getItems, getBosses,
+            getEffects, getEnemies, getValuables, createPreset,
+            getExistingPresets,
+        }, userPrompt);
+
+        if (!createdPreset) {
+            return res.status(500).json({ success: false, error: 'AI did not create a preset. Try again — it sometimes needs a retry.' });
+        }
+
+        const updatedPresets = await globalDb.all(
+            'SELECT id, name, created_at FROM presets WHERE account_id = ? AND game = ? ORDER BY created_at DESC',
+            [req.session.user.id, game]
+        );
+
+        res.json({
+            success: true,
+            suggestion,
+            preset_created: true,
+            preset_name: createdPreset.name,
+            presets: updatedPresets,
+            model: process.env.OLLAMA_MODEL || 'qwen2.5:7b',
+        });
+    } catch (e) {
+        console.error('[AI preset-suggestion]', e.message);
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
 // Isaac API routes
 app.get('/api/isaac/items', async (req, res) => {
     try {
@@ -1068,13 +1481,17 @@ app.get('/api/isaac/commands', (req, res) => {
 });
 
 app.post('/api/isaac/commands', express.json(), (req, res) => {
-    const { giftName, effectId, action } = req.body;
+    const { giftName, effectId, action, oldGiftName } = req.body;
     if (!config.isaacCommands) config.isaacCommands = {};
 
     if (action === 'delete' && giftName) {
         delete config.isaacCommands[giftName];
     } else if (giftName && effectId) {
-        config.isaacCommands[giftName] = effectId;
+        if (oldGiftName && oldGiftName !== giftName) {
+                config.isaacCommands = renameKey(config.isaacCommands, oldGiftName, giftName, effectId);
+            } else {
+                config.isaacCommands[giftName] = effectId;
+            }
     }
 
     try {
@@ -1112,13 +1529,17 @@ app.get('/api/repo/commands', (req, res) => {
 });
 
 app.post('/api/repo/commands', express.json(), (req, res) => {
-    const { giftName, effect, action } = req.body;
+    const { giftName, effect, action, oldGiftName } = req.body;
     if (!config.repoCommands) config.repoCommands = {};
 
     if (action === 'delete' && giftName) {
         delete config.repoCommands[giftName];
     } else if (giftName && effect) {
-        config.repoCommands[giftName] = effect;
+        if (oldGiftName && oldGiftName !== giftName) {
+                config.repoCommands = renameKey(config.repoCommands, oldGiftName, giftName, effect);
+            } else {
+                config.repoCommands[giftName] = effect;
+            }
     }
 
     try {
@@ -1183,13 +1604,17 @@ app.get('/api/goi/commands', (req, res) => {
 });
 
 app.post('/api/goi/commands', express.json(), (req, res) => {
-    const { giftName, effect, action } = req.body;
+    const { giftName, effect, action, oldGiftName } = req.body;
     if (!config.goiCommands) config.goiCommands = {};
 
     if (action === 'delete' && giftName) {
         delete config.goiCommands[giftName];
     } else if (giftName && effect) {
-        config.goiCommands[giftName] = effect;
+        if (oldGiftName && oldGiftName !== giftName) {
+                config.goiCommands = renameKey(config.goiCommands, oldGiftName, giftName, effect);
+            } else {
+                config.goiCommands[giftName] = effect;
+            }
     }
 
     try {
@@ -1250,15 +1675,35 @@ app.get('/admin', auth.requireAuth, auth.requireAdmin, async (req, res) => {
             gifts: (await globalDb.get(`SELECT COUNT(*) as c FROM gifts`)).c,
             donations: (await globalDb.get(`SELECT COUNT(*) as c FROM donations`)).c,
             donors: (await globalDb.get(`SELECT COUNT(*) as c FROM users`)).c,
+            streamers: (await globalDb.get(`SELECT COUNT(*) as c FROM streamers`)).c,
             isaacItems: (await globalDb.get(`SELECT COUNT(*) as c FROM isaac_items`)).c,
+            isaacBosses: (await globalDb.get(`SELECT COUNT(*) as c FROM isaac_bosses`)).c,
             repoItems: (await globalDb.get(`SELECT COUNT(*) as c FROM repo_items`)).c,
             repoValuables: (await globalDb.get(`SELECT COUNT(*) as c FROM repo_valuables`)).c,
             repoEnemies: (await globalDb.get(`SELECT COUNT(*) as c FROM repo_enemies`)).c,
         };
 
-        let gifts = [], accounts = [], donors = [], donations = [];
+        let gifts = [], accounts = [], donors = [], donations = [], aiPreferredGifts = [], streamers = [];
 
-        if (tab === 'gifts') {
+        if (tab === 'streamers') {
+            const ALLOWED_STREAMER_SORT = { uniqueId: 's.uniqueId', donations: 'donationCount', diamonds: 'totalDiamonds', account: 'a.username' };
+            const col = ALLOWED_STREAMER_SORT[sort] || 'totalDiamonds';
+            const where = search ? `WHERE s.uniqueId LIKE ? OR a.username LIKE ?` : '';
+            const params = search ? [`%${search}%`, `%${search}%`] : [];
+            streamers = await globalDb.all(`
+                SELECT s.id, s.uniqueId, a.username, a.email,
+                       COUNT(DISTINCT d.id) as donationCount,
+                       COALESCE(SUM(d.totalDiamonds), 0) as totalDiamonds
+                FROM streamers s
+                LEFT JOIN app_accounts a ON a.id = s.account_id
+                LEFT JOIN donations d ON d.streamerId = s.id
+                ${where}
+                GROUP BY s.id
+                ORDER BY ${col} ${dir}
+            `, params);
+        } else if (tab === 'aiGifts') {
+            aiPreferredGifts = await db.getAiPreferredGifts();
+        } else if (tab === 'gifts') {
             const col = ALLOWED_GIFT_SORT[sort] || 'name';
             const where = search ? `WHERE name LIKE ?` : '';
             const params = search ? [`%${search}%`] : [];
@@ -1284,7 +1729,16 @@ app.get('/admin', auth.requireAuth, auth.requireAdmin, async (req, res) => {
             );
         }
 
-        res.render('admin', { tab, search, sort, dir: req.query.dir || 'asc', stats, gifts, accounts, donors, donations, success: req.query.success || null, error: req.query.error || null });
+        const allGiftsNormalized = availableGifts.map(g => {
+            const remoteUrl = g.imageUrl || g.image?.url_list?.[0] || '';
+            let imageUrl = remoteUrl;
+            if (remoteUrl && g.id) {
+                const local = localGiftImagePath(g.id, remoteUrl);
+                if (fs.existsSync(local)) imageUrl = localGiftImageUrl(g.id, remoteUrl);
+            }
+            return { id: g.id, name: g.name, diamond_count: g.diamond_count ?? g.diamondCount ?? 0, imageUrl };
+        });
+        res.render('admin', { tab, search, sort, dir: req.query.dir || 'asc', stats, gifts, accounts, donors, donations, streamers, aiPreferredGifts, allGifts: allGiftsNormalized, success: req.query.success || null, error: req.query.error || null });
     } catch (e) {
         console.error('[Admin]', e);
         res.status(500).send('Error loading admin page: ' + e.message);
@@ -1332,6 +1786,29 @@ app.post('/admin/accounts/:id/toggle-admin', auth.requireAuth, auth.requireAdmin
     }
 });
 
+app.post('/admin/ai-gifts/add', auth.requireAuth, auth.requireAdmin, async (req, res) => {
+    try {
+        const { giftName } = req.body;
+        if (!giftName || !giftName.trim()) return res.redirect('/admin?tab=aiGifts&error=Gift+name+required');
+        const gift = availableGifts.find(g => g.name.trim() === giftName.trim());
+        const diamonds = gift ? (gift.diamond_count ?? gift.diamondCount ?? 0) : 0;
+        await db.addAiPreferredGift(giftName.trim(), diamonds);
+        res.redirect('/admin?tab=aiGifts&success=Gift+added');
+    } catch (e) {
+        res.redirect('/admin?tab=aiGifts&error=' + encodeURIComponent(e.message));
+    }
+});
+
+app.post('/admin/ai-gifts/:id/delete', auth.requireAuth, auth.requireAdmin, async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        await db.removeAiPreferredGift(id);
+        res.redirect('/admin?tab=aiGifts&success=Gift+removed');
+    } catch (e) {
+        res.status(500).send('Error removing preferred gift');
+    }
+});
+
 // App (tracker tool) — catch-all so /app/* routes work with client-side history API
 app.get('/app', (req, res) => res.render('app', { tiktokUsername: req.session.user ? req.session.user.username : '', isAdmin: req.session.user ? req.session.user.isAdmin || false : false }));
 app.get('/app/{*path}', (req, res) => res.render('app', { tiktokUsername: req.session.user ? req.session.user.username : '', isAdmin: req.session.user ? req.session.user.isAdmin || false : false }));
@@ -1342,7 +1819,10 @@ app.get('/login', (req, res) => {
     const success = req.query.verified ? 'Account created! You can now sign in.'
                   : req.query.reset    ? 'Password updated! You can now sign in.'
                   : null;
-    res.render('login', { error: null, success });
+    const referer = req.headers.referer || '';
+    const defaultNext = referer && new URL(referer, 'http://localhost').pathname !== '/login' ? new URL(referer, 'http://localhost').pathname : '/app';
+    const nextUrl = req.query.next || defaultNext;
+    res.render('login', { error: null, success, next: nextUrl });
 });
 
 app.post('/login', async (req, res) => {
@@ -1350,7 +1830,8 @@ app.post('/login', async (req, res) => {
     try {
         const user = await auth.login(email, password);
         req.session.user = user;
-        const next = req.query.next || '/';
+        const raw = req.body.next || req.query.next || '/app';
+        const next = raw.startsWith('/') ? raw : '/app';
         res.redirect(next);
     } catch (err) {
         res.render('login', { error: err.message });
@@ -1367,8 +1848,22 @@ app.post('/register', async (req, res) => {
     if (password !== password2) {
         return res.render('register', { error: 'Passwords do not match', values: req.body });
     }
+
+    const parseMulti = (val) => {
+        if (!val) return [];
+        return Array.isArray(val) ? val : [val];
+    };
+    const preferences = {
+        favoriteGames: parseMulti(req.body.favoriteGames),
+        streamingGenre: parseMulti(req.body.streamingGenre),
+        targetAudience: parseMulti(req.body.targetAudience),
+        streamingSchedule: parseMulti(req.body.streamingSchedule),
+        gameGenres: parseMulti(req.body.gameGenres),
+    };
+    const hasPrefs = Object.values(preferences).some(v => v.length > 0);
+
     try {
-        const token = await auth.register({ username, email, firstName, lastName, password, birthDate });
+        const token = await auth.register({ username, email, firstName, lastName, password, birthDate, preferences: hasPrefs ? preferences : null });
         const baseUrl = `${req.protocol}://${req.get('host')}`;
         await auth.sendVerificationEmail(email, token, baseUrl);
         res.redirect(`/register/pending?email=${encodeURIComponent(email)}`);
@@ -1429,7 +1924,8 @@ app.get('/logout', (req, res) => {
 app.get('/account', auth.requireAuth, async (req, res) => {
     const globalDb = await db.connectGlobal();
     const account = await globalDb.get('SELECT * FROM app_accounts WHERE id = ?', [req.session.user.id]);
-    res.render('account', { account, success: req.query.saved ? 'Changes saved.' : null, errors: {} });
+    const preferences = await db.getUserPreferences(req.session.user.id);
+    res.render('account', { account, preferences, success: req.query.saved ? 'Changes saved.' : null, errors: {} });
 });
 
 app.post('/account/username', auth.requireAuth, async (req, res) => {
@@ -1455,6 +1951,22 @@ app.post('/account/password', auth.requireAuth, async (req, res) => {
     if (newPassword !== newPassword2) return res.render('account', { account, success: null, errors: { password: 'New passwords do not match' } });
     const hash = await bcrypt.hash(newPassword, 12);
     await globalDb.run('UPDATE app_accounts SET password_hash = ? WHERE id = ?', [hash, req.session.user.id]);
+    res.redirect('/account?saved=1');
+});
+
+app.post('/account/preferences', auth.requireAuth, async (req, res) => {
+    const parseMulti = (val) => {
+        if (!val) return [];
+        return Array.isArray(val) ? val : [val];
+    };
+    const preferences = {
+        favoriteGames: parseMulti(req.body.favoriteGames),
+        streamingGenre: parseMulti(req.body.streamingGenre),
+        targetAudience: parseMulti(req.body.targetAudience),
+        streamingSchedule: parseMulti(req.body.streamingSchedule),
+        gameGenres: parseMulti(req.body.gameGenres),
+    };
+    await db.saveUserPreferences(req.session.user.id, preferences);
     res.redirect('/account?saved=1');
 });
 

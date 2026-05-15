@@ -148,6 +148,26 @@ class DatabaseManager {
                 );
             `);
 
+            await db.exec(`
+                CREATE TABLE IF NOT EXISTS ai_preferred_gifts (
+                    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name          TEXT NOT NULL UNIQUE,
+                    diamond_count INTEGER DEFAULT 0
+                );
+            `);
+
+            await db.exec(`
+                CREATE TABLE IF NOT EXISTS user_preferences (
+                    account_id        INTEGER PRIMARY KEY,
+                    favorite_games    TEXT DEFAULT '[]',
+                    streaming_genre   TEXT DEFAULT '[]',
+                    target_audience   TEXT DEFAULT '[]',
+                    streaming_schedule TEXT DEFAULT '[]',
+                    game_genres       TEXT DEFAULT '[]',
+                    FOREIGN KEY (account_id) REFERENCES app_accounts(id) ON DELETE CASCADE
+                );
+            `);
+
             // Migrate app_accounts: add auth columns if they don't exist yet
             const acCols = await db.all(`PRAGMA table_info(app_accounts)`);
             const acColNames = acCols.map(c => c.name);
@@ -252,7 +272,7 @@ class DatabaseManager {
         return this.globalDbPromise;
     }
 
-    // Alias — păstrat ca să nu crape nimic din cod vechi
+    // Alias — kept so nothing in old code breaks
     async connectLocal() {
         return this.connectGlobal();
     }
@@ -356,6 +376,26 @@ class DatabaseManager {
     async deleteGift(id) {
         const db = await this.connectGlobal();
         const result = await db.run(`DELETE FROM gifts WHERE id = ?`, [id]);
+        return result.changes;
+    }
+
+    // --- AI Preferred Gifts ---
+    async getAiPreferredGifts() {
+        const db = await this.connectGlobal();
+        return db.all(`SELECT * FROM ai_preferred_gifts ORDER BY diamond_count ASC`);
+    }
+
+    async addAiPreferredGift(name, diamond_count) {
+        const db = await this.connectGlobal();
+        await db.run(
+            `INSERT OR IGNORE INTO ai_preferred_gifts (name, diamond_count) VALUES (?, ?)`,
+            [name.trim(), diamond_count || 0]
+        );
+    }
+
+    async removeAiPreferredGift(id) {
+        const db = await this.connectGlobal();
+        const result = await db.run(`DELETE FROM ai_preferred_gifts WHERE id = ?`, [id]);
         return result.changes;
     }
 
@@ -473,6 +513,69 @@ class DatabaseManager {
             `UPDATE repo_enemies SET ${fields} WHERE id = ?`,
             [...Object.values(stats), id]
         );
+    }
+
+    // --- User Preferences ---
+    async saveUserPreferences(accountId, prefs) {
+        const db = await this.connectGlobal();
+        const { favoriteGames = [], streamingGenre = [], targetAudience = [], streamingSchedule = [], gameGenres = [] } = prefs;
+        await db.run(`
+            INSERT INTO user_preferences (account_id, favorite_games, streaming_genre, target_audience, streaming_schedule, game_genres)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(account_id) DO UPDATE SET
+                favorite_games = excluded.favorite_games,
+                streaming_genre = excluded.streaming_genre,
+                target_audience = excluded.target_audience,
+                streaming_schedule = excluded.streaming_schedule,
+                game_genres = excluded.game_genres
+        `, [
+            accountId,
+            JSON.stringify(favoriteGames),
+            JSON.stringify(streamingGenre),
+            JSON.stringify(targetAudience),
+            JSON.stringify(streamingSchedule),
+            JSON.stringify(gameGenres),
+        ]);
+    }
+
+    async getUserPreferences(accountId) {
+        const db = await this.connectGlobal();
+        const row = await db.get(`SELECT * FROM user_preferences WHERE account_id = ?`, [accountId]);
+        if (!row) return null;
+        return {
+            account_id: row.account_id,
+            favorite_games: row.favorite_games,
+            streaming_genre: row.streaming_genre,
+            target_audience: row.target_audience,
+            streaming_schedule: row.streaming_schedule,
+            game_genres: row.game_genres,
+        };
+    }
+
+    // --- Recent Donations (for AI agent) ---
+    async getRecentDonations(streamerId, limit = 50) {
+        const db = await this.connectGlobal();
+        return db.all(`
+            SELECT d.count, d.totalDiamonds, g.name as giftName, g.diamondCount as giftDiamonds,
+                   u.nickname, u.uniqueId
+            FROM donations d
+            LEFT JOIN gifts g ON g.id = d.giftId
+            LEFT JOIN users u ON u.id = d.user_id
+            WHERE d.streamerId = ?
+            ORDER BY d.timestamp DESC LIMIT ?
+        `, [streamerId, limit]);
+    }
+
+    async getPresetsForGame(accountId, game) {
+        const db = await this.connectGlobal();
+        const detailTable = `preset_${game}`;
+        return db.all(`
+            SELECT p.id, p.name, p.created_at, pd.*
+            FROM presets p
+            LEFT JOIN ${detailTable} pd ON pd.preset_id = p.id
+            WHERE p.account_id = ? AND p.game = ?
+            ORDER BY p.created_at DESC
+        `, [accountId, game]);
     }
 }
 

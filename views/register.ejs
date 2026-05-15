@@ -123,6 +123,71 @@
             required>
         </div>
 
+        <div class="ai-prefs-box">
+          <div class="ai-prefs-header">
+            <div class="ai-prefs-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2z"/>
+              </svg>
+            </div>
+            <div>
+              <div class="ai-prefs-title">AI Streaming Preferences</div>
+              <div class="ai-prefs-sub">Optional — helps the AI suggest better games and presets for you.</div>
+            </div>
+          </div>
+
+          <div class="pref-group">
+            <div class="pref-group-label">Favorite Games</div>
+            <div class="pref-chips">
+              <label class="pref-chip"><input type="checkbox" name="favoriteGames" value="minecraft"><span>Minecraft</span></label>
+              <label class="pref-chip"><input type="checkbox" name="favoriteGames" value="isaac"><span>Isaac</span></label>
+              <label class="pref-chip"><input type="checkbox" name="favoriteGames" value="repo"><span>R.E.P.O.</span></label>
+              <label class="pref-chip"><input type="checkbox" name="favoriteGames" value="goi"><span>Getting Over It</span></label>
+              <label class="pref-chip"><input type="checkbox" name="favoriteGames" value="other"><span>Other</span></label>
+            </div>
+          </div>
+
+          <div class="pref-group">
+            <div class="pref-group-label">Streaming Style</div>
+            <div class="pref-chips">
+              <label class="pref-chip"><input type="checkbox" name="streamingGenre" value="troll"><span>Troll</span></label>
+              <label class="pref-chip"><input type="checkbox" name="streamingGenre" value="competitive"><span>Competitive</span></label>
+              <label class="pref-chip"><input type="checkbox" name="streamingGenre" value="educational"><span>Educational</span></label>
+              <label class="pref-chip"><input type="checkbox" name="streamingGenre" value="chill"><span>Chill</span></label>
+            </div>
+          </div>
+
+          <div class="pref-group">
+            <div class="pref-group-label">Target Audience</div>
+            <div class="pref-chips">
+              <label class="pref-chip"><input type="checkbox" name="targetAudience" value="kids"><span>Kids</span></label>
+              <label class="pref-chip"><input type="checkbox" name="targetAudience" value="adults"><span>Adults</span></label>
+              <label class="pref-chip"><input type="checkbox" name="targetAudience" value="core_gamers"><span>Core Gamers</span></label>
+              <label class="pref-chip"><input type="checkbox" name="targetAudience" value="casual"><span>Casual</span></label>
+            </div>
+          </div>
+
+          <div class="pref-group">
+            <div class="pref-group-label">Streaming Schedule</div>
+            <div class="pref-chips">
+              <label class="pref-chip"><input type="checkbox" name="streamingSchedule" value="morning"><span>Morning</span></label>
+              <label class="pref-chip"><input type="checkbox" name="streamingSchedule" value="evening"><span>Evening</span></label>
+              <label class="pref-chip"><input type="checkbox" name="streamingSchedule" value="weekend"><span>Weekend</span></label>
+            </div>
+          </div>
+
+          <div class="pref-group" style="margin-bottom:0;">
+            <div class="pref-group-label">Game Genres</div>
+            <div class="pref-chips">
+              <label class="pref-chip"><input type="checkbox" name="gameGenres" value="fps"><span>FPS</span></label>
+              <label class="pref-chip"><input type="checkbox" name="gameGenres" value="rpg"><span>RPG</span></label>
+              <label class="pref-chip"><input type="checkbox" name="gameGenres" value="survival"><span>Survival</span></label>
+              <label class="pref-chip"><input type="checkbox" name="gameGenres" value="platformer"><span>Platformer</span></label>
+              <label class="pref-chip"><input type="checkbox" name="gameGenres" value="horror"><span>Horror</span></label>
+            </div>
+          </div>
+        </div>
+
         <button type="submit" class="btn-login" id="registerBtn">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>

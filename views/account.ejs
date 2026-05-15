@@ -228,6 +228,95 @@
     </form>
   </div>
 
+  <!-- Streaming Preferences -->
+  <div class="account-section">
+    <div class="section-title">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:6px;">
+        <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2z"/>
+      </svg>
+      AI Streaming Preferences
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:20px;line-height:1.6;">Used by the AI agents to suggest games and presets tailored to you.</p>
+
+    <%
+    function parsePrefs(val) {
+      try { return JSON.parse(val || '[]'); } catch(e) { return []; }
+    }
+    const favGames    = parsePrefs(preferences && preferences.favorite_games);
+    const strGenre    = parsePrefs(preferences && preferences.streaming_genre);
+    const tgtAudience = parsePrefs(preferences && preferences.target_audience);
+    const strSchedule = parsePrefs(preferences && preferences.streaming_schedule);
+    const gameGenres  = parsePrefs(preferences && preferences.game_genres);
+    %>
+
+    <form method="POST" action="/account/preferences" style="display:flex;flex-direction:column;gap:18px;">
+
+      <div class="form-field">
+        <label class="form-label" style="margin-bottom:8px;">Favorite Games</label>
+        <div class="pref-chips">
+          <% [['minecraft','Minecraft'],['isaac','Isaac'],['repo','R.E.P.O.'],['goi','Getting Over It'],['other','Other']].forEach(([v,l]) => { %>
+          <label class="pref-chip">
+            <input type="checkbox" name="favoriteGames" value="<%= v %>" <%= favGames.includes(v) ? 'checked' : '' %>>
+            <span><%= l %></span>
+          </label>
+          <% }) %>
+        </div>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label" style="margin-bottom:8px;">Streaming Style</label>
+        <div class="pref-chips">
+          <% [['troll','Troll'],['competitive','Competitive'],['educational','Educational'],['chill','Chill']].forEach(([v,l]) => { %>
+          <label class="pref-chip">
+            <input type="checkbox" name="streamingGenre" value="<%= v %>" <%= strGenre.includes(v) ? 'checked' : '' %>>
+            <span><%= l %></span>
+          </label>
+          <% }) %>
+        </div>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label" style="margin-bottom:8px;">Target Audience</label>
+        <div class="pref-chips">
+          <% [['kids','Kids'],['adults','Adults'],['core_gamers','Core Gamers'],['casual','Casual']].forEach(([v,l]) => { %>
+          <label class="pref-chip">
+            <input type="checkbox" name="targetAudience" value="<%= v %>" <%= tgtAudience.includes(v) ? 'checked' : '' %>>
+            <span><%= l %></span>
+          </label>
+          <% }) %>
+        </div>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label" style="margin-bottom:8px;">Streaming Schedule</label>
+        <div class="pref-chips">
+          <% [['morning','Morning'],['evening','Evening'],['weekend','Weekend']].forEach(([v,l]) => { %>
+          <label class="pref-chip">
+            <input type="checkbox" name="streamingSchedule" value="<%= v %>" <%= strSchedule.includes(v) ? 'checked' : '' %>>
+            <span><%= l %></span>
+          </label>
+          <% }) %>
+        </div>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label" style="margin-bottom:8px;">Game Genres</label>
+        <div class="pref-chips">
+          <% [['fps','FPS'],['rpg','RPG'],['survival','Survival'],['platformer','Platformer'],['horror','Horror']].forEach(([v,l]) => { %>
+          <label class="pref-chip">
+            <input type="checkbox" name="gameGenres" value="<%= v %>" <%= gameGenres.includes(v) ? 'checked' : '' %>>
+            <span><%= l %></span>
+          </label>
+          <% }) %>
+        </div>
+      </div>
+
+      <div>
+        <button type="submit" class="btn-login" style="width:auto;padding:11px 24px;">Save preferences</button>
+      </div>
+    </form>
+  </div>
+
   <!-- Danger zone -->
   <div class="account-section danger-zone">
     <div class="section-title">Danger zone</div>

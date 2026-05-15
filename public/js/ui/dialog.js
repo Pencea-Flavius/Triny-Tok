@@ -70,6 +70,11 @@ export function showToast(message, type = 'info', duration = 3500) {
 // popup that asks yes/no
 export function showConfirm({ title = 'Confirm', message = '', confirmText = 'Confirm', cancelText = 'Cancel', danger = false } = {}) {
     return new Promise((resolve) => {
+        // Blur the trigger so held Space/Enter doesn't re-fire it while dialog is open
+        if (document.activeElement && document.activeElement !== document.body) {
+            document.activeElement.blur();
+        }
+
         const overlay = document.createElement('div');
         overlay.style.cssText = `
             position: fixed; inset: 0;
@@ -125,6 +130,8 @@ export function showConfirm({ title = 'Confirm', message = '', confirmText = 'Co
             overlay.style.opacity = '1';
             box.style.opacity = '1';
             box.style.transform = 'scale(1) translateY(0)';
+            // Move focus into dialog so Space/Enter operates on dialog buttons, not the trigger
+            setTimeout(() => box.querySelector('#dlg-cancel')?.focus(), 220);
         });
 
         const close = (result) => {
