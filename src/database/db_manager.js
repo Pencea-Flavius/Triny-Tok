@@ -483,6 +483,27 @@ class DatabaseManager {
         return db.all(`SELECT * FROM isaac_bosses ORDER BY name`);
     }
 
+    async searchIsaacBosses(query) {
+        const db = await this.connectGlobal();
+        return db.all(`SELECT * FROM isaac_bosses WHERE name LIKE ? ORDER BY name LIMIT 10`, [`%${query}%`]);
+    }
+
+    async searchIsaacItems(query) {
+        const db = await this.connectGlobal();
+        return db.all(`
+            SELECT i.*, GROUP_CONCAT(DISTINCT p.name) as pool, GROUP_CONCAT(DISTINCT t.name) as type
+            FROM isaac_items i
+            LEFT JOIN isaac_item_pools ip ON i.id = ip.item_id
+            LEFT JOIN isaac_pools p ON ip.pool_id = p.id
+            LEFT JOIN isaac_item_types it ON i.id = it.item_id
+            LEFT JOIN isaac_types t ON it.type_id = t.id
+            WHERE i.name LIKE ?
+            GROUP BY i.id
+            ORDER BY i.quality DESC
+            LIMIT 10
+        `, [`%${query}%`]);
+    }
+
     // --- REPO Valuables ---
     async getRepoValuables() {
         const db = await this.connectGlobal();
@@ -500,10 +521,25 @@ class DatabaseManager {
         return db.all(`SELECT * FROM repo_items ORDER BY name`);
     }
 
+    async searchRepoItems(query) {
+        const db = await this.connectGlobal();
+        return db.all(`SELECT * FROM repo_items WHERE name LIKE ? ORDER BY name LIMIT 10`, [`%${query}%`]);
+    }
+
     // --- REPO Enemies ---
     async getRepoEnemies() {
         const db = await this.connectGlobal();
         return db.all(`SELECT * FROM repo_enemies ORDER BY name`);
+    }
+
+    async searchRepoEnemies(query) {
+        const db = await this.connectGlobal();
+        return db.all(`SELECT * FROM repo_enemies WHERE name LIKE ? ORDER BY name LIMIT 10`, [`%${query}%`]);
+    }
+
+    async searchRepoValuables(query) {
+        const db = await this.connectGlobal();
+        return db.all(`SELECT * FROM repo_valuables WHERE name LIKE ? ORDER BY name LIMIT 10`, [`%${query}%`]);
     }
 
     async updateEnemyStats(id, stats) {

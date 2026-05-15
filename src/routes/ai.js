@@ -188,8 +188,18 @@ router.post('/preset-suggestion', express.json(), auth.requireAuth, async (req, 
                 .replace(/\s+/g, ' ')
                 .trim()
                 .replace(/\b\w/g, c => c.toUpperCase());
-            const cmdCount = Object.keys(args.commands || args.gift_commands || {}).length;
-            if (cmdCount < 5) return { error: `Too few gift mappings (${cmdCount}). You must map at least 5 gifts — use all the gift names from the PRESET GIFT KEYS list in the system prompt.` };
+            const rawCmds = args.commands || args.gift_commands || {};
+            const cmdCount = Object.keys(rawCmds).length;
+            if (cmdCount < 7) return { error: `Too few gift mappings (${cmdCount}). You must map at least 7 gifts — use ALL the gift names from the PRESET GIFT KEYS list in the system prompt, not just a few.` };
+            const emptyKeys = Object.entries(rawCmds)
+                .filter(([, v]) => {
+                    if (Array.isArray(v)) return v.length === 0 || v.every(s => !s || !String(s).trim());
+                    if (v === null || v === undefined || v === '') return true;
+                    if (typeof v === 'object' && !Array.isArray(v)) return Object.keys(v).length === 0;
+                    return false;
+                })
+                .map(([k]) => k);
+            if (emptyKeys.length > 0) return { error: `These gifts have no command assigned: ${emptyKeys.join(', ')}. Every gift key must have a real effect — fill them all in.` };
 
             const detail = PRESET_DETAIL_TABLE[game];
             const INVALID_KEYS = new Set(['action','itemId','bossId','amount','autoCollect','code','duration','targetRandom','type','quality','pool']);
@@ -218,8 +228,36 @@ router.post('/preset-suggestion', express.json(), auth.requireAuth, async (req, 
             if (game === 'isaac') {
                 data = { isaac_commands: JSON.stringify(await fixIsaacCommands(sanitizeCommands(args.commands))) };
             } else if (game === 'repo') {
+                const TIMED_REPO = new Set(['player_invincible','player_infinitestam','player_disableinput','player_disablecrouch','player_fast','player_slow','player_antigravity','playerPitch_high','playerPitch_low']);
+                const repoErrors = [];
+                for (const [gift, val] of Object.entries(args.commands || {})) {
+                    if (!val || typeof val !== 'object') continue;
+                    if (TIMED_REPO.has(val.code) && val.duration === undefined)
+                        repoErrors.push(`"${gift}": ${val.code} is timed — add "duration": N (5-30 seconds)`);
+                    if (!TIMED_REPO.has(val.code) && val.duration !== undefined)
+                        repoErrors.push(`"${gift}": ${val.code} is instant — remove "duration"`);
+                }
+                if (repoErrors.length > 0) return { error: `Wrong fields used:\n${repoErrors.join('\n')}\nFix these and call create_preset again.` };
                 data = { repo_commands: JSON.stringify(sanitizeCommands(args.commands)) };
             } else if (game === 'goi') {
+                const TIMED_GOI   = new Set(['low_gravity','high_gravity','zero_gravity','low_friction','high_friction','flip_camera','spin_camera','invert_mouse']);
+                const COUNTED_GOI  = new Set(['spawn_hat','spawn_orange','spawn_gift']);
+                const INSTANT_GOI  = new Set(['launch','shove_left','shove_right','reset_progress']);
+                const goiErrors = [];
+                for (const [gift, val] of Object.entries(args.commands || {})) {
+                    if (!val || typeof val !== 'object') continue;
+                    if (TIMED_GOI.has(val.code) && val.count !== undefined)
+                        goiErrors.push(`"${gift}": ${val.code} is TIMED — use "duration" not "count"`);
+                    if (TIMED_GOI.has(val.code) && val.duration === undefined)
+                        goiErrors.push(`"${gift}": ${val.code} is TIMED — add "duration": N (5-30 seconds)`);
+                    if (COUNTED_GOI.has(val.code) && val.duration !== undefined)
+                        goiErrors.push(`"${gift}": ${val.code} is COUNTED — use "count" not "duration"`);
+                    if (COUNTED_GOI.has(val.code) && val.count === undefined)
+                        goiErrors.push(`"${gift}": ${val.code} is COUNTED — add "count": N`);
+                    if (INSTANT_GOI.has(val.code) && (val.duration !== undefined || val.count !== undefined))
+                        goiErrors.push(`"${gift}": ${val.code} is INSTANT — remove all extra fields, just { "code": "${val.code}" }`);
+                }
+                if (goiErrors.length > 0) return { error: `Wrong fields used:\n${goiErrors.join('\n')}\nFix these and call create_preset again.` };
                 data = { goi_commands: JSON.stringify(sanitizeCommands(args.commands)) };
             } else {
                 console.info('[AI minecraft] raw args:', JSON.stringify(args));
