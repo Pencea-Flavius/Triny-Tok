@@ -57,6 +57,8 @@ describe('Project structure', () => {
         expect(fs.existsSync(view('app.ejs'))).toBe(true);
         expect(fs.existsSync(view('admin.ejs'))).toBe(true);
         expect(fs.existsSync(view('account.ejs'))).toBe(true);
+        expect(fs.existsSync(view('donors.ejs'))).toBe(true);
+        expect(fs.existsSync(view('donations.ejs'))).toBe(true);
     });
 
     test('admin partials exist', () => {

@@ -142,14 +142,14 @@ async function suggestGame(prefsLoader, userPrompt) {
     const toolHandlers = {
         get_trending_games: async () => {
             const result = await getTopGamesByCategory(10);
-            if (result.error) return { error: result.error, note: 'Twitch data unavailable, suggest based on preferences only.' };
+            if (result.error) return { error: result.error, note: 'Twitch data unavailable, suggest based on preferences only.', app_supported_games: SUPPORTED_GAMES };
             const supportedLower = SUPPORTED_GAMES.map(g => g.toLowerCase().replace(/[^a-z0-9]/g, ''));
             const annotated = result.map(g => {
                 const normalized = g.game.toLowerCase().replace(/[^a-z0-9]/g, '');
                 const supported = supportedLower.some(s => s === normalized || s.includes(normalized) || normalized.includes(s));
                 return { ...g, supported_in_app: supported };
             });
-            return { trending: annotated };
+            return { trending: annotated, app_supported_games: SUPPORTED_GAMES };
         },
         get_user_preferences: async () => prefsLoader(),
     };
@@ -161,17 +161,26 @@ async function suggestGame(prefsLoader, userPrompt) {
     const messages = [
         {
             role: 'system',
-            content: `You are a TikTok streaming advisor with personality. You have two tools: get_trending_games (Twitch top 10 right now) and get_user_preferences (streamer's saved preferences). Always call get_trending_games first. Then optionally call get_user_preferences if the user asks about their taste or mood.
+            content: `You are a TikTok streaming advisor with personality. You help streamers both choose what to play AND figure out what to actually do during their stream.
 
-Each game in the trending list has a field "supported_in_app": true or false. You MUST use that field — do not guess. If the recommended game has supported_in_app: true, say the app supports it with full gift effects. If supported_in_app: false, say it has no app integration yet.
+DECIDING WHAT TO DO FIRST:
+- If the user is asking WHICH game to stream (e.g. "what should I stream?", "what game today?"), call get_trending_games first to see what's popular, then optionally get_user_preferences. Give a recommendation with trending context.
+- If the user already knows WHAT game they're playing and is asking HOW to make the stream better or what to do in it (e.g. "what should I do in Minecraft", "how to make my Minecraft stream more appealing"), do NOT call any tools. Answer directly with specific, creative, actionable content ideas for that game. Be concrete with real activity ideas, challenge concepts, and viewer interaction hooks.
+- If ambiguous, lean toward answering directly without calling tools.
 
-After gathering data, give a proper recommendation:
-1. Briefly mention 2-3 of the most interesting games from the trending list and why they are popping off right now.
-2. Give a clear final recommendation — one game — with a specific reason why it fits the moment.
-3. State the support status using ONLY the supported_in_app field from the data, not your own knowledge.
-4. End with one short sentence that gets the streamer hyped to go live.
+APP SUPPORT (use this as ground truth — do not guess):
+The app has built-in gift integration for: ${SUPPORTED_GAMES.join(', ')}. Any other game has no integration. The trending list also has a "supported_in_app" field per game — use it to double-check, but you already know the full list above.
 
-Write like a knowledgeable friend, not a robot. Be direct and specific. Plain text only, no markdown, no bullet points, no asterisks. Around 6-8 sentences total.`,
+WHEN GIVING STREAMING TIPS (no tools needed):
+Give 4-6 specific, practical ideas tailored to the game. Think: viewer interactions, gift-triggered chaos moments, funny challenges, community goals, in-game surprises. Make it feel exciting and fresh. Around 6-8 sentences of flowing conversational advice.
+
+WHEN GIVING A GAME RECOMMENDATION (use tools):
+1. Briefly mention 2-3 interesting trending games and why they are popping off.
+2. Give one clear final recommendation with a specific reason.
+3. Mention app support in plain language (e.g. "the app fully supports it" or "no in-app integration yet").
+4. End with a short hype sentence.
+
+Plain text only in ALL cases — no markdown, no bullet points, no dashes, no asterisks, no JSON, no field names. Write like a knowledgeable friend. Around 6-8 sentences total.`,
         },
         { role: 'user', content: prompt },
     ];
