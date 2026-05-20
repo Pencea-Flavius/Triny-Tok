@@ -602,6 +602,45 @@ class DatabaseManager {
         `, [streamerId, limit]);
     }
 
+    async getAllDonors(streamerId, page = 1, pageSize = 30) {
+        const db = await this.connectGlobal();
+        const offset = (page - 1) * pageSize;
+        const { cnt } = await db.get(
+            `SELECT COUNT(*) as cnt FROM users WHERE streamerId = ? AND totalDiamonds > 0`,
+            [streamerId]
+        );
+        const donors = await db.all(`
+            SELECT u.uniqueId, u.nickname, u.totalDiamonds,
+                   (SELECT COUNT(*) FROM donations d WHERE d.user_id = u.id) as donationCount
+            FROM users u
+            WHERE u.streamerId = ? AND u.totalDiamonds > 0
+            ORDER BY u.totalDiamonds DESC
+            LIMIT ? OFFSET ?
+        `, [streamerId, pageSize, offset]);
+        return { donors, total: cnt, page, pageSize };
+    }
+
+    async getDonationHistory(streamerId, page = 1, pageSize = 50) {
+        const db = await this.connectGlobal();
+        const offset = (page - 1) * pageSize;
+        const { cnt } = await db.get(
+            `SELECT COUNT(*) as cnt FROM donations WHERE streamerId = ?`,
+            [streamerId]
+        );
+        const donations = await db.all(`
+            SELECT d.id, d.count, d.totalDiamonds, d.timestamp,
+                   g.name as giftName, g.imageUrl as giftImage,
+                   u.nickname, u.uniqueId
+            FROM donations d
+            LEFT JOIN gifts g ON g.id = d.giftId
+            LEFT JOIN users u ON u.id = d.user_id
+            WHERE d.streamerId = ?
+            ORDER BY d.timestamp DESC
+            LIMIT ? OFFSET ?
+        `, [streamerId, pageSize, offset]);
+        return { donations, total: cnt, page, pageSize };
+    }
+
     async getPresetsForGame(accountId, game) {
         const db = await this.connectGlobal();
         const detailTable = `preset_${game}`;
