@@ -94,12 +94,12 @@
     </div>
     <% } %>
 
-    <% if (tab === 'gifts')          { %><%- include('partials/admin/tab-gifts')    %>
-    <% } else if (tab === 'accounts')  { %><%- include('partials/admin/tab-accounts') %>
-    <% } else if (tab === 'donors')    { %><%- include('partials/admin/tab-donors')   %>
-    <% } else if (tab === 'donations') { %><%- include('partials/admin/tab-donations')%>
-    <% } else if (tab === 'streamers') { %><%- include('partials/admin/tab-streamers')%>
-    <% } else if (tab === 'aiGifts')   { %><%- include('partials/admin/tab-ai-gifts') %>
+    <% if (tab === 'gifts')          { %><%- include('partials/admin/tab-gifts',     { sortUrl, sortIcon, diamondSvg, trashSvg }) %>
+    <% } else if (tab === 'accounts')  { %><%- include('partials/admin/tab-accounts', { sortUrl, sortIcon, trashSvg }) %>
+    <% } else if (tab === 'donors')    { %><%- include('partials/admin/tab-donors',   { sortUrl, sortIcon, diamondSvg }) %>
+    <% } else if (tab === 'donations') { %><%- include('partials/admin/tab-donations',{ sortUrl, sortIcon, diamondSvg }) %>
+    <% } else if (tab === 'streamers') { %><%- include('partials/admin/tab-streamers',{ sortUrl, sortIcon, diamondSvg }) %>
+    <% } else if (tab === 'aiGifts')   { %><%- include('partials/admin/tab-ai-gifts', { diamondSvg, trashSvg }) %>
     <% } else                          { %><%- include('partials/admin/tab-gamedata') %>
     <% } %>
 

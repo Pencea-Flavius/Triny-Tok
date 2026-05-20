@@ -55,4 +55,42 @@ router.post('/delete', auth.requireAuth, async (req, res) => {
     req.session.destroy(() => res.redirect('/'));
 });
 
+router.get('/donors-summary', auth.requireAuth, async (req, res) => {
+    try {
+        const gdb      = await db.connectGlobal();
+        const streamer = await gdb.get('SELECT id FROM streamers WHERE uniqueId = ?', [req.session.user.username.toLowerCase()]);
+        if (!streamer) return res.json({ success: true, donors: [] });
+        const donors = await gdb.all(`
+            SELECT u.uniqueId, u.nickname, u.totalDiamonds,
+                   (SELECT g.name FROM donations d LEFT JOIN gifts g ON g.id = d.giftId
+                    WHERE d.user_id = u.id ORDER BY d.timestamp DESC LIMIT 1) as lastGift
+            FROM users u
+            WHERE u.streamerId = ? AND u.totalDiamonds > 0
+            ORDER BY u.totalDiamonds DESC
+        `, [streamer.id]);
+        res.json({ success: true, donors });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+router.get('/donors', auth.requireAuth, async (req, res) => {
+    const gdb      = await db.connectGlobal();
+    const streamer = await gdb.get('SELECT id FROM streamers WHERE uniqueId = ?', [req.session.user.username.toLowerCase()]);
+    if (!streamer) return res.render('donors', { donors: [], total: 0, page: 1, pageSize: 30, totalDiamonds: 0, user: req.session.user });
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const data = await db.getAllDonors(streamer.id, page);
+    const { sum } = await gdb.get('SELECT SUM(totalDiamonds) as sum FROM users WHERE streamerId = ?', [streamer.id]) || {};
+    res.render('donors', { ...data, totalDiamonds: sum || 0, user: req.session.user });
+});
+
+router.get('/donations', auth.requireAuth, async (req, res) => {
+    const gdb      = await db.connectGlobal();
+    const streamer = await gdb.get('SELECT id FROM streamers WHERE uniqueId = ?', [req.session.user.username.toLowerCase()]);
+    if (!streamer) return res.render('donations', { donations: [], total: 0, page: 1, pageSize: 50, user: req.session.user });
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const data = await db.getDonationHistory(streamer.id, page);
+    res.render('donations', { ...data, user: req.session.user });
+});
+
 module.exports = router;

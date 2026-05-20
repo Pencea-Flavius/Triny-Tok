@@ -201,6 +201,10 @@ router.post('/preset-suggestion', express.json(), auth.requireAuth, async (req, 
                 .map(([k]) => k);
             if (emptyKeys.length > 0) return { error: `These gifts have no command assigned: ${emptyKeys.join(', ')}. Every gift key must have a real effect — fill them all in.` };
 
+            const availableGiftNames = new Set(availableGifts.map(g => g.name.trim()));
+            const unknownGifts = Object.keys(rawCmds).filter(k => !availableGiftNames.has(k));
+            if (unknownGifts.length > 0) return { error: `These gift names do not exist in the gift database: ${unknownGifts.join(', ')}. Use ONLY the exact gift names from the PRESET GIFT KEYS list provided in the system prompt — do not invent names.` };
+
             const detail = PRESET_DETAIL_TABLE[game];
             const INVALID_KEYS = new Set(['action','itemId','bossId','amount','autoCollect','code','duration','targetRandom','type','quality','pool']);
             const sanitizeCommands = (cmds) => {
