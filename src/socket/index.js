@@ -132,14 +132,12 @@ function setupSocket(io) {
             });
 
             options.enableExtendedGiftInfo  = false;
-            options.disableEulerFallbacks   = true;
-            options.requestOptions = {
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-                },
-            };
+            options.processInitialData      = false;
+            options.fetchRoomInfoOnConnect  = true;
 
-            if (process.env.SESSIONID) options.sessionId = process.env.SESSIONID;
+            if (process.env.SESSIONID) {
+                options.session = { cookie: { sessionid: process.env.SESSIONID } };
+            }
 
             if (process.env.ENABLE_RATE_LIMIT && clientBlocked(io, socket)) {
                 socket.emit('tiktokDisconnected', 'Rate limit exceeded.');
@@ -176,6 +174,17 @@ function setupSocket(io) {
                 }
 
                 const roomData = state.roomInfo?.data || state.roomInfo || state.data || state;
+
+                // seed current viewer/like counts from roomInfo so UI doesn't show 0 until first event
+                const initialViewers = parseInt(
+                    roomData.user_count ?? roomData.userCount ?? roomData.stats?.total_user ?? 0, 10
+                ) || 0;
+                const initialLikes = parseInt(
+                    roomData.like_count ?? roomData.likeCount ?? roomData.stats?.like_count ?? 0, 10
+                ) || 0;
+                if (initialViewers) io.emit('roomUser', { viewerCount: initialViewers });
+                if (initialLikes)   io.emit('like',     { totalLikeCount: initialLikes });
+
                 const fans     = roomData.top_fans || roomData.topFans || [];
                 ctx.initialDonorsSum  = 0;
                 ctx.initialTopDonors  = [];
