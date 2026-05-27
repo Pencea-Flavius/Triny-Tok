@@ -96,13 +96,17 @@ const ITEM_IMAGE = {
 
 // Maps spawncollectable upgrade item ID → direct-apply effect code
 const UPGRADE_ITEM_TO_EFFECT = {
-    'spawncollectable_ItemUpgradePlayerEnergy':      'player_upgrade_energy',
+    'spawncollectable_ItemUpgradePlayerEnergy':       'player_upgrade_energy',
     'spawncollectable_ItemUpgradePlayerHealth':       'player_upgrade_health',
     'spawncollectable_ItemUpgradePlayerExtraJump':    'player_upgrade_jump',
     'spawncollectable_ItemUpgradePlayerGrabRange':    'player_upgrade_grabrange',
     'spawncollectable_ItemUpgradePlayerGrabStrength': 'player_upgrade_grabstrength',
     'spawncollectable_ItemUpgradePlayerSprintSpeed':  'player_upgrade_sprint',
     'spawncollectable_ItemUpgradePlayerTumbleLaunch': 'player_upgrade_tumble',
+    'spawncollectable_ItemUpgradePlayerTumbleClimb':  'player_upgrade_tumbleclimb',
+    'spawncollectable_ItemUpgradePlayerTumbleWings':  'player_upgrade_tumblewings',
+    'spawncollectable_ItemUpgradePlayerCrouchRest':   'player_upgrade_crouchrest',
+    'spawncollectable_ItemUpgradeDeathHeadBattery':   'player_upgrade_battery',
     'spawncollectable_ItemUpgradeMapPlayerCount':     'player_upgrade_map',
 };
 const EFFECT_TO_UPGRADE_ITEM = Object.fromEntries(
