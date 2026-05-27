@@ -73,6 +73,7 @@ const ITEM_IMAGE = {
     ItemOrbZeroGravity:             'ZeroGravityOrb.png',
     ItemPhaseBridge:                'Phase Bridge R.E.P.O..png',
     ItemPowerCrystal:               'EnergyCrystal.png',
+    ItemReviveItem:                 'Defibroo.png',
     ItemRubberDuck:                 'RubberDuck.png',
     ItemStaffTorque:                'RollStaff.png',
     ItemStaffVoid:                  'VoidStaff.png',
@@ -92,6 +93,9 @@ const ITEM_IMAGE = {
     ItemLeafBlower:                 'LeafBlower.png',
     ItemValuableTracker:            'TrackerValuable.png',
     ItemExtractionTracker:          'TrackerExtraction.png',
+    ItemVehicleSemiscooter:         'Hauler.png',
+    ItemVehicleSemiscooterSmall:    'Scout.png',
+    ItemWalkieTalkieBox:            'Semibot_walkiee.png',
 };
 
 // Maps spawncollectable upgrade item ID → direct-apply effect code
