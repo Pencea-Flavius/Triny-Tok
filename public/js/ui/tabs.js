@@ -49,7 +49,6 @@ const TAB_SECTION = {
   topDonors: 'monitor',
   donorStats: 'connect',
   aiGameSuggest: 'game',
-  aiGameSuggest: 'game',
   minecraft: 'game',
   commands: 'game',
   isaacEffects: 'game',
@@ -102,9 +101,12 @@ function activateTab(tabId, { updateUrl = true } = {}) {
   document.querySelectorAll('.sub-item[data-tab]').forEach(b => {
     b.classList.toggle('active', b.dataset.tab === tabId);
   });
-  // if this tab lives inside an accordion, make sure it's expanded
+  // if this tab lives inside an accordion, make sure it's expanded;
+  // otherwise (e.g. AI Game Suggestion) collapse any console left open
   const consoleId = TAB_CONSOLE[tabId];
   if (consoleId) expandConsole(consoleId);
+  else document.querySelectorAll('.sub-console.expanded')
+    .forEach(c => c.classList.remove('expanded'));
   // sync has-active state on all consoles
   syncConsoleStates();
   // update the breadcrumb text

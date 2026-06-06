@@ -1399,25 +1399,6 @@ code {
   box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.1);
 }
 
-/* Item search dropdown item */
-.isaac-item-result {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  cursor: pointer;
-  transition: background .12s;
-  border-bottom: 1px solid var(--border);
-}
-
-.isaac-item-result:last-child {
-  border-bottom: none;
-}
-
-.isaac-item-result:hover {
-  background: rgba(var(--accent-rgb), 0.07);
-}
-
 .isaac-item-result img {
   width: 32px;
   height: 32px;
@@ -1425,17 +1406,6 @@ code {
   border-radius: 4px;
   background: var(--bg3);
   flex-shrink: 0;
-}
-
-.isaac-item-result .item-name {
-  font-size: .85rem;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.isaac-item-result .item-meta {
-  font-size: .72rem;
-  color: var(--muted);
 }
 
 .isaac-item-quality-4 {
@@ -1480,20 +1450,6 @@ code {
   font-family: inherit;
   font-size: .9rem;
   width: 100%;
-}
-
-.isaac-item-result {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 12px;
-  cursor: pointer;
-  transition: all 0.15s;
-  border-bottom: 1px solid var(--border);
-}
-
-.isaac-item-result:hover {
-  background: rgba(var(--accent-rgb, 120, 180, 255), 0.08);
 }
 
 .isaac-item-result:last-child {
@@ -1624,16 +1580,6 @@ code {
   color: var(--muted);
 }
 
-.item-quality {
-  font-size: 0.75rem;
-  font-weight: 900;
-  color: white;
-  padding: 2px 8px;
-  border-radius: 6px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  flex-shrink: 0;
-}
-
 /* Isaac Item Selection Improvements */
 .isaac-item-icon {
   width: 44px;
@@ -1673,6 +1619,8 @@ code {
   background: rgba(255, 255, 255, 0.03);
   border-radius: 4px;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  flex-shrink: 0;
 }
 
 /* Filter Selects */
