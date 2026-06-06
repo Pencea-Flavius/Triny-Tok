@@ -206,16 +206,7 @@ const diamondSvg = '<svg width="11" height="11" viewBox="0 0 640 640" fill="curr
           <td class="time-cell"><%= timeAgo %></td>
           <td>
             <div class="donor-cell">
-              <% if (d.uniqueId) { %>
-              <img
-                src="https://unavatar.io/tiktok/<%= d.uniqueId %>"
-                alt="<%= name %>"
-                class="donor-avatar"
-                id="<%= avatarId %>"
-                onerror="this.style.display='none';document.getElementById('<%= fallbackId %>').style.display='flex';"
-              >
-              <% } %>
-              <div class="donor-avatar-fallback" id="<%= fallbackId %>" style="<%= !d.uniqueId ? 'display:flex;' : '' %>">
+              <div class="donor-avatar-fallback" id="<%= fallbackId %>" style="display:flex;">
                 <%= initial %>
               </div>
               <div>

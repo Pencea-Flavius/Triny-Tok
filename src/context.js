@@ -16,6 +16,7 @@ let config = {
     followCommand: { command: '', cooldown: 0 },
     likeCommand:   { command: '', minLikes: 100 },
     targetPlayers: [],
+    logging:       { enabled: false, events: { gift: true, chat: false, like: false, follow: true, share: false, member: false } },
 };
 
 try {

@@ -251,7 +251,7 @@ class DatabaseManager {
             }
 
             // Migration: drop profilePictureUrl column if it still exists from an older schema
-            // (avatars are now always derived from uniqueId via unavatar.io at runtime)
+            // (viewer avatars come from the live TikTok CDN url at runtime; not stored)
             try {
                 const cols = await db.all(`PRAGMA table_info(users)`);
                 if (cols.some(c => c.name === 'profilePictureUrl')) {
