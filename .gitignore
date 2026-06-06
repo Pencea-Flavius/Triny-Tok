@@ -9,3 +9,4 @@ dist/
 build/
 data/trinytok.db
 streamer_*.db
+logs/events.txt
