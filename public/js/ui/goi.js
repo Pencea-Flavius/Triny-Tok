@@ -4,9 +4,9 @@ import { makeGiftCell, makeActionCell } from './components/GiftActionButtons.js'
 
 const GOI_EFFECTS = [
     // Instant
-    { id: 'launch',          name: 'Launch Player',   category: 'Instant',  desc: 'Blast the player upward',    timed: false, counted: false },
-    { id: 'shove_left',      name: 'Shove Left',      category: 'Instant',  desc: 'Shove the player left',      timed: false, counted: false },
-    { id: 'shove_right',     name: 'Shove Right',     category: 'Instant',  desc: 'Shove the player right',     timed: false, counted: false },
+    { id: 'launch',          name: 'Launch Player',   category: 'Instant',  desc: 'Blast the player upward',    timed: false, counted: false, powered: true },
+    { id: 'shove_left',      name: 'Shove Left',      category: 'Instant',  desc: 'Shove the player left',      timed: false, counted: false, powered: true },
+    { id: 'shove_right',     name: 'Shove Right',     category: 'Instant',  desc: 'Shove the player right',     timed: false, counted: false, powered: true },
     { id: 'reset_progress',  name: 'Reset Progress',  category: 'Instant',  desc: 'Reset ALL progress (evil!)', timed: false, counted: false },
     { id: 'spawn_hat',       name: 'Spawn Hat',       category: 'Instant',  desc: 'Drop hats on the player',    timed: false, counted: true  },
     { id: 'spawn_orange',    name: 'Spawn Orange',    category: 'Instant',  desc: 'Drop oranges on the player', timed: false, counted: true  },
@@ -18,11 +18,17 @@ const GOI_EFFECTS = [
     // Friction
     { id: 'low_friction',    name: 'Low Friction',    category: 'Friction', desc: 'Slippery surfaces',          timed: true,  counted: false },
     { id: 'high_friction',   name: 'High Friction',   category: 'Friction', desc: 'Everything sticky',          timed: true,  counted: false },
+    { id: 'bouncy',          name: 'Bouncy',          category: 'Friction', desc: 'Everything bounces like rubber', timed: true, counted: false },
     // Camera
     { id: 'flip_camera',     name: 'Flip Camera',     category: 'Camera',   desc: 'Upside down view',           timed: true,  counted: false },
     { id: 'spin_camera',     name: 'Spin Camera',     category: 'Camera',   desc: 'Camera spins continuously',  timed: true,  counted: false },
     // Input
     { id: 'invert_mouse',    name: 'Invert Mouse',    category: 'Input',    desc: 'Reversed mouse input',       timed: true,  counted: false },
+    // Hammer
+    { id: 'big_hammer',      name: 'Big Hammer',      category: 'Hammer',   desc: 'Giant hammer for a few seconds',        timed: true,  counted: false },
+    { id: 'small_hammer',    name: 'Small Hammer',    category: 'Hammer',   desc: 'Tiny hammer for a few seconds',         timed: true,  counted: false },
+    { id: 'rolling_over_it', name: 'Rolling Over It', category: 'Hammer',   desc: 'Pot rolls like a ball (experimental)',  timed: true,  counted: false },
+    { id: 'only_hammer',     name: 'Only Hammer',     category: 'Hammer',   desc: 'Pot passes through — only the hammer collides', timed: true, counted: false },
 ];
 
 const CATEGORY_COLORS = {
@@ -31,9 +37,10 @@ const CATEGORY_COLORS = {
     'Friction': '#f39c12',
     'Camera':   '#9b59b6',
     'Input':    '#e67e22',
+    'Hammer':   '#16a085',
 };
 
-const ALL_CATEGORIES = ['Instant', 'Gravity', 'Friction', 'Camera', 'Input'];
+const ALL_CATEGORIES = ['Instant', 'Gravity', 'Friction', 'Camera', 'Input', 'Hammer'];
 
 let socket = null;
 let availableGifts = [];
@@ -167,7 +174,7 @@ export function initGoiUI(ioConnection) {
             `);
             card.on('mouseover', function() { if (!isSelected) $(this).css({ 'border-color': color + '88', 'background': 'var(--bg3)' }); });
             card.on('mouseout',  function() { if (!isSelected) $(this).css({ 'border-color': 'var(--border)', 'background': 'var(--bg4)' }); });
-            card.on('click', () => { selectedEffect = e; renderEffectCards(e.id); $('#goiDurationRow').toggle(!!e.timed); $('#goiCountRow').toggle(!!e.counted); });
+            card.on('click', () => { selectedEffect = e; renderEffectCards(e.id); $('#goiDurationRow').toggle(!!e.timed); $('#goiCountRow').toggle(!!e.counted); $('#goiPowerRow').toggle(!!e.powered); });
             cards.append(card);
         });
 
@@ -224,6 +231,8 @@ export function initGoiUI(ioConnection) {
         $('#goiEffectDuration').val(30);
         $('#goiCountRow').hide();
         $('#goiEffectCount').val(1);
+        $('#goiPowerRow').hide();
+        $('#goiEffectPower').val(1);
         $('#goiWaitStreak').prop('checked', true);
     }
 
@@ -251,6 +260,10 @@ export function initGoiUI(ioConnection) {
                     $('#goiCountRow').show();
                     $('#goiEffectCount').val((typeof effect === 'object' && effect.count) ? effect.count : 1);
                 }
+                if (found.powered) {
+                    $('#goiPowerRow').show();
+                    $('#goiEffectPower').val((typeof effect === 'object' && effect.power) ? effect.power : 1);
+                }
             }
             if (typeof effect === 'object') {
                 $('#goiWaitStreak').prop('checked', effect.waitForStreak !== false);
@@ -277,7 +290,8 @@ export function initGoiUI(ioConnection) {
             code: selectedEffect.id,
             waitForStreak: $('#goiWaitStreak').is(':checked'),
             ...(selectedEffect.timed    ? { duration: parseInt($('#goiEffectDuration').val()) || 30 } : {}),
-            ...(selectedEffect.counted  ? { count:    parseInt($('#goiEffectCount').val())    || 1  } : {})
+            ...(selectedEffect.counted  ? { count:    parseInt($('#goiEffectCount').val())    || 1  } : {}),
+            ...(selectedEffect.powered  ? { power:    parseFloat($('#goiEffectPower').val())   || 1  } : {})
         };
 
         saveMapping(giftName, payload, 'save', editingGiftName !== giftName ? editingGiftName : null);

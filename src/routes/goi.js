@@ -39,8 +39,9 @@ router.post('/test', express.json(), (req, res) => {
     const code     = typeof effect === 'string' ? effect : effect.code;
     const duration = (typeof effect === 'object' && effect.duration) ? effect.duration : 0;
     const count    = (typeof effect === 'object' && effect.count)    ? effect.count    : 1;
+    const power    = (typeof effect === 'object' && effect.power)    ? effect.power    : 0;
 
-    goiBridge.sendEffect(code, 'TestUser', duration, count)
+    goiBridge.sendEffect(code, 'TestUser', duration, count, power)
         .then(r => {
             if (!r || typeof r !== 'object') return res.json({ success: false, error: 'Mod did not respond' });
             res.json({ success: r.status === 0, error: r.status !== 0 ? (r.message || 'Unknown mod error') : undefined, response: r });

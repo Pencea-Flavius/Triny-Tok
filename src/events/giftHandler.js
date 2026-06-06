@@ -227,10 +227,11 @@ async function finalizeGift(msg, updateDbAndCommand = true) {
         const goiCode        = typeof goiEffect === 'string' ? goiEffect : goiEffect.code;
         const goiDuration    = (typeof goiEffect === 'object' && goiEffect.duration) ? goiEffect.duration : 0;
         const goiCount       = (typeof goiEffect === 'object' && goiEffect.count) ? goiEffect.count : 1;
+        const goiPower       = (typeof goiEffect === 'object' && goiEffect.power) ? goiEffect.power : 0;
         const goiWaitForStreak = (typeof goiEffect === 'object' && goiEffect.waitForStreak !== undefined) ? goiEffect.waitForStreak : true;
         const goiExecutions  = goiWaitForStreak === false ? (msg.repeatCount || 1) : 1;
         for (let i = 0; i < goiExecutions; i++) {
-            goiBridge.sendEffect(goiCode, msg.nickname || msg.uniqueId, goiDuration, goiCount);
+            goiBridge.sendEffect(goiCode, msg.nickname || msg.uniqueId, goiDuration, goiCount, goiPower);
             if (goiExecutions > 1 && i < goiExecutions - 1) await new Promise(r => setTimeout(r, 200));
         }
         console.info(`[GOI] Triggered effect ${goiCode} for ${msg.giftName}`);

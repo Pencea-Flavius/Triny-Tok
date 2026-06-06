@@ -244,7 +244,7 @@ router.post('/preset-suggestion', express.json(), auth.requireAuth, async (req, 
                 if (repoErrors.length > 0) return { error: `Wrong fields used:\n${repoErrors.join('\n')}\nFix these and call create_preset again.` };
                 data = { repo_commands: JSON.stringify(sanitizeCommands(args.commands)) };
             } else if (game === 'goi') {
-                const TIMED_GOI   = new Set(['low_gravity','high_gravity','zero_gravity','low_friction','high_friction','flip_camera','spin_camera','invert_mouse']);
+                const TIMED_GOI   = new Set(['low_gravity','high_gravity','zero_gravity','low_friction','high_friction','flip_camera','spin_camera','invert_mouse','big_hammer','small_hammer','rolling_over_it','bouncy','only_hammer']);
                 const COUNTED_GOI  = new Set(['spawn_hat','spawn_orange','spawn_gift']);
                 const INSTANT_GOI  = new Set(['launch','shove_left','shove_right','reset_progress']);
                 const goiErrors = [];
