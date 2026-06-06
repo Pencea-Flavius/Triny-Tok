@@ -88,7 +88,7 @@ class GoiBridge extends EventEmitter {
         this.emit('response', msg);
     }
 
-    sendEffect(code, viewer, durationSec = 0, count = 1) {
+    sendEffect(code, viewer, durationSec = 0, count = 1, power = 0) {
         if (!this.isConnected || !this.socket) return Promise.resolve(false);
 
         const id = this._requestId++;
@@ -98,7 +98,8 @@ class GoiBridge extends EventEmitter {
             type: '1',
             duration: Math.round(durationSec * 1000),
             viewer: viewer || 'TikTok',
-            count: count || 1
+            count: count || 1,
+            power: power || 0
         };
 
         return new Promise((resolve) => {

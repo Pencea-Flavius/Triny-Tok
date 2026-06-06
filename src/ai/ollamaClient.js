@@ -290,7 +290,7 @@ VALUABLES (spawn valuable, use id as code): ${JSON.stringify(valuables.map(v => 
             required: ['name', 'commands'],
         };
     } else if (game === 'goi') {
-        createDesc = 'Save the GOI preset. commands keys = TikTok gift names. Each value = { "code": string, "duration": N (only for timed), "count": N (only for counted) }. INSTANT (no extra field): launch, shove_left, shove_right, reset_progress. COUNTED (must have "count"): spawn_hat, spawn_orange, spawn_gift — always include at least one of these, they spawn fun objects in the world. TIMED (must have "duration"): low_gravity, high_gravity, zero_gravity, low_friction, high_friction, flip_camera, spin_camera, invert_mouse.';
+        createDesc = 'Save the GOI preset. commands keys = TikTok gift names. Each value = { "code": string, "duration": N (only for timed), "count": N (only for counted) }. INSTANT (no extra field): launch, shove_left, shove_right, reset_progress. COUNTED (must have "count"): spawn_hat, spawn_orange, spawn_gift — always include at least one of these, they spawn fun objects in the world. TIMED (must have "duration"): low_gravity, high_gravity, zero_gravity, low_friction, high_friction, flip_camera, spin_camera, invert_mouse, big_hammer, small_hammer, rolling_over_it, bouncy, only_hammer.';
         createParams = {
             type: 'object',
             properties: {
@@ -425,7 +425,7 @@ EFFECT CODES — use ONLY these. Each type has a DIFFERENT extra field:
     ✓ RIGHT: { "code": "spawn_hat", "count": 2 }
 
   TIMED — MUST have "duration": N seconds (5–30), NEVER "count":
-    low_gravity, high_gravity, zero_gravity, low_friction, high_friction, flip_camera, spin_camera, invert_mouse
+    low_gravity, high_gravity, zero_gravity, low_friction, high_friction, flip_camera, spin_camera, invert_mouse, big_hammer, small_hammer, rolling_over_it, bouncy, only_hammer
     e.g. { "code": "zero_gravity", "duration": 15 }
     ✗ WRONG: { "code": "zero_gravity", "count": 3 }
     ✓ RIGHT: { "code": "zero_gravity", "duration": 15 }
