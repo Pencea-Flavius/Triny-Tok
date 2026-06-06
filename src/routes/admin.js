@@ -4,6 +4,7 @@ const router  = express.Router();
 const db      = require('../database/db_manager');
 const auth    = require('../auth/auth');
 const ctx     = require('../context');
+const logger  = require('../utils/eventLogger');
 
 router.get('/', auth.requireAuth, auth.requireAdmin, async (req, res) => {
     try {
@@ -91,6 +92,8 @@ router.get('/', auth.requireAuth, auth.requireAdmin, async (req, res) => {
             tab, search, sort, dir: req.query.dir || 'asc',
             stats, gifts, accounts, donors, donations, streamers,
             aiPreferredGifts, allGifts: allGiftsNormalized,
+            logging: logger.settings(), logCategories: logger.CATEGORIES,
+            logTail: tab === 'logs' ? logger.tail(300) : '',
             success: req.query.success || null,
             error:   req.query.error   || null,
         });
@@ -161,6 +164,29 @@ router.post('/ai-gifts/:id/delete', auth.requireAuth, auth.requireAdmin, async (
     } catch (e) {
         res.status(500).send('Error removing preferred gift');
     }
+});
+
+router.post('/logging', auth.requireAuth, auth.requireAdmin, (req, res) => {
+    try {
+        const events = {};
+        logger.CATEGORIES.forEach(cat => { events[cat] = req.body[cat] === 'on'; });
+        ctx.config.logging = { enabled: req.body.enabled === 'on', events };
+        ctx.saveConfig();
+        res.redirect('/admin?tab=logs&success=Logging+settings+saved');
+    } catch (e) {
+        res.redirect('/admin?tab=logs&error=' + encodeURIComponent(e.message));
+    }
+});
+
+router.post('/logging/clear', auth.requireAuth, auth.requireAdmin, (req, res) => {
+    logger.clear();
+    res.redirect('/admin?tab=logs&success=Log+file+cleared');
+});
+
+router.get('/logging/download', auth.requireAuth, auth.requireAdmin, (req, res) => {
+    res.download(logger.LOG_FILE, 'trinytok-events.txt', err => {
+        if (err && !res.headersSent) res.redirect('/admin?tab=logs&error=No+log+file+yet');
+    });
 });
 
 module.exports = router;

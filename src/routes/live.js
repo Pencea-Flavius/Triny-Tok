@@ -6,10 +6,15 @@ const ctx     = require('../context');
 const { avatarUrl, upsertDonor } = require('../events/giftHandler');
 
 router.get('/top-donors', (req, res) => {
+    const resolveAvatar = (d) => {
+        // real TikTok CDN avatar if we captured one, otherwise the default placeholder
+        if (d.profilePictureUrl && d.profilePictureUrl.includes('tiktokcdn')) return d.profilePictureUrl;
+        return avatarUrl();
+    };
     const donors = Array.from(new Set(Object.values(ctx.donorStats)))
         .sort((a, b) => b.totalDiamonds - a.totalDiamonds)
         .slice(0, 50)
-        .map(d => ({ ...d, profilePictureUrl: avatarUrl(d.uniqueId) }));
+        .map(d => ({ ...d, profilePictureUrl: resolveAvatar(d) }));
     res.json({ success: true, donors });
 });
 

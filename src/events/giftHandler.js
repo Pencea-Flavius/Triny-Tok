@@ -4,10 +4,48 @@ const minecraftBridge = require('../tiktok/minecraftBridge');
 const isaacBridge    = require('../tiktok/isaacBridge');
 const repoBridge     = require('../tiktok/repoBridge');
 const goiBridge      = require('../tiktok/goiBridge');
+const logger         = require('../utils/eventLogger');
 
-function avatarUrl(uniqueId) {
-    if (!uniqueId || uniqueId === 'Unknown') return 'https://www.tiktok.com/static/images/avatar_default.png';
-    return `https://unavatar.io/tiktok/${encodeURIComponent(uniqueId)}`;
+// Resolve a gift's effect from a {giftName: effect} map, tolerating the fact that
+// the live giftName can differ from the catalog/config name (e.g. live "TOFU Cat"
+// vs catalog "Tofu"). Tries: exact name → giftId→catalog name → case-insensitive.
+// The config/presets stay keyed by gift NAME (so the UI, AI and presets keep
+// working), but matching a live gift is anchored on the stable giftId so it never
+// breaks when the live name differs from the catalog name (e.g. "TOFU Cat" vs "Tofu").
+function resolveEffect(map, msg) {
+    if (!map || typeof map !== 'object') return undefined;
+    const id = msg.giftId;
+
+    // 1. exact live name
+    if (msg.giftName && map[msg.giftName] !== undefined) return map[msg.giftName];
+
+    // 2. by id — anchor each configured gift on its own catalog id and compare.
+    //    Catalog never renames an existing id, so config "Tofu" → id 10604 == live id.
+    if (id != null) {
+        for (const key of Object.keys(map)) {
+            const cat = ctx.availableGifts.find(g => g.name === key);
+            if (cat && cat.id === id) return map[key];
+        }
+        // 2b. live id → catalog name → map (config keyed under a name variant)
+        const byId = ctx.availableGifts.find(g => g.id === id);
+        if (byId && map[byId.name] !== undefined) return map[byId.name];
+    }
+
+    // 3. case-insensitive name as a last resort
+    if (msg.giftName) {
+        const lower = msg.giftName.toLowerCase();
+        const key = Object.keys(map).find(k => k.toLowerCase() === lower);
+        if (key) return map[key];
+    }
+    return undefined;
+}
+
+const DEFAULT_AVATAR = 'https://www.tiktok.com/static/images/avatar_default.png';
+
+// No more unavatar.io. Viewers' avatars come from the real TikTok CDN url in their
+// events; when we don't have one we just use the default placeholder.
+function avatarUrl() {
+    return DEFAULT_AVATAR;
 }
 
 function injectAvatar(msg) {
@@ -68,6 +106,8 @@ async function finalizeGift(msg, updateDbAndCommand = true) {
     const { config, availableGifts, giftCooldowns, io } = ctx;
     const totalDiamonds = (msg.diamondCount || 0) * (msg.repeatCount || 1);
 
+    logger.logEvent('gift', msg);
+
     if (totalDiamonds > 0 && updateDbAndCommand) {
         ctx.trackedDiamonds += totalDiamonds;
         upsertDonor(msg.userId, msg.uniqueId, msg.nickname, msg.profilePictureUrl, totalDiamonds, msg.giftName);
@@ -110,7 +150,7 @@ async function finalizeGift(msg, updateDbAndCommand = true) {
     if (!updateDbAndCommand) return;
 
     // ── Minecraft gift commands ───────────────────────────────────────────────
-    const giftCmd = config.giftCommands[msg.giftName];
+    const giftCmd = resolveEffect(config.giftCommands, msg);
     if (giftCmd && minecraftBridge.isConnected) {
         const now = Date.now();
         const cooldown = (typeof giftCmd === 'object' && giftCmd.cooldown !== undefined) ? giftCmd.cooldown * 1000 : 0;
@@ -153,7 +193,7 @@ async function finalizeGift(msg, updateDbAndCommand = true) {
     }
 
     // ── Isaac ─────────────────────────────────────────────────────────────────
-    const isaacEffect = config.isaacCommands[msg.giftName];
+    const isaacEffect = resolveEffect(config.isaacCommands, msg);
     if (isaacEffect && isaacBridge.isConnected) {
         const waitForStreak = (typeof isaacEffect === 'object' && isaacEffect.waitForStreak !== undefined) ? isaacEffect.waitForStreak : true;
         const executions = waitForStreak === false ? (msg.repeatCount || 1) : 1;
@@ -166,7 +206,7 @@ async function finalizeGift(msg, updateDbAndCommand = true) {
     }
 
     // ── R.E.P.O. ──────────────────────────────────────────────────────────────
-    const repoEffect = config.repoCommands?.[msg.giftName];
+    const repoEffect = resolveEffect(config.repoCommands, msg);
     if (repoEffect && repoBridge.isConnected) {
         const code         = typeof repoEffect === 'string' ? repoEffect : repoEffect.code;
         const duration     = (typeof repoEffect === 'object' && repoEffect.duration) ? repoEffect.duration : 0;
@@ -182,7 +222,7 @@ async function finalizeGift(msg, updateDbAndCommand = true) {
     }
 
     // ── Getting Over It ───────────────────────────────────────────────────────
-    const goiEffect = config.goiCommands?.[msg.giftName];
+    const goiEffect = resolveEffect(config.goiCommands, msg);
     if (goiEffect && goiBridge.isConnected) {
         const goiCode        = typeof goiEffect === 'string' ? goiEffect : goiEffect.code;
         const goiDuration    = (typeof goiEffect === 'object' && goiEffect.duration) ? goiEffect.duration : 0;

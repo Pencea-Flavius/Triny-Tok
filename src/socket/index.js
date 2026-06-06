@@ -6,6 +6,7 @@ const repoBridge       = require('../tiktok/repoBridge');
 const goiBridge        = require('../tiktok/goiBridge');
 const db               = require('../database/db_manager');
 const ctx              = require('../context');
+const logger           = require('../utils/eventLogger');
 const { avatarUrl, injectAvatar, finalizeGift } = require('../events/giftHandler');
 
 function setupSocket(io) {
@@ -194,11 +195,18 @@ function setupSocket(io) {
                         ctx.initialDonorsSum += diamonds;
                         const user = f.user || {};
                         const uid  = user.display_id || user.uniqueId || user.displayId || 'Unknown';
+                        // top_fans usually omit the @handle but DO include a CDN avatar — keep it
+                        const cdnAvatar = user.avatar_thumb?.url_list?.[0]
+                                       || user.avatarThumb?.urlList?.[0]
+                                       || user.avatar_medium?.url_list?.[0]
+                                       || user.avatarMedium?.urlList?.[0]
+                                       || null;
                         ctx.initialTopDonors.push({
                             userId: user.user_id || user.userId || f.userId || `init_${Math.random()}`,
                             nickname: user.nickname || user.displayId || 'Unknown',
                             uniqueId: uid,
-                            profilePictureUrl: avatarUrl(uid),
+                            // real CDN avatar from top_fans, else default placeholder
+                            profilePictureUrl: cdnAvatar || avatarUrl(),
                             totalDiamonds: diamonds,
                         });
                     });
@@ -210,8 +218,8 @@ function setupSocket(io) {
             ctx.tiktokConnectionWrapper.connection.on('streamEnd', () => io.emit('streamEnd'));
 
             ctx.tiktokConnectionWrapper.connection.on('roomUser',  msg => io.emit('roomUser',  injectAvatar(msg)));
-            ctx.tiktokConnectionWrapper.connection.on('member',    msg => io.emit('member',    injectAvatar(msg)));
-            ctx.tiktokConnectionWrapper.connection.on('chat',      msg => io.emit('chat',      injectAvatar(msg)));
+            ctx.tiktokConnectionWrapper.connection.on('member',    msg => { logger.logEvent('member', msg); io.emit('member', injectAvatar(msg)); });
+            ctx.tiktokConnectionWrapper.connection.on('chat',      msg => { logger.logEvent('chat',   msg); io.emit('chat',   injectAvatar(msg)); });
             ctx.tiktokConnectionWrapper.connection.on('subscribe', msg => io.emit('subscribe', injectAvatar(msg)));
 
             const activeStreaks = new Map();
@@ -238,6 +246,8 @@ function setupSocket(io) {
             });
 
             ctx.tiktokConnectionWrapper.connection.on('social', msg => {
+                if (msg.type === 'follow')      logger.logEvent('follow', msg);
+                else if (msg.type === 'share')  logger.logEvent('share', msg);
                 if (msg.type === 'follow') {
                     const followCmd = ctx.config.followCommand;
                     if (followCmd?.command && minecraftBridge.isConnected) {
@@ -261,6 +271,7 @@ function setupSocket(io) {
 
             let currentLikes = 0;
             ctx.tiktokConnectionWrapper.connection.on('like', msg => {
+                logger.logEvent('like', msg);
                 const likeCmd = ctx.config.likeCommand;
                 if (likeCmd?.command && likeCmd.minLikes > 0 && minecraftBridge.isConnected) {
                     currentLikes += msg.likeCount;

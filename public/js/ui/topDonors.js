@@ -39,7 +39,7 @@ export async function loadTopDonors() {
                     <td><strong>${rankDisplay}</strong></td>
                     <td>
                         <div style="display: flex; align-items: center; gap: 8px;">
-                            <img src="${donor.profilePictureUrl || 'https://www.tiktok.com/static/images/avatar_default.png'}" class="miniprofilepicture" style="width: 24px; height: 24px;">
+                            <img src="${donor.profilePictureUrl || 'https://www.tiktok.com/static/images/avatar_default.png'}" class="miniprofilepicture" style="width: 24px; height: 24px;" onerror="this.onerror=null;this.src='https://www.tiktok.com/static/images/avatar_default.png';">
                             <span>${donor.nickname || donor.uniqueId}</span>
                         </div>
                     </td>
