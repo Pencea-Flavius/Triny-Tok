@@ -10,3 +10,5 @@ build/
 data/trinytok.db
 streamer_*.db
 logs/events.txt
+public/goi-gifts.html
+set_admin.js

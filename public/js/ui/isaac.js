@@ -476,7 +476,8 @@ export function initIsaacUI(ioConnection) {
                 const img = getBossImage(title);
                 icon = $(`<img src="${img}" style="width:24px;height:24px;object-fit:contain;" onerror="this.src='/images/Isaac/boss.png'">`);
             } else if (effect && effect.action === 'spawn_entity') {
-                title = `Summon ID: ${effect.entityId || ''}`;
+                title = `${effect.entityId || ''}`;
+                icon = $(`<img src="/images/Isaac/summon.png" style="width:24px;height:24px;object-fit:contain;image-rendering:pixelated;" onerror="this.src='/images/Isaac/summon.png'">`);
             } else {
                 title = JSON.stringify(effect);
             }

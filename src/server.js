@@ -103,6 +103,7 @@ app.use('/api/presets',  require('./routes/presets'));
 app.use('/api/isaac',    require('./routes/isaac'));
 app.use('/api/repo',     require('./routes/repo'));
 app.use('/api/goi',      require('./routes/goi'));
+app.use('/api/overlay',  require('./routes/overlay'));
 app.use('/api/ai',       require('./routes/ai'));
 
 // ── Page routes ───────────────────────────────────────────────────────────────

@@ -592,9 +592,28 @@ export function initRepoUI(ioConnection) {
             if (isSpawnCode(code)) {
                 const badge = getSpawnBadge(code);
                 const label = getSpawnLabel(code);
-                effectTd.append($('<div style="display:flex;align-items:center;gap:8px;"></div>')
-                    .append($(`<span style="font-size:9px;padding:1px 6px;border-radius:3px;background:${badge.color}33;color:${badge.color};font-weight:800;text-transform:uppercase;">${badge.label}</span>`))
-                    .append($('<span></span>').text(label)));
+                // Resolve entity + image
+                let entityImgUrl = null;
+                if (code.startsWith('spawnenemy_')) {
+                    const e = dbEnemies.find(e2 => e2.id === code);
+                    if (e) entityImgUrl = getEntityImage(e, 'spawn_enemy');
+                } else {
+                    const item = dbItems.find(i => i.id === code);
+                    if (item) {
+                        entityImgUrl = getEntityImage(item, 'spawn_item');
+                    } else {
+                        const val = dbValuables.find(v => v.id === code);
+                        if (val) entityImgUrl = getEntityImage(val, 'spawn_valuable');
+                    }
+                }
+                const imgEl = entityImgUrl
+                    ? $(`<img src="${entityImgUrl}" style="width:24px;height:24px;object-fit:contain;border-radius:4px;flex-shrink:0;" onerror="this.style.display='none'">`)
+                    : null;
+                const inner = $('<div style="display:flex;align-items:center;gap:8px;"></div>')
+                    .append($(`<span style="font-size:9px;padding:1px 6px;border-radius:3px;background:${badge.color}33;color:${badge.color};font-weight:800;text-transform:uppercase;">${badge.label}</span>`));
+                if (imgEl) inner.append(imgEl);
+                inner.append($('<span></span>').text(label));
+                effectTd.append(inner);
             } else if (EFFECT_TO_UPGRADE_ITEM[code]) {
                 // Direct-apply upgrade effect
                 const upgradeItem = dbItems.find(i => i.id === EFFECT_TO_UPGRADE_ITEM[code]);

@@ -68,8 +68,8 @@ $(document).ready(() => {
     $('#connectButton').click(connect);
     $('#disconnectButton').click(disconnect);
     $('#syncInitialBtn').click(syncInitial);
-    $('#topDonorsTab').click(() => { if (isConnected) loadTopDonors(); });
-    $('#refreshTopDonorsBtn').click(() => { if (isConnected) loadTopDonors(); });
+    $('#topDonorsTab').click(() => { loadTopDonors(); });
+    $('#refreshTopDonorsBtn').click(() => { loadTopDonors(); });
 
     $('#uniqueIdInput').on('keyup', (e) => {
         if (e.key === 'Enter') connect();
@@ -90,7 +90,7 @@ function connect() {
         $('#statusDot').removeClass('success error').addClass('loading');
         $('#statusText').text('Connecting...');
         $('#sessionStatus').text('Connecting...').css('color', 'var(--dim)');
-        
+
         // Disable UI during connection to prevent spam
         $('#connectButton').prop('disabled', true).find('span').text('Connecting...');
         $('#uniqueIdInput').prop('disabled', true);
@@ -120,7 +120,7 @@ function connect() {
             $('#connectButton').addClass('hide').prop('disabled', false).find('span').text('Connect');
             $('#disconnectButton').addClass('show');
             $('#uniqueIdInput').prop('disabled', true);
-            
+
             // Update panel (this might show the sync button if it checks isConnected)
             updateSessionPanel();
         }).catch(err => {
@@ -128,7 +128,7 @@ function connect() {
             $('#statusDot').removeClass('loading success connected').addClass('error');
             $('#statusText').text(err.toString());
             $('#sessionStatus').text('Error').css('color', 'var(--danger)');
-            
+
             // Re-enable UI on error
             $('#connectButton').prop('disabled', false).find('span').text('Connect');
             $('#uniqueIdInput').prop('disabled', false);
@@ -142,18 +142,11 @@ function disconnect() {
     connection.disconnect();
     isConnected = false;
 
-    // Reset session variables
-    viewerCount = 0;
-    likeCount = 0;
-    sessionGiftCount = 0;
-    sessionChatCount = 0;
-    sessionFollowCount = 0;
-    recentFollowers = [];
 
-    // Reset UI panels
+
+    // Update UI panels to reflect disconnected status (dot)
     updateSessionPanel();
     renderRecentFollowers();
-    resetStats();
 
     $('#statusDot').removeClass('connected loading success').addClass('error');
     $('#statusText').text('Disconnected');
