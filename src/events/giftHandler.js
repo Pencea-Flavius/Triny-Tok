@@ -5,6 +5,16 @@ const isaacBridge    = require('../tiktok/isaacBridge');
 const repoBridge     = require('../tiktok/repoBridge');
 const goiBridge      = require('../tiktok/goiBridge');
 
+// Resolves a REPO effect's targeting mode: prefers the new `target` enum
+// ('local' | 'random' | 'all'), falling back to the legacy `targetRandom` bool.
+function resolveRepoTarget(effect) {
+    if (effect && typeof effect === 'object') {
+        if (effect.target === 'local' || effect.target === 'random' || effect.target === 'all') return effect.target;
+        if (effect.targetRandom) return 'random';
+    }
+    return 'local';
+}
+
 function avatarUrl(uniqueId) {
     if (!uniqueId || uniqueId === 'Unknown') return 'https://www.tiktok.com/static/images/avatar_default.png';
     return `https://unavatar.io/tiktok/${encodeURIComponent(uniqueId)}`;
@@ -171,10 +181,11 @@ async function finalizeGift(msg, updateDbAndCommand = true) {
         const code         = typeof repoEffect === 'string' ? repoEffect : repoEffect.code;
         const duration     = (typeof repoEffect === 'object' && repoEffect.duration) ? repoEffect.duration : 0;
         const waitForStreak = (typeof repoEffect === 'object' && repoEffect.waitForStreak !== undefined) ? repoEffect.waitForStreak : true;
-        const targetRandom = (typeof repoEffect === 'object' && repoEffect.targetRandom !== undefined) ? repoEffect.targetRandom : false;
+        const target       = resolveRepoTarget(repoEffect);
+        const count        = (typeof repoEffect === 'object' && repoEffect.count) ? repoEffect.count : 1;
         const executions   = waitForStreak === false ? (msg.repeatCount || 1) : 1;
         for (let i = 0; i < executions; i++) {
-            repoBridge.sendEffect(code, msg.nickname || msg.uniqueId, duration, targetRandom);
+            repoBridge.sendEffect(code, msg.nickname || msg.uniqueId, duration, target, count);
             if (executions > 1 && i < executions - 1) await new Promise(r => setTimeout(r, 200));
         }
         console.info(`[Repo] Triggered effect ${code} for ${msg.giftName}`);

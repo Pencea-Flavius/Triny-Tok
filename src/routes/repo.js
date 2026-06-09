@@ -60,11 +60,16 @@ router.post('/test', express.json(), (req, res) => {
     if (!effect) return res.status(404).json({ success: false, error: 'Effect not found for this gift' });
     if (!repoBridge.isConnected) return res.status(503).json({ success: false, error: 'REPO mod not connected' });
 
-    const code         = typeof effect === 'string' ? effect : effect.code;
-    const duration     = (typeof effect === 'object' && effect.duration) ? effect.duration : 0;
-    const targetRandom = (typeof effect === 'object' && effect.targetRandom !== undefined) ? effect.targetRandom : false;
+    const code     = typeof effect === 'string' ? effect : effect.code;
+    const duration = (typeof effect === 'object' && effect.duration) ? effect.duration : 0;
+    const count    = (typeof effect === 'object' && effect.count) ? effect.count : 1;
+    let target = 'local';
+    if (typeof effect === 'object') {
+        if (effect.target === 'local' || effect.target === 'random' || effect.target === 'all') target = effect.target;
+        else if (effect.targetRandom) target = 'random';
+    }
 
-    repoBridge.sendEffect(code, 'TestUser', duration, targetRandom)
+    repoBridge.sendEffect(code, 'TestUser', duration, target, count)
         .then(r => {
             if (!r || typeof r !== 'object') return res.json({ success: false, error: 'Mod did not respond' });
             res.json({ success: r.status === 0, error: r.status !== 0 ? (r.message || 'Unknown mod error') : undefined, response: r });

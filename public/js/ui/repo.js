@@ -292,6 +292,7 @@ export function initRepoUI(ioConnection) {
                 renderEffectCards(e.id);
                 $('#repoDurationRow').toggle(!!e.timed);
                 $('#repoUpgradeDeliveryRow').toggle(e.category === 'Upgrade' && !!e.upgradeItem);
+                applyTargetModeLock(e.id);
             });
             cards.append(card);
         });
@@ -404,6 +405,15 @@ export function initRepoUI(ioConnection) {
         $('#repoUpgradeSpawnRow').toggle(isUpgrade);
     }
 
+    // Disable Input / Disable Crouch always apply to the whole lobby — lock the radio to "Everyone".
+    const FORCE_ALL_EFFECTS = ['player_disableinput', 'player_disablecrouch'];
+    function applyTargetModeLock(effectId) {
+        const lockAll = FORCE_ALL_EFFECTS.includes(effectId);
+        $('input[name="repoTargetMode"]').prop('disabled', lockAll);
+        $('#repoTargetModeHint').toggle(lockAll);
+        if (lockAll) $('input[name="repoTargetMode"][value="all"]').prop('checked', true);
+    }
+
     function resetModal() {
         $('#repoModeSpawnBtn').trigger('click');
         $('.repo-action-tab[data-action="spawn_item"]').trigger('click');
@@ -419,7 +429,9 @@ export function initRepoUI(ioConnection) {
         $('input[name="repoUpgradeDeliveryModal"][value="direct"]').prop('checked', true);
         $('#repoEffectDuration').val(10);
         $('#repoWaitStreak').prop('checked', true).trigger('change');
-        $('#repoTargetRandom').prop('checked', false);
+        $('input[name="repoTargetMode"][value="local"]').prop('checked', true);
+        applyTargetModeLock(null);
+        $('#repoSpawnCount').val(1);
         $('#repoExecuteDelayInput').val(0.2);
         $('#repoDelayValueDisplay').text('0.2s');
     }
@@ -491,7 +503,10 @@ export function initRepoUI(ioConnection) {
 
             if (typeof effect === 'object') {
                 $('#repoWaitStreak').prop('checked', effect.waitForStreak !== false).trigger('change');
-                $('#repoTargetRandom').prop('checked', !!effect.targetRandom);
+                const mode = (effect.target === 'local' || effect.target === 'random' || effect.target === 'all')
+                    ? effect.target : (effect.targetRandom ? 'random' : 'local');
+                $(`input[name="repoTargetMode"][value="${mode}"]`).prop('checked', true);
+                $('#repoSpawnCount').val(Math.max(1, Math.min(20, parseInt(effect.count, 10) || 1)));
                 if (effect.executeDelay) {
                     $('#repoExecuteDelayInput').val(effect.executeDelay);
                     $('#repoDelayValueDisplay').text(effect.executeDelay + 's');
@@ -501,6 +516,7 @@ export function initRepoUI(ioConnection) {
             giftDropdown.setValue('');
             $('#repoModalTitle').text('Add R.E.P.O. Effect');
         }
+        applyTargetModeLock(selectedEffect ? selectedEffect.id : null);
         $('#repoEffectModal').css('display', 'flex');
     }
 
@@ -513,13 +529,15 @@ export function initRepoUI(ioConnection) {
         const isPresetMode = $('#repoModePresetBtn').hasClass('active');
         const waitForStreak = $('#repoWaitStreak').is(':checked');
         const executeDelay = waitForStreak ? undefined : (parseFloat($('#repoExecuteDelayInput').val()) || 0.2);
+        const target = $('input[name="repoTargetMode"]:checked').val() || 'local';
+        const spawnCount = Math.max(1, Math.min(20, parseInt($('#repoSpawnCount').val(), 10) || 1));
 
         if (isPresetMode) {
             if (!selectedEffect) { showToast('Choose an effect!', 'warning'); return; }
             code = selectedEffect.id;
             const upgradeAsItem = selectedEffect.category === 'Upgrade' && selectedEffect.upgradeItem && $('input[name="repoUpgradeDeliveryModal"]:checked').val() === 'item';
             if (upgradeAsItem) code = selectedEffect.upgradeItem;
-            payload = { code, waitForStreak, targetRandom: $('#repoTargetRandom').is(':checked'), ...(selectedEffect.timed ? { duration: parseInt($('#repoEffectDuration').val()) || 10 } : {}), ...(executeDelay !== undefined ? { executeDelay } : {}) };
+            payload = { code, waitForStreak, target, ...(selectedEffect.timed ? { duration: parseInt($('#repoEffectDuration').val()) || 10 } : {}), ...(executeDelay !== undefined ? { executeDelay } : {}) };
         } else {
             code = $('#repoSelectedSpawnId').val();
             if (!code) { showToast('Choose an entity to spawn!', 'warning'); return; }
@@ -528,7 +546,7 @@ export function initRepoUI(ioConnection) {
                 const effectId = UPGRADE_ITEM_TO_EFFECT[code];
                 if (effectId) code = effectId;
             }
-            payload = { code, waitForStreak, targetRandom: $('#repoTargetRandom').is(':checked'), ...(executeDelay !== undefined ? { executeDelay } : {}) };
+            payload = { code, waitForStreak, target, count: spawnCount, ...(executeDelay !== undefined ? { executeDelay } : {}) };
         }
 
         if (currentCommands[giftName] && giftName !== editingGiftName) { showToast(`"${giftName}" already mapped! Delete it first.`, 'error'); return; }

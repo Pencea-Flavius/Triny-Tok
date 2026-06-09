@@ -89,7 +89,7 @@ class RepoBridge extends EventEmitter {
         this.emit('response', msg);
     }
 
-    sendEffect(code, viewer, durationSec = 0, targetRandom = false) {
+    sendEffect(code, viewer, durationSec = 0, target = 'local', count = 1) {
         if (!this.isConnected || !this.socket) return Promise.resolve(false);
 
         const id = this._requestId++;
@@ -99,7 +99,10 @@ class RepoBridge extends EventEmitter {
             type: '1',
             duration: Math.round(durationSec * 1000),
             viewer: viewer || 'TikTok',
-            targetRandom
+            target,
+            // keep targetRandom for backward compatibility with older mod builds
+            targetRandom: target === 'random',
+            count: Math.max(1, parseInt(count, 10) || 1)
         };
 
         return new Promise((resolve) => {

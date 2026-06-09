@@ -76,6 +76,13 @@
               </div>
             </div>
 
+            <!-- Spawn count -->
+            <div id="repoSpawnCountRow" style="margin-top:10px;padding:10px 14px;background:var(--bg4);border:1px solid var(--border2);border-radius:var(--r-md);">
+              <label class="field-label" style="margin-bottom:6px;display:block;">How many to spawn</label>
+              <input type="number" id="repoSpawnCount" class="input-base" min="1" max="20" value="1" style="width:100%;">
+              <div style="font-size:0.68rem;color:var(--dim);margin-top:4px;">Spawned per targeted player (max 20)</div>
+            </div>
+
             <input type="hidden" id="repoSelectedSpawnId">
           </div>
         </div>
@@ -115,12 +122,17 @@
         </div>
       </div>
 
-      <!-- Wait for streak and random -->
-      <div style="margin-top:4px;padding-top:12px;border-top:1px solid var(--border);display:flex;flex-direction:row;justify-content:space-between;align-items:center;">
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;">
-          <input type="checkbox" id="repoTargetRandom" style="width:16px;height:16px;accent-color:var(--accent);">
-          Target Random Player
-        </label>
+      <!-- Target mode + wait for streak -->
+      <div style="margin-top:4px;padding-top:12px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <label class="field-label">Apply Effect To</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;background:rgba(0,0,0,0.25);padding:4px;border-radius:10px;border:1px solid var(--border);">
+            <label class="repo-target-opt"><input type="radio" name="repoTargetMode" value="local" checked><span>Live User</span></label>
+            <label class="repo-target-opt"><input type="radio" name="repoTargetMode" value="random"><span>Random</span></label>
+            <label class="repo-target-opt"><input type="radio" name="repoTargetMode" value="all"><span>Everyone</span></label>
+          </div>
+          <div id="repoTargetModeHint" style="display:none;font-size:0.68rem;color:var(--dim);">This effect always applies to everyone.</div>
+        </div>
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;">
           <input type="checkbox" id="repoWaitStreak" checked style="width:16px;height:16px;accent-color:var(--accent);">
           Wait for Streak End
@@ -147,4 +159,8 @@
 .repo-mode-btn { flex:1; padding:9px 0; border-radius:7px; border:none; background:transparent; color:var(--muted); font-size:.82rem; font-weight:600; cursor:pointer; transition:background .18s, color .18s; font-family:inherit; }
 .repo-mode-btn.active { background:rgba(var(--accent-rgb), 0.15); color:var(--accent); }
 .repo-mode-btn:hover:not(.active) { background:rgba(255,255,255,0.05); color:var(--text); }
+.repo-target-opt { display:flex; align-items:center; justify-content:center; padding:8px 6px; border-radius:7px; cursor:pointer; font-size:12px; font-weight:700; color:var(--muted); transition:background .15s, color .15s; user-select:none; }
+.repo-target-opt input { display:none; }
+.repo-target-opt:has(input:checked) { background:rgba(var(--accent-rgb), 0.15); color:var(--accent); }
+.repo-target-opt:hover:not(:has(input:checked)) { background:rgba(255,255,255,0.05); color:var(--text); }
 </style>
