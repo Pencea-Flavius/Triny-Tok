@@ -52,7 +52,9 @@ async function runAgent(messages, tools, toolHandlers, label = 'agent') {
                             ? '"commands": { "Rose": { "code": "player_heal", "targetRandom": false }, "Heart": { "code": "player_fast", "targetRandom": true, "duration": 10 } }'
                             : label === 'preset-goi'
                                 ? '"commands": { "Rose": { "code": "launch" }, "Heart": { "code": "zero_gravity", "duration": 15 } }'
-                                : '"commands": { "Rose": "boss_rush", "Heart": { "action": "spawn_item", "itemId": 214, "amount": 1, "autoCollect": true } }';
+                                : label === 'preset-terraria'
+                                    ? '"commands": { "Rose": { "code": "kill_player" }, "Heart": { "code": "spawn_zombie" } }'
+                                    : '"commands": { "Rose": "boss_rush", "Heart": { "action": "spawn_item", "itemId": 214, "amount": 1, "autoCollect": true } }';
                     nudge = `You MUST call the create_preset tool now. Do not explain — just call it. Required fields: "name" (string) and ${cmdField} (object mapping gift names to effects). EVERY gift must have a real effect assigned — no empty arrays. Example: { "name": "My Preset", ${cmdExample} }`;
                 }
                 msgs.push({ role: 'user', content: nudge });
@@ -116,7 +118,7 @@ async function runAgent(messages, tools, toolHandlers, label = 'agent') {
     throw new Error('Agent exceeded maximum tool call iterations');
 }
 
-const SUPPORTED_GAMES = ['Minecraft', 'The Binding of Isaac', 'R.E.P.O.', 'Getting Over It'];
+const SUPPORTED_GAMES = ['Minecraft', 'The Binding of Isaac', 'R.E.P.O.', 'Getting Over It', 'Terraria'];
 
 // Agent 1 — game suggestion
 async function suggestGame(prefsLoader, userPrompt) {
@@ -227,9 +229,9 @@ ${fallbackLines.length > 0 ? `Other available gifts (fill remaining keys):\n${fa
     const existingPresetsHint = existingPresets.length > 0
         ? `EXISTING PRESETS (streamer already has these — learn their gift/effect patterns, do NOT duplicate names or identical mappings):
 ${existingPresets.map(p => {
-    const giftLines = (p.giftsUsed || []).map(g => `      ${g.gift}${g.diamonds !== null ? ` (${g.diamonds} diamonds)` : ''}: ${JSON.stringify(p.commands[g.gift])}`);
-    return `  "${p.name}":\n${giftLines.join('\n')}`;
-}).join('\n')}`
+            const giftLines = (p.giftsUsed || []).map(g => `      ${g.gift}${g.diamonds !== null ? ` (${g.diamonds} diamonds)` : ''}: ${JSON.stringify(p.commands[g.gift])}`);
+            return `  "${p.name}":\n${giftLines.join('\n')}`;
+        }).join('\n')}`
         : '';
 
     if (game === 'isaac') {
@@ -259,6 +261,10 @@ GUNS (spawn on ground, use id as code): ${JSON.stringify(guns.map(i => ({ id: i.
 MEDICAL (spawn on ground, use id as code): ${JSON.stringify(medicals.map(i => ({ id: i.id, name: i.name })))}
 ENEMIES (spawn enemy, use id as code): ${JSON.stringify(enemies.map(e => ({ id: e.id, name: e.name, danger: e.danger_level })))}
 VALUABLES (spawn valuable, use id as code): ${JSON.stringify(valuables.map(v => ({ id: v.id, name: v.name })))}`;
+    } else if (game === 'terraria') {
+        const effectsData = require('../data/terraria/native_effects.json');
+        const effectsList = effectsData.map(e => `${e.name} (id: ${e.id})`).join(', ');
+        context = `Here is the exact list of valid effect names and their IDs for Terraria:\n${effectsList}\n\nYour job is to map TikTok gifts to these exact Terraria effect IDs.\n- For each gift, output { "code": "the_exact_id_from_the_list" }\n- Give the preset a fun name based on the user's prompt.`;
     }
 
     // create_preset — exact format differs per game
@@ -299,6 +305,19 @@ VALUABLES (spawn valuable, use id as code): ${JSON.stringify(valuables.map(v => 
                     type: 'object',
                     description: 'Keys MUST be gift names from the PRESET GIFT KEYS list — NOT effect codes. Example: { "Rose": { "code": "launch" }, "Doughnut": { "code": "zero_gravity", "duration": 15 }, "Heart": { "code": "spawn_hat", "count": 3 }, "Ice Cream Cone": { "code": "reset_progress" }, "Finger Heart": { "code": "flip_camera", "duration": 10 } }',
                 },
+            },
+            required: ['name', 'commands'],
+        };
+    } else if (game === 'terraria') {
+        createDesc = 'Save the Terraria preset. commands keys = TikTok gift names. Each value = { "code": "exact_id_from_list" }. Example: { "Rose": { "code": "kill_player" }, "Heart": { "code": "spawn_zombie" } }';
+        createParams = {
+            type: 'object',
+            properties: {
+                name: { type: 'string' },
+                commands: {
+                    type: 'object',
+                    description: 'Keys MUST be gift names from the PRESET GIFT KEYS list. Values MUST be { "code": "id" } where id is strictly from the provided Terraria list.'
+                }
             },
             required: ['name', 'commands'],
         };
@@ -346,12 +365,12 @@ VALUABLES (spawn valuable, use id as code): ${JSON.stringify(valuables.map(v => 
         toolHandlers.search_item = ({ query }) => fuzzySearch(db.searchIsaacItems.bind(db), r => ({ itemId: r.id, name: r.name, quality: r.quality, type: r.type || null }), query);
     } else if (game === 'repo') {
         searchTools.push(
-            { type: 'function', function: { name: 'search_enemy',    description: 'Search R.E.P.O. enemies by name. Returns matching enemies with their exact id. Try shorter substrings if unsure of spelling.', parameters: searchParam } },
-            { type: 'function', function: { name: 'search_item',     description: 'Search R.E.P.O. items (guns, medicals, equipment) by name. Returns matching items with their exact id.', parameters: searchParam } },
+            { type: 'function', function: { name: 'search_enemy', description: 'Search R.E.P.O. enemies by name. Returns matching enemies with their exact id. Try shorter substrings if unsure of spelling.', parameters: searchParam } },
+            { type: 'function', function: { name: 'search_item', description: 'Search R.E.P.O. items (guns, medicals, equipment) by name. Returns matching items with their exact id.', parameters: searchParam } },
             { type: 'function', function: { name: 'search_valuable', description: 'Search R.E.P.O. valuables by name. Returns matching valuables with their exact id.', parameters: searchParam } }
         );
-        toolHandlers.search_enemy    = ({ query }) => fuzzySearch(db.searchRepoEnemies.bind(db),   r => ({ id: r.id, name: r.name, danger_level: r.danger_level }), query);
-        toolHandlers.search_item     = ({ query }) => fuzzySearch(db.searchRepoItems.bind(db),     r => ({ id: r.id, name: r.name, type: r.item_type }), query);
+        toolHandlers.search_enemy = ({ query }) => fuzzySearch(db.searchRepoEnemies.bind(db), r => ({ id: r.id, name: r.name, danger_level: r.danger_level }), query);
+        toolHandlers.search_item = ({ query }) => fuzzySearch(db.searchRepoItems.bind(db), r => ({ id: r.id, name: r.name, type: r.item_type }), query);
         toolHandlers.search_valuable = ({ query }) => fuzzySearch(db.searchRepoValuables.bind(db), r => ({ id: r.id, name: r.name }), query);
     }
 
@@ -433,6 +452,12 @@ EFFECT CODES — use ONLY these. Each type has a DIFFERENT extra field:
 You MUST include spawn_hat, spawn_orange, AND spawn_gift (all three) — they spawn physical objects in the world.
 Match chaos to diamond cost — cheap gifts: shove_left/shove_right, expensive: reset_progress/zero_gravity.
 Give a creative name different from existing ones.`;
+    } else if (game === 'terraria') {
+        systemContent = `You are a TikTok streaming preset builder for Terraria. Call create_preset exactly once.
+${donationSummary}
+${giftCostHint}
+${existingPresetsHint}
+${context}`;
     } else {
         systemContent = `You are a Minecraft TikTok preset builder. Call create_preset once.
 ${donationSummary}
@@ -471,7 +496,7 @@ Each gift_commands value is an array of command strings. Match effect strength t
 
     const messages = [
         { role: 'system', content: systemContent },
-        { role: 'user',   content: userContent },
+        { role: 'user', content: userContent },
     ];
 
     return runAgent(messages, [...searchTools, createTool], toolHandlers, `preset-${game}`);

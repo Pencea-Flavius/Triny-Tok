@@ -4,6 +4,7 @@ const minecraftBridge  = require('../tiktok/minecraftBridge');
 const isaacBridge      = require('../tiktok/isaacBridge');
 const repoBridge       = require('../tiktok/repoBridge');
 const goiBridge        = require('../tiktok/goiBridge');
+const terrariaBridge   = require('../tiktok/terrariaBridge');
 const db               = require('../database/db_manager');
 const ctx              = require('../context');
 const logger           = require('../utils/eventLogger');
@@ -19,6 +20,7 @@ function setupSocket(io) {
         socket.emit('isaacProfiles', isaacBridge.profiles.length > 0 ? isaacBridge.profiles : (ctx.config.isaacProfiles || ctx.ISAAC_DEFAULT_PROFILES));
         socket.emit('repoStatus', { isConnected: repoBridge.isConnected, serverActive: !!repoBridge.server });
         socket.emit('goiStatus',  { isConnected: goiBridge.isConnected,  serverActive: !!goiBridge.server  });
+        socket.emit('terrariaStatus', { isConnected: terrariaBridge.isConnected, serverActive: !!terrariaBridge.server });
 
         // ── Minecraft ─────────────────────────────────────────────────────────
         socket.on('minecraftConnect', (data) => {
@@ -72,6 +74,17 @@ function setupSocket(io) {
         socket.on('goiStop', () => {
             goiBridge.stop();
             io.emit('goiStatus', { isConnected: false, serverActive: false });
+        });
+
+        // ── Terraria ──────────────────────────────────────────────────────────
+        socket.on('terrariaStart', () => {
+            terrariaBridge.start(ctx.config.terraria?.port || 53000);
+            io.emit('terrariaStatus', { isConnected: terrariaBridge.isConnected, serverActive: true });
+        });
+
+        socket.on('terrariaStop', () => {
+            terrariaBridge.stop();
+            io.emit('terrariaStatus', { isConnected: false, serverActive: false });
         });
 
         // ── RCON test / manual ────────────────────────────────────────────────
@@ -271,6 +284,7 @@ function setupSocket(io) {
                 if (ctx.config.repoCommands?.['Like']?.minLikes) minLikes = Math.min(minLikes, ctx.config.repoCommands['Like'].minLikes);
                 if (ctx.config.isaacCommands?.['Like']?.minLikes) minLikes = Math.min(minLikes, ctx.config.isaacCommands['Like'].minLikes);
                 if (ctx.config.goiCommands?.['Like']?.minLikes) minLikes = Math.min(minLikes, ctx.config.goiCommands['Like'].minLikes);
+                if (ctx.config.terrariaCommands?.['Like']?.minLikes) minLikes = Math.min(minLikes, ctx.config.terrariaCommands['Like'].minLikes);
 
                 if (minLikes !== Infinity && minLikes > 0) {
                     const uid = msg.userId || msg.uniqueId;

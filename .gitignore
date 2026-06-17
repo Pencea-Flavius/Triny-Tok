@@ -8,6 +8,7 @@ data/gifts-cache.json
 dist/
 build/
 data/trinytok.db
+data/global.db
 streamer_*.db
 logs/events.txt
 public/goi-gifts.html

@@ -32,7 +32,8 @@ const TAB_LABELS = {
   commands: 'Minecraft · Gift Commands',
   isaacEffects: 'The Binding of Isaac · Gift Effects',
   repoEffects: 'R.E.P.O. · Gift Effects',
-  goiEffects: 'Getting Over It · Gift Effects'
+  goiEffects: 'Getting Over It · Gift Effects',
+  terrariaEffects: 'Terraria · Gift Effects'
 };
 
 const SECTION_LABELS = {
@@ -53,7 +54,8 @@ const TAB_SECTION = {
   commands: 'game',
   isaacEffects: 'game',
   repoEffects: 'game',
-  goiEffects: 'game'
+  goiEffects: 'game',
+  terrariaEffects: 'game'
 };
 
 // map tabs to their parent console accordion (if any)
@@ -62,7 +64,8 @@ const TAB_CONSOLE = {
   commands: 'consoleMinecraft',
   isaacEffects: 'consoleIsaac',
   repoEffects: 'consoleRepo',
-  goiEffects: 'consoleGoi'
+  goiEffects: 'consoleGoi',
+  terrariaEffects: 'consoleTerraria'
 };
 
 const SECTION_LAST_TAB = {};

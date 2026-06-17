@@ -10,6 +10,7 @@ const KEY_MAP = {
     minecraft: 'giftCommands',
     isaac:     'isaacCommands',
     repo:      'repoCommands',
+    terraria:  'terrariaCommands',
 };
 
 const GOI_NAMES = {
@@ -136,6 +137,11 @@ async function resolveEffect(game, effect, conn) {
         }
         const code = effect.code || action || '';
         return { effectName: ISAAC_MISC[code] || formatEffectName(code), effectImage: null, sprite: null, count, duration };
+    }
+    // Terraria
+    if (game === 'terraria') {
+        const code = typeof effect === 'string' ? effect : (effect.code || '');
+        return { effectName: formatEffectName(code), effectImage: null, count, duration, effectCode: code };
     }
     // REPO
     if (game === 'repo') {

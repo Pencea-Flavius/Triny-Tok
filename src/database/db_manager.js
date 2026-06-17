@@ -172,12 +172,12 @@ class DatabaseManager {
             const acCols = await db.all(`PRAGMA table_info(app_accounts)`);
             const acColNames = acCols.map(c => c.name);
             const authMigrations = [
-                ['email_verified',      `ALTER TABLE app_accounts ADD COLUMN email_verified INTEGER DEFAULT 0`],
-                ['verification_token',  `ALTER TABLE app_accounts ADD COLUMN verification_token TEXT`],
-                ['reset_token',         `ALTER TABLE app_accounts ADD COLUMN reset_token TEXT`],
+                ['email_verified', `ALTER TABLE app_accounts ADD COLUMN email_verified INTEGER DEFAULT 0`],
+                ['verification_token', `ALTER TABLE app_accounts ADD COLUMN verification_token TEXT`],
+                ['reset_token', `ALTER TABLE app_accounts ADD COLUMN reset_token TEXT`],
                 ['reset_token_expires', `ALTER TABLE app_accounts ADD COLUMN reset_token_expires DATETIME`],
-                ['tiktok_avatar',       `ALTER TABLE app_accounts ADD COLUMN tiktok_avatar TEXT`],
-                ['is_admin',            `ALTER TABLE app_accounts ADD COLUMN is_admin INTEGER DEFAULT 0`],
+                ['tiktok_avatar', `ALTER TABLE app_accounts ADD COLUMN tiktok_avatar TEXT`],
+                ['is_admin', `ALTER TABLE app_accounts ADD COLUMN is_admin INTEGER DEFAULT 0`],
             ];
 
             // Presets tables — one header + one detail per game
@@ -186,7 +186,7 @@ class DatabaseManager {
                     id          INTEGER PRIMARY KEY AUTOINCREMENT,
                     account_id  INTEGER NOT NULL REFERENCES app_accounts(id) ON DELETE CASCADE,
                     name        TEXT NOT NULL,
-                    game        TEXT NOT NULL CHECK(game IN ('minecraft','isaac','repo','goi')),
+                    game        TEXT NOT NULL CHECK(game IN ('minecraft','isaac','repo','goi','terraria')),
                     created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
                     UNIQUE(account_id, name, game)
                 );
@@ -212,6 +212,10 @@ class DatabaseManager {
                     preset_id     INTEGER PRIMARY KEY REFERENCES presets(id) ON DELETE CASCADE,
                     goi_commands  TEXT
                 );
+                CREATE TABLE IF NOT EXISTS preset_terraria (
+                    preset_id       INTEGER PRIMARY KEY REFERENCES presets(id) ON DELETE CASCADE,
+                    terraria_commands TEXT
+                );
             `);
             for (const [col, sql] of authMigrations) {
                 if (!acColNames.includes(col)) await db.run(sql);
@@ -228,6 +232,7 @@ class DatabaseManager {
                         DROP TABLE IF EXISTS preset_isaac;
                         DROP TABLE IF EXISTS preset_repo;
                         DROP TABLE IF EXISTS preset_goi;
+                        DROP TABLE IF EXISTS preset_terraria;
                         DROP TABLE IF EXISTS presets;
                     `);
                     await db.exec(`
@@ -235,7 +240,7 @@ class DatabaseManager {
                             id INTEGER PRIMARY KEY AUTOINCREMENT,
                             account_id INTEGER NOT NULL REFERENCES app_accounts(id) ON DELETE CASCADE,
                             name TEXT NOT NULL,
-                            game TEXT NOT NULL CHECK(game IN ('minecraft','isaac','repo','goi')),
+                            game TEXT NOT NULL CHECK(game IN ('minecraft','isaac','repo','goi','terraria')),
                             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                             UNIQUE(account_id, name, game)
                         );
@@ -243,6 +248,7 @@ class DatabaseManager {
                         CREATE TABLE preset_isaac (preset_id INTEGER PRIMARY KEY REFERENCES presets(id) ON DELETE CASCADE, isaac_commands TEXT);
                         CREATE TABLE preset_repo (preset_id INTEGER PRIMARY KEY REFERENCES presets(id) ON DELETE CASCADE, repo_commands TEXT);
                         CREATE TABLE preset_goi (preset_id INTEGER PRIMARY KEY REFERENCES presets(id) ON DELETE CASCADE, goi_commands TEXT);
+                        CREATE TABLE preset_terraria (preset_id INTEGER PRIMARY KEY REFERENCES presets(id) ON DELETE CASCADE, terraria_commands TEXT);
                     `);
                     console.log('[DB] Migration: rebuilt presets tables with new schema.');
                 }

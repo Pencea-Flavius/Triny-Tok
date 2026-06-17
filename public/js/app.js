@@ -9,6 +9,7 @@ import { initCommandsUI, refreshCommandsData } from './ui/commands.js';
 import { initIsaacUI } from './ui/isaac.js';
 import { initRepoUI } from './ui/repo.js';
 import { initGoiUI } from './ui/goi.js';
+import { initTerrariaUI } from './ui/terraria.js';
 import { showToast } from './ui/dialog.js';
 window.showToast = showToast;
 
@@ -81,6 +82,7 @@ $(document).ready(() => {
     initIsaacUI(connection);
     initRepoUI(connection);
     initGoiUI(connection);
+    initTerrariaUI(connection);
 });
 
 function connect() {

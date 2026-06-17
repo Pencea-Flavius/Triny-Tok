@@ -14,6 +14,7 @@ const minecraftBridge = require('./tiktok/minecraftBridge');
 const isaacBridge     = require('./tiktok/isaacBridge');
 const repoBridge      = require('./tiktok/repoBridge');
 const goiBridge       = require('./tiktok/goiBridge');
+const terrariaBridge  = require('./tiktok/terrariaBridge');
 
 // ── Database init ─────────────────────────────────────────────────────────────
 async function initDatabase() {
@@ -93,6 +94,11 @@ goiBridge.on('statusChange', (isConnected, errorMsg) => {
 });
 goiBridge.on('response', (data) => io.emit('goiResponse', data));
 
+terrariaBridge.on('statusChange', (isConnected, errorMsg) => {
+    io.emit('terrariaStatus', { isConnected, serverActive: !!terrariaBridge.server, error: errorMsg || null });
+});
+terrariaBridge.on('response', (data) => io.emit('terrariaResponse', data));
+
 require('./socket/index').setupSocket(io);
 
 // ── API routes ────────────────────────────────────────────────────────────────
@@ -103,6 +109,7 @@ app.use('/api/presets',  require('./routes/presets'));
 app.use('/api/isaac',    require('./routes/isaac'));
 app.use('/api/repo',     require('./routes/repo'));
 app.use('/api/goi',      require('./routes/goi'));
+app.use('/api/terraria', require('./routes/terraria'));
 app.use('/api/overlay',  require('./routes/overlay'));
 app.use('/api/ai',       require('./routes/ai'));
 

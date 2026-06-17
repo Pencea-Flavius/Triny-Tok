@@ -4,6 +4,7 @@ const minecraftBridge = require('../tiktok/minecraftBridge');
 const isaacBridge    = require('../tiktok/isaacBridge');
 const repoBridge     = require('../tiktok/repoBridge');
 const goiBridge      = require('../tiktok/goiBridge');
+const terrariaBridge = require('../tiktok/terrariaBridge');
 const logger         = require('../utils/eventLogger');
 
 // Resolves a REPO effect's targeting mode: prefers the new `target` enum
@@ -247,6 +248,23 @@ async function finalizeGift(msg, updateDbAndCommand = true) {
         }
         console.info(`[GOI] Triggered effect ${goiCode} for ${msg.giftName}`);
         io.emit('goiLog', { code: goiCode, giftName: msg.giftName, viewer: msg.nickname || msg.uniqueId });
+    }
+
+    // ── Terraria ──────────────────────────────────────────────────────────────
+    const terrariaEffect = resolveEffect(config.terrariaCommands, msg);
+    if (terrariaEffect && terrariaBridge.isConnected) {
+        const terrariaCode        = typeof terrariaEffect === 'string' ? terrariaEffect : terrariaEffect.code;
+        const terrariaDuration    = (typeof terrariaEffect === 'object' && terrariaEffect.duration) ? terrariaEffect.duration : 0;
+        const terrariaCount       = (typeof terrariaEffect === 'object' && terrariaEffect.count) ? terrariaEffect.count : 1;
+        const terrariaPower       = (typeof terrariaEffect === 'object' && terrariaEffect.power) ? terrariaEffect.power : 0;
+        const terrariaWaitForStreak = (typeof terrariaEffect === 'object' && terrariaEffect.waitForStreak !== undefined) ? terrariaEffect.waitForStreak : true;
+        const terrariaExecutions  = terrariaWaitForStreak === false ? (msg.repeatCount || 1) : 1;
+        for (let i = 0; i < terrariaExecutions; i++) {
+            terrariaBridge.sendEffect(terrariaCode, msg.nickname || msg.uniqueId, terrariaDuration, terrariaCount, terrariaPower);
+            if (terrariaExecutions > 1 && i < terrariaExecutions - 1) await new Promise(r => setTimeout(r, 200));
+        }
+        console.info(`[Terraria] Triggered effect ${terrariaCode} for ${msg.giftName}`);
+        io.emit('terrariaLog', { code: terrariaCode, giftName: msg.giftName, viewer: msg.nickname || msg.uniqueId });
     }
 }
 
