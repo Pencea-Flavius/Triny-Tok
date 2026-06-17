@@ -12,5 +12,4 @@ streamer_*.db
 logs/events.txt
 public/goi-gifts.html
 set_admin.js
-data/global.db
-data/global.db
+public/plinko-overlay.html

@@ -67,6 +67,25 @@ export function initGoiUI(ioConnection) {
         previewId: 'goiGiftImagePreview',
     });
 
+    const triggerRadios = $('input[name="triggerType_goi"]');
+    const goiGiftSelectorWrapper = $('#goiGiftSelectorWrapper');
+    const goiLikesConfigRow = $('#goiLikesConfigRow');
+    const goiLikesRequired = $('#goiLikesRequired');
+
+    triggerRadios.change(function() {
+        const val = $(this).val();
+        if (val === 'gift') {
+            goiGiftSelectorWrapper.show();
+            goiLikesConfigRow.hide();
+        } else if (val === 'follow') {
+            goiGiftSelectorWrapper.hide();
+            goiLikesConfigRow.hide();
+        } else if (val === 'like') {
+            goiGiftSelectorWrapper.hide();
+            goiLikesConfigRow.show();
+        }
+    });
+
     buildCategoryTabs();
 
     $('#goiSetupBtn').off('click').on('click', () => $('#goiSetupModal').css('display', 'flex'));
@@ -234,6 +253,7 @@ export function initGoiUI(ioConnection) {
         $('#goiPowerRow').hide();
         $('#goiEffectPower').val(1);
         $('#goiWaitStreak').prop('checked', true);
+        $('input[name="triggerType_goi"][value="gift"]').prop('checked', true).trigger('change');
     }
 
     let editingGiftName = null;
@@ -242,7 +262,18 @@ export function initGoiUI(ioConnection) {
         resetModal();
         editingGiftName = editGiftName || null;
         if (editGiftName) {
-            giftDropdown.setValue(editGiftName);
+            if (editGiftName === 'Follow') {
+                $('input[name="triggerType_goi"][value="follow"]').prop('checked', true).trigger('change');
+            } else if (editGiftName === 'Like') {
+                $('input[name="triggerType_goi"][value="like"]').prop('checked', true).trigger('change');
+                const effect = currentCommands[editGiftName];
+                if (effect && effect.minLikes) goiLikesRequired.val(effect.minLikes);
+                else goiLikesRequired.val(100);
+            } else {
+                $('input[name="triggerType_goi"][value="gift"]').prop('checked', true).trigger('change');
+                giftDropdown.setValue(editGiftName);
+            }
+
             $('#goiModalTitle').text('Edit GOI Effect');
             const effect = currentCommands[editGiftName];
             const code   = typeof effect === 'string' ? effect : effect.code;
@@ -277,7 +308,16 @@ export function initGoiUI(ioConnection) {
     }
 
     function saveCurrentMapping() {
-        const giftName = giftDropdown.getValue();
+        const triggerType = $('input[name="triggerType_goi"]:checked').val();
+        let giftName = '';
+        if (triggerType === 'gift') {
+            giftName = giftDropdown.getValue();
+        } else if (triggerType === 'follow') {
+            giftName = 'Follow';
+        } else if (triggerType === 'like') {
+            giftName = 'Like';
+        }
+
         if (!giftName)     { showToast('You must choose a gift!', 'warning');  return; }
         if (!selectedEffect) { showToast('You must choose an effect!', 'warning'); return; }
 
@@ -293,6 +333,10 @@ export function initGoiUI(ioConnection) {
             ...(selectedEffect.counted  ? { count:    parseInt($('#goiEffectCount').val())    || 1  } : {}),
             ...(selectedEffect.powered  ? { power:    parseFloat($('#goiEffectPower').val())   || 1  } : {})
         };
+
+        if (triggerType === 'like') {
+            payload.minLikes = parseInt(goiLikesRequired.val()) || 100;
+        }
 
         saveMapping(giftName, payload, 'save', editingGiftName !== giftName ? editingGiftName : null);
         editingGiftName = null;

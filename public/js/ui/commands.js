@@ -28,13 +28,10 @@ export function initCommandsUI(ioConnection) {
         onDelete: null
     });
 
-    const socialBtn = $('#socialTriggersBtn');
-    const socialModal = $('#socialTriggersModal');
-    const followInput = $('#followCmdInput');
-    const likeThresholdInput = $('#likeThresholdInput');
-    const likeInput = $('#likeCmdInput');
-    const saveSocialBtn = $('#saveSocialBtn');
-    const closeSocialBtn = $('#closeSocialBtn');
+    const triggerRadios = $('input[name="triggerType_minecraft"]');
+    const mcGiftSelectorWrapper = $('#mcGiftSelectorWrapper');
+    const mcLikesConfigRow = $('#mcLikesConfigRow');
+    const mcLikesRequired = $('#mcLikesRequired');
 
     let currentEditGiftName = null;
     let availableGifts = [];
@@ -53,16 +50,26 @@ export function initCommandsUI(ioConnection) {
             giftDropdown.updateGifts(availableGifts);
             renderCommands(cmdData.commands);
 
-            followInput.val(cmdData.followCommand?.command || '');
-            likeThresholdInput.val(cmdData.likeCommand?.minLikes || 100);
-            likeInput.val(cmdData.likeCommand?.command || '');
-
         } catch (e) {
             console.error('Failed to load data:', e);
         }
     }
 
     refreshCommandsData = loadData;
+
+    triggerRadios.change(function() {
+        const val = $(this).val();
+        if (val === 'gift') {
+            mcGiftSelectorWrapper.show();
+            mcLikesConfigRow.hide();
+        } else if (val === 'follow') {
+            mcGiftSelectorWrapper.hide();
+            mcLikesConfigRow.hide();
+        } else if (val === 'like') {
+            mcGiftSelectorWrapper.hide();
+            mcLikesConfigRow.show();
+        }
+    });
 
 
 
@@ -134,7 +141,17 @@ export function initCommandsUI(ioConnection) {
 
     function openModal(gift = '', cmdObj = null) {
         currentEditGiftName = gift;
-        giftDropdown.setValue(gift || '');
+        
+        if (gift === 'Follow') {
+            $('input[name="triggerType_minecraft"][value="follow"]').prop('checked', true).trigger('change');
+        } else if (gift === 'Like') {
+            $('input[name="triggerType_minecraft"][value="like"]').prop('checked', true).trigger('change');
+            if (cmdObj && cmdObj.minLikes) mcLikesRequired.val(cmdObj.minLikes);
+            else mcLikesRequired.val(100);
+        } else {
+            $('input[name="triggerType_minecraft"][value="gift"]').prop('checked', true).trigger('change');
+            giftDropdown.setValue(gift || '');
+        }
 
         if (typeof cmdObj === 'string') {
             cmdInput.val(cmdObj);
@@ -165,7 +182,7 @@ export function initCommandsUI(ioConnection) {
         cmdInput.val('');
         cooldownInput.val(0);
         waitStreakInput.prop('checked', true);
-        waitStreakInput.trigger('change');
+        $('input[name="triggerType_minecraft"][value="gift"]').prop('checked', true).trigger('change');
         currentEditGiftName = null;
     }
 
@@ -185,46 +202,34 @@ export function initCommandsUI(ioConnection) {
     closeBtn.click(() => closeModal());
 
     saveBtn.click(() => {
-        const gift = giftDropdown.getValue();
+        const triggerType = $('input[name="triggerType_minecraft"]:checked').val();
+        let gift = '';
+        if (triggerType === 'gift') {
+            gift = giftDropdown.getValue();
+        } else if (triggerType === 'follow') {
+            gift = 'Follow';
+        } else if (triggerType === 'like') {
+            gift = 'Like';
+        }
+
         const cmd = cmdInput.val().trim();
         const cooldown = parseInt(cooldownInput.val()) || 0;
         const waitForStreak = waitStreakInput.is(':checked');
         const executeDelay = parseFloat(executeDelayInput.val()) || 0.2;
 
         if (gift && cmd) {
-            updateCommand(gift, {
+            const payload = {
                 command: cmd,
                 cooldown: cooldown,
                 waitForStreak: waitForStreak,
                 executeDelay: executeDelay
-            }, 'save', currentEditGiftName);
+            };
+            if (triggerType === 'like') {
+                payload.minLikes = parseInt(mcLikesRequired.val()) || 100;
+            }
+            updateCommand(gift, payload, 'save', currentEditGiftName);
         } else {
             showToast('Please fill in both Gift Name and Command fields', 'warning');
-        }
-    });
-
-    socialBtn.click(() => socialModal.css('display', 'flex'));
-    closeSocialBtn.click(() => socialModal.hide());
-    saveSocialBtn.click(async () => {
-        const follow = followInput.val().trim();
-        const likeThreshold = parseInt(likeThresholdInput.val()) || 100;
-        const like = likeInput.val().trim();
-
-        try {
-            const res = await fetch('/api/commands', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    followCommand: { command: follow },
-                    likeCommand: { command: like, minLikes: likeThreshold }
-                })
-            });
-            if (res.ok) {
-                socialModal.hide();
-                showToast('Social Triggers saved!', 'success');
-            }
-        } catch (e) {
-            showToast('Connection error', 'error');
         }
     });
 

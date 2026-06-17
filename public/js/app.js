@@ -199,6 +199,9 @@ connection.on('chat', (msg) => {
 });
 
 connection.on('gift', (data) => {
+    // Ignore virtual gifts in the gift log
+    if (data.giftId === 'virtual_follow' || data.giftId === 'virtual_like') return;
+
     // tiktok spam events for streaks (1, 2, 3...)
     // so only count if it's the final one
     if (data.giftType === 1 && !data.repeatEnd) {

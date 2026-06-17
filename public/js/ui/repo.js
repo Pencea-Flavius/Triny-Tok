@@ -15,7 +15,7 @@ const BASIC_EFFECTS = [
     { id: 'player_disablecrouch', name: 'Disable Crouch',    category: 'Toggle',   desc: "Can't crouch",              timed: true  },
     { id: 'player_fast',                name: 'Speed Boost',         category: 'Movement', desc: '2× speed',          timed: true  },
     { id: 'player_slow',                name: 'Slow',                category: 'Movement', desc: '0.5× speed',        timed: true  },
-    { id: 'player_antigravity',         name: 'Anti Gravity',        category: 'Movement', desc: 'Float',             timed: true  },
+    { id: 'player_antigravity',         name: 'High Gravity',        category: 'Movement', desc: 'Heavy gravity',     timed: true  },
     { id: 'player_teleport_random',     name: 'TP to Random Player', category: 'Movement', desc: 'TP to a random player', timed: false },
     { id: 'player_teleport_extraction', name: 'TP to Extraction',    category: 'Movement', desc: 'TP to nearest exit', timed: false },
     { id: 'player_teleport_truck',      name: 'TP to Truck',         category: 'Movement', desc: 'TP back to truck',  timed: false },
@@ -173,6 +173,25 @@ export function initRepoUI(ioConnection) {
     if (ioConnection) socket = ioConnection.socket;
 
     giftDropdown = new GiftDropdown({ inputId: 'repoGiftInput', resultsId: 'repoGiftResults', previewId: 'repoGiftImagePreview' });
+
+    const triggerRadios = $('input[name="triggerType_repo"]');
+    const repoGiftSelectorWrapper = $('#repoGiftSelectorWrapper');
+    const repoLikesConfigRow = $('#repoLikesConfigRow');
+    const repoLikesRequired = $('#repoLikesRequired');
+
+    triggerRadios.change(function() {
+        const val = $(this).val();
+        if (val === 'gift') {
+            repoGiftSelectorWrapper.show();
+            repoLikesConfigRow.hide();
+        } else if (val === 'follow') {
+            repoGiftSelectorWrapper.hide();
+            repoLikesConfigRow.hide();
+        } else if (val === 'like') {
+            repoGiftSelectorWrapper.hide();
+            repoLikesConfigRow.show();
+        }
+    });
 
     $('#addRepoEffectBtn').on('click', () => openModal());
 
@@ -434,6 +453,7 @@ export function initRepoUI(ioConnection) {
         $('#repoSpawnCount').val(1);
         $('#repoExecuteDelayInput').val(0.2);
         $('#repoDelayValueDisplay').text('0.2s');
+        $('input[name="triggerType_repo"][value="gift"]').prop('checked', true).trigger('change');
     }
 
     let editingGiftName = null;
@@ -442,7 +462,18 @@ export function initRepoUI(ioConnection) {
         resetModal();
         editingGiftName = editGiftName || null;
         if (editGiftName) {
-            giftDropdown.setValue(editGiftName);
+            if (editGiftName === 'Follow') {
+                $('input[name="triggerType_repo"][value="follow"]').prop('checked', true).trigger('change');
+            } else if (editGiftName === 'Like') {
+                $('input[name="triggerType_repo"][value="like"]').prop('checked', true).trigger('change');
+                const effect = currentCommands[editGiftName];
+                if (effect && effect.minLikes) repoLikesRequired.val(effect.minLikes);
+                else repoLikesRequired.val(100);
+            } else {
+                $('input[name="triggerType_repo"][value="gift"]').prop('checked', true).trigger('change');
+                giftDropdown.setValue(editGiftName);
+            }
+
             $('#repoModalTitle').text('Edit R.E.P.O. Effect');
             const effect = currentCommands[editGiftName];
             const code = typeof effect === 'string' ? effect : effect.code;
@@ -521,7 +552,16 @@ export function initRepoUI(ioConnection) {
     }
 
     function saveCurrentMapping() {
-        const giftName = giftDropdown.getValue();
+        const triggerType = $('input[name="triggerType_repo"]:checked').val();
+        let giftName = '';
+        if (triggerType === 'gift') {
+            giftName = giftDropdown.getValue();
+        } else if (triggerType === 'follow') {
+            giftName = 'Follow';
+        } else if (triggerType === 'like') {
+            giftName = 'Like';
+        }
+
         if (!giftName) { showToast('Choose a gift!', 'warning'); return; }
         
         let code = null;
@@ -547,6 +587,10 @@ export function initRepoUI(ioConnection) {
                 if (effectId) code = effectId;
             }
             payload = { code, waitForStreak, target, count: spawnCount, ...(executeDelay !== undefined ? { executeDelay } : {}) };
+        }
+
+        if (triggerType === 'like') {
+            payload.minLikes = parseInt(repoLikesRequired.val()) || 100;
         }
 
         if (currentCommands[giftName] && giftName !== editingGiftName) { showToast(`"${giftName}" already mapped! Delete it first.`, 'error'); return; }

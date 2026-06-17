@@ -145,7 +145,7 @@ async function finalizeGift(msg, updateDbAndCommand = true) {
                 db.upsertGift({ id: exists.id, name: exists.name, diamondCount: exists.diamond_count || exists.diamondCount || 0, imageUrl: freshImageUrl })
                     .catch(err => console.error('[DB] Failed to refresh gift image', err));
             }
-            ctx.downloadGiftImage(exists.id, freshImageUrl);
+            ctx.downloadGiftImage(exists.id, freshImageUrl, true);
         }
     }
 

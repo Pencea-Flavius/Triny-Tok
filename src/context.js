@@ -81,10 +81,10 @@ function localGiftImageUrl(giftId, remoteUrl) {
     return `/images/gifts/${giftId}${ext}`;
 }
 
-async function downloadGiftImage(giftId, remoteUrl) {
+async function downloadGiftImage(giftId, remoteUrl, force = false) {
     if (!giftId || !remoteUrl) return;
     const dest = localGiftImagePath(giftId, remoteUrl);
-    if (fs.existsSync(dest)) return;
+    if (!force && fs.existsSync(dest)) return;
     try {
         const res = await fetch(remoteUrl, { signal: AbortSignal.timeout(8000) });
         if (!res.ok) return;

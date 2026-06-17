@@ -61,6 +61,25 @@ export function initIsaacUI(ioConnection) {
         previewId: 'isaacGiftImagePreview',
     });
 
+    const triggerRadios = $('input[name="triggerType_isaac"]');
+    const isaacGiftSelectorWrapper = $('#isaacGiftSelectorWrapper');
+    const isaacLikesConfigRow = $('#isaacLikesConfigRow');
+    const isaacLikesRequired = $('#isaacLikesRequired');
+
+    triggerRadios.change(function() {
+        const val = $(this).val();
+        if (val === 'gift') {
+            isaacGiftSelectorWrapper.show();
+            isaacLikesConfigRow.hide();
+        } else if (val === 'follow') {
+            isaacGiftSelectorWrapper.hide();
+            isaacLikesConfigRow.hide();
+        } else if (val === 'like') {
+            isaacGiftSelectorWrapper.hide();
+            isaacLikesConfigRow.show();
+        }
+    });
+
     const itemSearchInput = $('#isaacItemSearchInput');
     const itemSearchResults = $('#isaacItemSearchResults');
     const itemSelectedId = $('#isaacSelectedItemId');
@@ -527,6 +546,7 @@ export function initIsaacUI(ioConnection) {
         $('#isaacDelayValueDisplay').text('0.2s');
         $('#isaacEntityIdInput').val('');
         $('#isaacEntityAmountInput').val(1);
+        $('input[name="triggerType_isaac"][value="gift"]').prop('checked', true).trigger('change');
         itemPreview.html('<span style="font-size:9px;color:var(--text-muted);">ITEM</span>');
         itemNameLabel.hide();
         itemQualityBadge.hide();
@@ -547,7 +567,18 @@ export function initIsaacUI(ioConnection) {
         resetModal();
         editingGiftName = editGiftName || null;
         if (editGiftName) {
-            giftDropdown.setValue(editGiftName);
+            if (editGiftName === 'Follow') {
+                $('input[name="triggerType_isaac"][value="follow"]').prop('checked', true).trigger('change');
+            } else if (editGiftName === 'Like') {
+                $('input[name="triggerType_isaac"][value="like"]').prop('checked', true).trigger('change');
+                const effect = currentCommands[editGiftName];
+                if (effect && effect.minLikes) isaacLikesRequired.val(effect.minLikes);
+                else isaacLikesRequired.val(100);
+            } else {
+                $('input[name="triggerType_isaac"][value="gift"]').prop('checked', true).trigger('change');
+                giftDropdown.setValue(editGiftName);
+            }
+
             $('#isaacModalTitle').text('Edit TBOI Effect');
             const effect = currentCommands[editGiftName];
             if (typeof effect === 'string') {
@@ -633,7 +664,16 @@ export function initIsaacUI(ioConnection) {
     }
 
     function saveCurrentMapping() {
-        const giftName = giftDropdown.getValue();
+        const triggerType = $('input[name="triggerType_isaac"]:checked').val();
+        let giftName = '';
+        if (triggerType === 'gift') {
+            giftName = giftDropdown.getValue();
+        } else if (triggerType === 'follow') {
+            giftName = 'Follow';
+        } else if (triggerType === 'like') {
+            giftName = 'Like';
+        }
+
         let payload = null;
         let isProfileMode = $('#isaacModeProfileBtn').hasClass('active');
         const waitForStreak = $('#isaacWaitStreak').is(':checked');
@@ -701,6 +741,10 @@ export function initIsaacUI(ioConnection) {
                     };
                 }
             }
+        }
+
+        if (triggerType === 'like' && payload) {
+            payload.minLikes = parseInt(isaacLikesRequired.val()) || 100;
         }
 
         // Validation

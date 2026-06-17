@@ -32,7 +32,9 @@ export function makeActionCell(giftName, { onTest, onEdit, onDelete } = {}) {
  * @param {object|undefined} gift  — from availableGifts array
  */
 export function makeGiftCell(giftName, gift) {
-    const imgSrc = gift?.image?.url_list?.[0] || DEFAULT_GIFT_IMG;
+    let imgSrc = gift?.image?.url_list?.[0] || DEFAULT_GIFT_IMG;
+    if (giftName === 'Follow') imgSrc = '/images/follow.png';
+    else if (giftName === 'Like') imgSrc = '/images/taptap.png';
     const td = $('<td style="overflow:hidden;"></td>');
     const inner = $('<div style="display:flex;align-items:center;gap:10px;min-width:0;"></div>');
     inner.append(

@@ -98,7 +98,7 @@ async function resolveEffect(game, effect, conn) {
     // GOI
     if (game === 'goi') {
         const code = typeof effect === 'string' ? effect : (effect.code || '');
-        return { effectName: GOI_NAMES[code] || code, effectImage: null, count, duration };
+        return { effectName: GOI_NAMES[code] || code, effectImage: null, count, duration, effectCode: code };
     }
     // Minecraft — show first command line
     if (game === 'minecraft') {
@@ -205,7 +205,7 @@ async function resolveEffect(game, effect, conn) {
     }
 
     const fallback = typeof effect === 'string' ? effect : (effect.code || '–');
-    return { effectName: fallback, effectImage: null, count, duration };
+    return { effectName: fallback, effectImage: null, count, duration, effectCode: typeof effect === 'object' ? effect.code : null };
 }
 
 router.get('/', async (req, res) => {
@@ -219,8 +219,18 @@ router.get('/', async (req, res) => {
 
     const gifts = [];
     for (const [giftName, effect] of Object.entries(commands)) {
-        const catalog   = ctx.availableGifts.find(g => g.name.trim() === giftName.trim());
-        const imagePath = catalog ? ctx.localGiftImageUrl(catalog.id, catalog.imageUrl || '') : null;
+        let catalog = ctx.availableGifts.find(g => g.name.trim() === giftName.trim());
+        let imagePath = catalog ? ctx.localGiftImageUrl(catalog.id, catalog.imageUrl || '') : null;
+        let diamondCount = catalog?.diamondCount ?? 0;
+        let minLikes = undefined;
+
+        if (giftName === 'Follow') {
+            imagePath = '/images/follow.png';
+        } else if (giftName === 'Like') {
+            imagePath = '/images/taptap.png';
+            minLikes = effect.minLikes || 100;
+        }
+
         let { effectName, effectImage, sprite, count, duration } = await resolveEffect(game, effect, conn);
 
         // Override with user custom name if exists
@@ -230,11 +240,13 @@ router.get('/', async (req, res) => {
 
         gifts.push({
             name: giftName.trim(),
-            id:   catalog?.id ?? null,
-            diamondCount: catalog?.diamondCount ?? 0,
+            id:   catalog?.id ?? (giftName === 'Follow' ? 'virtual_follow' : (giftName === 'Like' ? 'virtual_like' : null)),
+            diamondCount,
+            minLikes,
             imagePath,
             effectName,
             effectImage,
+            effectCode: effect.code || (typeof effect === 'string' ? effect : null),
             sprite,
             count,
             duration

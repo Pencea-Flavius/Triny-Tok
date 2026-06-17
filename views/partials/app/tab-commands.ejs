@@ -12,7 +12,6 @@
         </svg>
         Overlay
       </a>
-      <button class="btn-secondary btn-sm" id="socialTriggersBtn">Social Triggers</button>
       <button class="btn-primary btn-sm" id="addCommandBtn">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
           stroke-linecap="round" stroke-linejoin="round">
@@ -55,7 +54,24 @@
     <div class="modal-content glass">
       <h3 id="modalTitle" style="margin-bottom:22px;font-size:1.3rem;font-weight:800;">Add Command</h3>
       <div style="display:flex;flex-direction:column;gap:18px;">
-        <%- include('../gift-selector', { previewId: 'giftImagePreview', inputId: 'giftNameInput', resultsId: 'giftSearchResults' }) %>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <label class="field-label">Trigger</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;background:rgba(0,0,0,0.25);padding:4px;border-radius:10px;border:1px solid var(--border);">
+            <label class="trigger-type-opt"><input type="radio" name="triggerType_minecraft" value="gift" checked><span>Gift</span></label>
+            <label class="trigger-type-opt"><input type="radio" name="triggerType_minecraft" value="follow"><span>Follow</span></label>
+            <label class="trigger-type-opt"><input type="radio" name="triggerType_minecraft" value="like"><span>Likes</span></label>
+          </div>
+        </div>
+
+        <div id="mcGiftSelectorWrapper">
+          <%- include('../gift-selector', { previewId: 'giftImagePreview', inputId: 'giftNameInput', resultsId: 'giftSearchResults' }) %>
+        </div>
+
+        <div id="mcLikesConfigRow" style="display:none;flex-direction:column;gap:6px;">
+          <label class="field-label">Likes Required (per person)</label>
+          <input type="number" id="mcLikesRequired" class="input-base" value="100" min="1" style="width:100%;">
+          <p style="font-size:0.68rem;color:var(--dim);margin-top:2px;">Trigger this command every time a user sends this many likes.</p>
+        </div>
 
         <div class="field">
           <label class="field-label">Minecraft Commands (one per line)</label>
@@ -125,47 +141,10 @@
       </div>
     </div>
   </div>
-
-  <!-- Social Triggers Modal -->
-  <div id="socialTriggersModal" class="modal-overlay" style="display:none;">
-    <div class="modal-content glass">
-      <h3 style="margin-bottom:20px;font-size:1.3rem;font-weight:800;">Social Triggers</h3>
-      <div style="display:flex;flex-direction:column;gap:18px;">
-        <div class="field">
-          <label class="field-label">Trigger: New Follow</label>
-          <textarea id="followCmdInput" placeholder="Commands for follow..." rows="3"
-            style="font-family:'JetBrains Mono',monospace;margin-top:6px;"></textarea>
-          <p style="font-size:11px;color:var(--dim);margin-top:6px;line-height:1.6;">
-            <span style="font-weight:700;margin-right:2px;color:var(--muted);">Placeholders:</span>
-            <code title="Randomly picked target player from your list" style="cursor:pointer;">{playername}</code> ·
-            <code title="TikTok @username of the sender" style="cursor:pointer;">{username}</code> ·
-            <code title="TikTok display name of the sender" style="cursor:pointer;">{nickname}</code>
-          </p>
-        </div>
-        <div class="field">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-            <label class="field-label">Trigger: Likes Accumulated</label>
-            <div style="display:flex;align-items:center;gap:6px;">
-              <span style="font-size:12px;color:var(--dim);">Every</span>
-              <input type="number" id="likeThresholdInput" value="100"
-                style="width:80px;padding:7px 10px;text-align:center;">
-            </div>
-          </div>
-          <textarea id="likeCmdInput" placeholder="Commands for like threshold..." rows="3"
-            style="font-family:'JetBrains Mono',monospace;"></textarea>
-          <p style="font-size:11px;color:var(--dim);margin-top:6px;line-height:1.6;">
-            <span style="font-weight:700;margin-right:2px;color:var(--muted);">Placeholders:</span>
-            <code title="Randomly picked target player from your list" style="cursor:pointer;">{playername}</code> ·
-            <code title="TikTok @username of the sender" style="cursor:pointer;">{username}</code> ·
-            <code title="TikTok display name of the sender" style="cursor:pointer;">{nickname}</code>
-          </p>
-        </div>
-        <div style="display:flex;gap:10px;margin-top:4px;">
-          <button class="btn-primary" id="saveSocialBtn" style="flex:2;">Save Triggers</button>
-          <button class="btn-secondary" id="closeSocialBtn" style="flex:1;">Cancel</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
 </div>
+<style>
+.trigger-type-opt { display:flex; align-items:center; justify-content:center; padding:8px 6px; border-radius:7px; cursor:pointer; font-size:12px; font-weight:700; color:var(--muted); transition:background .15s, color .15s; user-select:none; }
+.trigger-type-opt input { display:none; }
+.trigger-type-opt:has(input:checked) { background:rgba(var(--accent-rgb), 0.15); color:var(--accent); }
+.trigger-type-opt:hover:not(:has(input:checked)) { background:rgba(255,255,255,0.05); color:var(--text); }
+</style>

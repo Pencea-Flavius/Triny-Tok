@@ -248,51 +248,53 @@ function setupSocket(io) {
             ctx.tiktokConnectionWrapper.connection.on('social', msg => {
                 if (msg.type === 'follow')      logger.logEvent('follow', msg);
                 else if (msg.type === 'share')  logger.logEvent('share', msg);
+                
                 if (msg.type === 'follow') {
-                    const followCmd = ctx.config.followCommand;
-                    if (followCmd?.command && minecraftBridge.isConnected) {
-                        const targets      = ctx.config.targetPlayers || [];
-                        const randomPlayer = targets.length > 0 ? targets[Math.floor(Math.random() * targets.length)] : 'Player';
-                        const cmds = typeof followCmd.command === 'string' ? followCmd.command.split('\n') : [followCmd.command];
-                        cmds.forEach(cmd => {
-                            if (!cmd.trim()) return;
-                            const finalCmd = cmd
-                                .replace(/\{username\}/g,  msg.uniqueId || 'Unknown')
-                                .replace(/\{nickname\}/g,  msg.nickname || 'Unknown')
-                                .replace(/\{giftname\}/g,  'Follow')
-                                .replace(/\{playername\}/g, randomPlayer)
-                                .replace(/\{count\}/g, 1);
-                            minecraftBridge.sendCommand(finalCmd, msg.nickname || msg.uniqueId);
-                        });
-                    }
+                    const mockGift = {
+                        ...msg,
+                        giftName: 'Follow',
+                        giftId: 'virtual_follow',
+                        repeatCount: 1,
+                        diamondCount: 0
+                    };
+                    finalizeGift(mockGift, true);
                 }
                 io.emit('social', injectAvatar(msg));
             });
 
-            let currentLikes = 0;
+            const userLikes = new Map();
             ctx.tiktokConnectionWrapper.connection.on('like', msg => {
                 logger.logEvent('like', msg);
-                const likeCmd = ctx.config.likeCommand;
-                if (likeCmd?.command && likeCmd.minLikes > 0 && minecraftBridge.isConnected) {
-                    currentLikes += msg.likeCount;
-                    if (currentLikes >= likeCmd.minLikes) {
-                        const triggerCount = Math.floor(currentLikes / likeCmd.minLikes);
-                        currentLikes %= likeCmd.minLikes;
-                        const targets      = ctx.config.targetPlayers || [];
-                        const randomPlayer = targets.length > 0 ? targets[Math.floor(Math.random() * targets.length)] : 'Player';
-                        const cmds = typeof likeCmd.command === 'string' ? likeCmd.command.split('\n') : [likeCmd.command];
-                        for (let i = 0; i < triggerCount; i++) {
-                            cmds.forEach(cmd => {
-                                if (!cmd.trim()) return;
-                                const finalCmd = cmd
-                                    .replace(/\{username\}/g,  msg.uniqueId || 'Unknown')
-                                    .replace(/\{nickname\}/g,  msg.nickname || 'Unknown')
-                                    .replace(/\{giftname\}/g,  'Like')
-                                    .replace(/\{playername\}/g, randomPlayer)
-                                    .replace(/\{count\}/g, currentLikes);
-                                minecraftBridge.sendCommand(finalCmd, msg.nickname || msg.uniqueId);
-                            });
+                
+                let minLikes = Infinity;
+                if (ctx.config.giftCommands?.['Like']?.minLikes) minLikes = Math.min(minLikes, ctx.config.giftCommands['Like'].minLikes);
+                if (ctx.config.repoCommands?.['Like']?.minLikes) minLikes = Math.min(minLikes, ctx.config.repoCommands['Like'].minLikes);
+                if (ctx.config.isaacCommands?.['Like']?.minLikes) minLikes = Math.min(minLikes, ctx.config.isaacCommands['Like'].minLikes);
+                if (ctx.config.goiCommands?.['Like']?.minLikes) minLikes = Math.min(minLikes, ctx.config.goiCommands['Like'].minLikes);
+
+                if (minLikes !== Infinity && minLikes > 0) {
+                    const uid = msg.userId || msg.uniqueId;
+                    const current = (userLikes.get(uid) || 0) + msg.likeCount;
+                    if (current >= minLikes) {
+                        const triggers = Math.floor(current / minLikes);
+                        // Reset to 0 after trigger — don't carry over remainder.
+                        // Carrying the remainder caused re-triggers too early on
+                        // subsequent like events (e.g. give 1000 → trigger, then
+                        // give 10 more → 10 stays, give 1000 again → 1010 >= 1000 → re-triggers).
+                        userLikes.set(uid, 0);
+                        
+                        for (let i = 0; i < triggers; i++) {
+                            const mockGift = {
+                                ...msg,
+                                giftName: 'Like',
+                                giftId: 'virtual_like',
+                                repeatCount: 1,
+                                diamondCount: 0
+                            };
+                            finalizeGift(mockGift, true);
                         }
+                    } else {
+                        userLikes.set(uid, current);
                     }
                 }
                 io.emit('like', injectAvatar(msg));

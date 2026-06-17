@@ -5,9 +5,25 @@
       Effect</h3>
     <div style="display:flex;flex-direction:column;gap:14px;">
 
-      <!-- Gift Selector -->
-      <%- include('../gift-selector', { previewId: 'isaacGiftImagePreview' , inputId: 'isaacGiftInput' ,
-        resultsId: 'isaacGiftResults' }) %>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <label class="field-label">Trigger</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;background:rgba(0,0,0,0.25);padding:4px;border-radius:10px;border:1px solid var(--border);">
+          <label class="trigger-type-opt"><input type="radio" name="triggerType_isaac" value="gift" checked><span>Gift</span></label>
+          <label class="trigger-type-opt"><input type="radio" name="triggerType_isaac" value="follow"><span>Follow</span></label>
+          <label class="trigger-type-opt"><input type="radio" name="triggerType_isaac" value="like"><span>Likes</span></label>
+        </div>
+      </div>
+
+      <div id="isaacGiftSelectorWrapper">
+        <%- include('../gift-selector', { previewId: 'isaacGiftImagePreview' , inputId: 'isaacGiftInput' ,
+          resultsId: 'isaacGiftResults' }) %>
+      </div>
+
+      <div id="isaacLikesConfigRow" style="display:none;flex-direction:column;gap:6px;">
+        <label class="field-label">Likes Required (per person)</label>
+        <input type="number" id="isaacLikesRequired" class="input-base" value="100" min="1" style="width:100%;">
+        <p style="font-size:0.68rem;color:var(--dim);margin-top:2px;">Trigger this effect every time a user sends this many likes.</p>
+      </div>
 
         <!-- Mode Toggle -->
         <div

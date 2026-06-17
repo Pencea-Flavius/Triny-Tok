@@ -4,8 +4,24 @@
     <h3 id="repoModalTitle" style="margin-bottom:18px;font-size:1.2rem;font-weight:800;letter-spacing:-.02em;">Add R.E.P.O. Effect</h3>
     <div style="display:flex;flex-direction:column;gap:14px;">
 
-      <!-- Gift Selector -->
-      <%- include('../gift-selector', { previewId: 'repoGiftImagePreview', inputId: 'repoGiftInput', resultsId: 'repoGiftResults' }) %>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <label class="field-label">Trigger</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;background:rgba(0,0,0,0.25);padding:4px;border-radius:10px;border:1px solid var(--border);">
+          <label class="trigger-type-opt"><input type="radio" name="triggerType_repo" value="gift" checked><span>Gift</span></label>
+          <label class="trigger-type-opt"><input type="radio" name="triggerType_repo" value="follow"><span>Follow</span></label>
+          <label class="trigger-type-opt"><input type="radio" name="triggerType_repo" value="like"><span>Likes</span></label>
+        </div>
+      </div>
+
+      <div id="repoGiftSelectorWrapper">
+        <%- include('../gift-selector', { previewId: 'repoGiftImagePreview', inputId: 'repoGiftInput', resultsId: 'repoGiftResults' }) %>
+      </div>
+
+      <div id="repoLikesConfigRow" style="display:none;flex-direction:column;gap:6px;">
+        <label class="field-label">Likes Required (per person)</label>
+        <input type="number" id="repoLikesRequired" class="input-base" value="100" min="1" style="width:100%;">
+        <p style="font-size:0.68rem;color:var(--dim);margin-top:2px;">Trigger this effect every time a user sends this many likes.</p>
+      </div>
 
       <!-- Mode Toggle -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;background:rgba(0,0,0,0.25);padding:4px;border-radius:10px;border:1px solid var(--border);">

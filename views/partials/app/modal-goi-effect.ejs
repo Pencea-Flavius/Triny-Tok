@@ -4,8 +4,24 @@
     <h3 id="goiModalTitle" style="margin-bottom:18px;font-size:1.2rem;font-weight:800;letter-spacing:-.02em;">Add Getting Over It Effect</h3>
     <div style="display:flex;flex-direction:column;gap:14px;">
 
-      <!-- Gift Selector -->
-      <%- include('../gift-selector', { previewId: 'goiGiftImagePreview', inputId: 'goiGiftInput', resultsId: 'goiGiftResults' }) %>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <label class="field-label">Trigger</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;background:rgba(0,0,0,0.25);padding:4px;border-radius:10px;border:1px solid var(--border);">
+          <label class="trigger-type-opt"><input type="radio" name="triggerType_goi" value="gift" checked><span>Gift</span></label>
+          <label class="trigger-type-opt"><input type="radio" name="triggerType_goi" value="follow"><span>Follow</span></label>
+          <label class="trigger-type-opt"><input type="radio" name="triggerType_goi" value="like"><span>Likes</span></label>
+        </div>
+      </div>
+
+      <div id="goiGiftSelectorWrapper">
+        <%- include('../gift-selector', { previewId: 'goiGiftImagePreview', inputId: 'goiGiftInput', resultsId: 'goiGiftResults' }) %>
+      </div>
+
+      <div id="goiLikesConfigRow" style="display:none;flex-direction:column;gap:6px;">
+        <label class="field-label">Likes Required (per person)</label>
+        <input type="number" id="goiLikesRequired" class="input-base" value="100" min="1" style="width:100%;">
+        <p style="font-size:0.68rem;color:var(--dim);margin-top:2px;">Trigger this effect every time a user sends this many likes.</p>
+      </div>
 
       <!-- Category filter tabs -->
       <div style="display:flex;gap:4px;flex-wrap:wrap;" id="goiCategoryTabs"></div>
