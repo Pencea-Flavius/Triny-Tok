@@ -141,7 +141,13 @@ async function resolveEffect(game, effect, conn) {
     // Terraria
     if (game === 'terraria') {
         const code = typeof effect === 'string' ? effect : (effect.code || '');
-        return { effectName: formatEffectName(code), effectImage: null, count, duration, effectCode: code };
+        let effectName = formatEffectName(code);
+        try {
+            const effectsData = require('../data/terraria/native_effects.json');
+            const match = effectsData.find(e => e.id === code);
+            if (match) effectName = match.name;
+        } catch (_) {}
+        return { effectName, effectImage: null, count, duration, effectCode: code };
     }
     // REPO
     if (game === 'repo') {

@@ -272,13 +272,65 @@ router.post('/preset-suggestion', express.json(), auth.requireAuth, async (req, 
             } else if (game === 'terraria') {
                 const validIds = new Set(allTerrariaEffects.map(e => e.id));
                 const terrariaErrors = [];
+                // Detect inverted structure: effect id used as key instead of gift name
+                const invertedKeys = Object.keys(args.commands || {}).filter(k => validIds.has(k));
+                if (invertedKeys.length > 0) {
+                    return { error: `STRUCTURE ERROR — you used effect IDs as keys: ${invertedKeys.join(', ')}. Keys MUST be TikTok gift names. The effect id goes inside the value as "code". WRONG: { "spawn_king_slime": { "code": "Ice Cream Cone" } } RIGHT: { "Ice Cream Cone": { "code": "spawn_king_slime" } }. Call create_preset again with corrected structure.` };
+                }
                 for (const [gift, val] of Object.entries(args.commands || {})) {
                     if (!val || typeof val !== 'object') continue;
                     if (!validIds.has(val.code))
                         terrariaErrors.push(`"${gift}": "${val.code}" is not a valid Terraria effect ID`);
                 }
                 if (terrariaErrors.length > 0) return { error: `Invalid effects:\n${terrariaErrors.join('\n')}\nUse only valid effect IDs from the effects list.` };
-                data = { terraria_commands: JSON.stringify(sanitizeCommands(args.commands)) };
+
+                // Intent enforcement: if user asked for a specific category, ensure commands reflect it
+                const promptLower = (userPrompt || '').toLowerCase();
+                const chosenIds = Object.values(args.commands || {}).map(v => (typeof v === 'object' ? v.code : v)).filter(Boolean);
+                const bossIds = new Set(['spawn_king_slime','spawn_eye_of_cthulhu','spawn_eater_of_worlds','spawn_brain_of_cthulhu','spawn_queen_bee','spawn_skeletron','spawn_wall_of_flesh','spawn_queen_slime','spawn_twins','spawn_destroyer','spawn_skeletron_prime','spawn_plantera','spawn_golem','spawn_duke_fishron','spawn_empress_of_light','spawn_moon_lord']);
+                const bossCount = chosenIds.filter(id => bossIds.has(id)).length;
+                const itemIds = allTerrariaEffects.filter(e => e.id.startsWith('give_') && !['give_heart','give_mana_star','give_gold_coin','give_platinum_coin','give_life_crystal','give_mana_crystal'].includes(e.id)).map(e => e.id);
+                const itemCount = chosenIds.filter(id => itemIds.includes(id)).length;
+                const buffCount = chosenIds.filter(id => id.startsWith('buff_')).length;
+                const debuffCount = chosenIds.filter(id => id.startsWith('debuff_')).length;
+
+                const wantsItems = /\b(item|items|weapon|weapons|sword|blade|give|obiect|obiecte|arma|arme)\b/.test(promptLower);
+                const wantsBuffs = /\b(buff|buffs|bonus|positive|good effects?)\b/.test(promptLower);
+                const wantsDebuffs = /\b(debuff|debuffs|punishment|negative|bad effects?)\b/.test(promptLower);
+                const wantsBosses = /\b(boss|bosses|bos|bosi|seful|sefi)\b/.test(promptLower);
+
+                if (wantsItems && !wantsBosses && itemCount < 3 && bossCount > 3) {
+                    const itemList = itemIds.map(id => `"${id}"`).join(', ');
+                    return { error: `The user asked for ITEMS but you submitted mostly boss spawns (${bossCount} bosses, only ${itemCount} items). Use item effects instead. Valid item IDs: ${itemList}. Call create_preset again with item effects.` };
+                }
+                if (wantsBuffs && !wantsBosses && buffCount < 3 && bossCount > 3) {
+                    const buffList = allTerrariaEffects.filter(e => e.id.startsWith('buff_')).map(e => `"${e.id}"`).join(', ');
+                    return { error: `The user asked for BUFFS but you submitted mostly boss spawns. Use buff effects instead. Valid buff IDs: ${buffList}. Call create_preset again with buff effects.` };
+                }
+                if (wantsDebuffs && !wantsBosses && debuffCount < 3 && bossCount > 3) {
+                    const debuffList = allTerrariaEffects.filter(e => e.id.startsWith('debuff_')).map(e => `"${e.id}"`).join(', ');
+                    return { error: `The user asked for DEBUFFS but you submitted mostly boss spawns. Use debuff effects instead. Valid debuff IDs: ${debuffList}. Call create_preset again with debuff effects.` };
+                }
+
+                // Auto-inject default duration for timed effects the AI forgot to set
+                const timedEffectIds = new Set(allTerrariaEffects.filter(e => e.timed).map(e => e.id));
+                const DEFAULT_DURATIONS = {
+                    // Debuffs get shorter durations
+                    debuff_on_fire: 5, debuff_frozen: 3, debuff_blindness: 5, debuff_poison: 10,
+                    debuff_slow: 10, debuff_confusion: 5, debuff_cursed: 3, debuff_silenced: 10,
+                    debuff_bleeding: 10, debuff_gravity: 10, debuff_shimmer: 5,
+                    // Buffs default to 30s
+                };
+                const fixedCommands = Object.fromEntries(
+                    Object.entries(args.commands || {}).map(([gift, val]) => {
+                        if (typeof val === 'object' && val.code && timedEffectIds.has(val.code) && !val.duration) {
+                            return [gift, { ...val, duration: DEFAULT_DURATIONS[val.code] || 30 }];
+                        }
+                        return [gift, val];
+                    })
+                );
+
+                data = { terraria_commands: JSON.stringify(sanitizeCommands(fixedCommands)) };
             } else {
                 console.info('[AI minecraft] raw args:', JSON.stringify(args));
                 const rawGiftCmds = args.gift_commands || args.commands || {};

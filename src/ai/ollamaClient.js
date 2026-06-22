@@ -53,7 +53,7 @@ async function runAgent(messages, tools, toolHandlers, label = 'agent') {
                             : label === 'preset-goi'
                                 ? '"commands": { "Rose": { "code": "launch" }, "Heart": { "code": "zero_gravity", "duration": 15 } }'
                                 : label === 'preset-terraria'
-                                    ? '"commands": { "Rose": { "code": "kill_player" }, "Heart": { "code": "spawn_zombie" } }'
+                                    ? '"commands": { "Rose": { "code": "kill_player" }, "Heart": { "code": "spawn_zombie" } }  ← KEYS must be gift names, "code" value must be the effect id (NOT the reverse)'
                                     : '"commands": { "Rose": "boss_rush", "Heart": { "action": "spawn_item", "itemId": 214, "amount": 1, "autoCollect": true } }';
                     nudge = `You MUST call the create_preset tool now. Do not explain — just call it. Required fields: "name" (string) and ${cmdField} (object mapping gift names to effects). EVERY gift must have a real effect assigned — no empty arrays. Example: { "name": "My Preset", ${cmdExample} }`;
                 }
@@ -103,9 +103,16 @@ async function runAgent(messages, tools, toolHandlers, label = 'agent') {
                     const searchHint = searchResults.length > 0
                         ? ` Remember to include ALL searched items/bosses in your commands: ${JSON.stringify(searchResults)}.`
                         : '';
+                    // Preserve the previous effect choices so the AI doesn't abandon the correct category
+                    const prevCommandsHint = hadCommands
+                        ? ` Your previous effect choices were: ${JSON.stringify(hadCommands)}. Keep the SAME effect IDs — only fix the specific error above. Do NOT change the category of effects you were using (e.g. if you had items, keep items; if you had buffs, keep buffs).`
+                        : '';
+                    // Remind about the original user intent
+                    const userIntent = msgs.find(m => m.role === 'user' && !m.content.includes('create_preset failed') && !m.content.includes('call a tool') && !m.content.includes('You MUST call'));
+                    const intentHint = userIntent ? ` The user's original request was: "${userIntent.content}". Respect that intent.` : '';
                     const fixHint = hadCommands
-                        ? `Call create_preset again. Assign a real effect to EVERY gift key — do not leave any with empty arrays or missing commands.${searchHint}`
-                        : `Call create_preset with "name" and "commands" covering all gift keys.${searchHint}`;
+                        ? `Call create_preset again.${prevCommandsHint}${intentHint}${searchHint}`
+                        : `Call create_preset with "name" and "commands" covering all gift keys.${intentHint}${searchHint}`;
                     msgs.push({ role: 'user', content: `create_preset failed: ${result.error}. ${fixHint}` });
                 } else if (result && result.success) {
                     console.log(`${tag} ─── done (preset saved) ──────────────\n`);
@@ -263,8 +270,29 @@ ENEMIES (spawn enemy, use id as code): ${JSON.stringify(enemies.map(e => ({ id: 
 VALUABLES (spawn valuable, use id as code): ${JSON.stringify(valuables.map(v => ({ id: v.id, name: v.name })))}`;
     } else if (game === 'terraria') {
         const effectsData = require('../data/terraria/native_effects.json');
-        const effectsList = effectsData.map(e => `${e.name} (id: ${e.id})`).join(', ');
-        context = `Here is the exact list of valid effect names and their IDs for Terraria:\n${effectsList}\n\nYour job is to map TikTok gifts to these exact Terraria effect IDs.\n- For each gift, output { "code": "the_exact_id_from_the_list" }\n- Give the preset a fun name based on the user's prompt.`;
+
+        const catGroups = {
+            'PLAYER HEAL & RESOURCES (coins, hearts, mana — give directly to player)': effectsData.filter(e =>
+                ['heal_player','give_heart','give_mana_star','give_gold_coin','give_platinum_coin','give_life_crystal','give_mana_crystal'].includes(e.id)),
+            'BUFFS — TIMED positive effects (show TIMED badge, use for helpful/reward gifts)': effectsData.filter(e => e.id.startsWith('buff_')),
+            'DEBUFFS — TIMED negative effects (use for chaos/punishment gifts)': effectsData.filter(e => e.id.startsWith('debuff_')),
+            'PLAYER DAMAGE & CHAOS (instant, no duration)': effectsData.filter(e =>
+                ['kill_player','damage_player','damage_player_100','explode_player','drop_held_item','clear_buffs','drain_mana','set_half_health','teleport_random'].includes(e.id)),
+            'NORMAL ENEMY SPAWNS (non-boss creatures — use for mid-tier gifts)': effectsData.filter(e =>
+                ['spawn_slime','spawn_zombie','spawn_demon_eye','spawn_skeleton','spawn_pinky','spawn_mimic','spawn_nymph','spawn_bunny','spawn_goldfish'].includes(e.id)),
+            'BOSS SPAWNS (high-tier gifts — most expensive ones)': effectsData.filter(e =>
+                ['spawn_king_slime','spawn_eye_of_cthulhu','spawn_eater_of_worlds','spawn_brain_of_cthulhu','spawn_queen_bee','spawn_skeletron','spawn_wall_of_flesh','spawn_queen_slime','spawn_twins','spawn_destroyer','spawn_skeletron_prime','spawn_plantera','spawn_golem','spawn_duke_fishron','spawn_empress_of_light','spawn_moon_lord'].includes(e.id)),
+            'ITEMS — give weapons, tools, consumables to the player': effectsData.filter(e =>
+                ['give_copper_shortsword','give_wooden_sword','give_nights_edge','give_terra_blade','give_zenith','give_meowmere','give_bomb','give_dynamite','give_healing_potion','give_life_fruit','give_dirt_block','give_angel_wings','give_rod_of_discord','give_terraprisma','give_tombstone'].includes(e.id)),
+            'WORLD EVENTS & TIME': effectsData.filter(e =>
+                ['set_time_day','set_time_night','set_time_noon','set_time_midnight','toggle_rain','start_storm','start_sandstorm','blood_moon','solar_eclipse','slime_rain','goblin_army','pirate_invasion'].includes(e.id)),
+        };
+
+        const contextLines = Object.entries(catGroups).map(([catName, effects]) =>
+            `${catName}:\n${effects.map(e => `  ${e.name}${e.timed ? ' [TIMED]' : ''} → id: "${e.id}"`).join('\n')}`
+        ).join('\n\n');
+
+        context = `Here are all valid Terraria effect IDs, grouped by category. When the user mentions a type of effect (e.g. "items", "buffs", "bosses", "debuffs", "enemies"), use that category — do NOT default to bosses unless specifically requested.\n\n${contextLines}\n\nFor each gift, output { "code": "the_exact_id" }. Give the preset a fun name based on the user's prompt.`;
     }
 
     // create_preset — exact format differs per game
@@ -309,14 +337,14 @@ VALUABLES (spawn valuable, use id as code): ${JSON.stringify(valuables.map(v => 
             required: ['name', 'commands'],
         };
     } else if (game === 'terraria') {
-        createDesc = 'Save the Terraria preset. commands keys = TikTok gift names. Each value = { "code": "exact_id_from_list" }. Example: { "Rose": { "code": "kill_player" }, "Heart": { "code": "spawn_zombie" } }';
+        createDesc = 'Save the Terraria preset. KEY = TikTok gift name. VALUE = { "code": "<effect_id>" }. For TIMED effects (marked [TIMED] in the list) you MUST also add "duration": N (seconds, 5–60). WRONG: { "spawn_king_slime": { "code": "Ice Cream Cone" } } RIGHT: { "Ice Cream Cone": { "code": "spawn_king_slime" } }. NEVER use an effect id as a key.';
         createParams = {
             type: 'object',
             properties: {
                 name: { type: 'string' },
                 commands: {
                     type: 'object',
-                    description: 'Keys MUST be gift names from the PRESET GIFT KEYS list. Values MUST be { "code": "id" } where id is strictly from the provided Terraria list.'
+                    description: 'Keys MUST be gift names — NOT effect ids. For timed effects always include "duration". Example with buffs/items: {"Rose":{"code":"buff_speed","duration":30},"Heart":{"code":"buff_regeneration","duration":20},"Doughnut":{"code":"give_bomb"},"Perfume":{"code":"debuff_on_fire","duration":5},"Ice Cream Cone":{"code":"buff_ironskin","duration":30},"Tiny Diny":{"code":"give_healing_potion"},"GG":{"code":"heal_player"}}'
                 }
             },
             required: ['name', 'commands'],
@@ -454,6 +482,33 @@ Match chaos to diamond cost — cheap gifts: shove_left/shove_right, expensive: 
 Give a creative name different from existing ones.`;
     } else if (game === 'terraria') {
         systemContent = `You are a TikTok streaming preset builder for Terraria. Call create_preset exactly once.
+
+━━━ STRUCTURE — READ THIS FIRST ━━━
+commands = { "<TikTok gift name>": { "code": "<terraria_effect_id>" }, ... }
+
+  KEYS   = TikTok gift names from the PRESET GIFT KEYS list below
+  VALUES = objects where "code" is a Terraria effect id from the list
+
+  ✗ WRONG: { "spawn_king_slime": { "code": "Ice Cream Cone" } }
+  ✓ RIGHT: { "Ice Cream Cone": { "code": "spawn_king_slime" } }
+
+  ✗ WRONG: { "heal_player": { "code": "Rose" } }
+  ✓ RIGHT: { "Rose": { "code": "heal_player" } }
+
+━━━ TIMED EFFECTS — MUST include "duration" ━━━
+Effects marked [TIMED] in the list below require a "duration" field (seconds, 5–60).
+
+  ✗ WRONG: { "code": "buff_speed" }
+  ✓ RIGHT:  { "code": "buff_speed", "duration": 30 }
+
+  ✗ WRONG: { "code": "debuff_on_fire" }
+  ✓ RIGHT:  { "code": "debuff_on_fire", "duration": 5 }
+
+Instant effects (no [TIMED]) must NOT have a duration field.
+Match duration to diamond cost — cheap gifts: 5–10s, expensive gifts: 30–60s.
+
+Match effect intensity to diamond cost — cheap gifts get debuffs/small spawns, expensive gifts get bosses.
+
 ${donationSummary}
 ${giftCostHint}
 ${existingPresetsHint}
