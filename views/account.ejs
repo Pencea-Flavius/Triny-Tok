@@ -254,7 +254,7 @@
       <div class="form-field">
         <label class="form-label" style="margin-bottom:8px;">Favorite Games</label>
         <div class="pref-chips">
-          <% [['minecraft','Minecraft'],['isaac','Isaac'],['repo','R.E.P.O.'],['goi','Getting Over It'],['other','Other']].forEach(([v,l]) => { %>
+          <% [['minecraft','Minecraft'],['isaac','Isaac'],['repo','R.E.P.O.'],['goi','Getting Over It'],['terraria','Terraria'],['other','Other']].forEach(([v,l]) => { %>
           <label class="pref-chip">
             <input type="checkbox" name="favoriteGames" value="<%= v %>" <%= favGames.includes(v) ? 'checked' : '' %>>
             <span><%= l %></span>
