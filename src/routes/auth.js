@@ -20,6 +20,11 @@ router.post('/login', async (req, res) => {
     try {
         const user = await auth.login(email, password);
         req.session.user = user;
+        if (req.body.rememberMe) {
+            req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000;
+        } else {
+            req.session.cookie.expires = false;
+        }
         const raw  = req.body.next || req.query.next || '/app';
         const next = raw.startsWith('/') ? raw : '/app';
         res.redirect(next);

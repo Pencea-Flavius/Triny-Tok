@@ -25,7 +25,17 @@
       <% accounts.forEach(a => { %>
       <tr>
         <td>
-          <img src="https://www.tiktok.com/static/images/avatar_default.png" style="width:30px;height:30px;border-radius:50%;object-fit:cover;background:rgba(0,242,234,0.08);" alt="">
+          <div style="position:relative;width:30px;height:30px;">
+            <img
+              src="https://unavatar.io/tiktok/<%= a.username %>"
+              style="width:30px;height:30px;border-radius:50%;object-fit:cover;background:rgba(0,242,234,0.08);"
+              alt=""
+              onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"
+            >
+            <div style="display:none;width:30px;height:30px;border-radius:50%;background:rgba(0,242,234,0.08);color:var(--teal,#00f2ea);align-items:center;justify-content:center;font-size:12px;font-weight:700;position:absolute;top:0;left:0;">
+              <%= a.username.charAt(0).toUpperCase() %>
+            </div>
+          </div>
         </td>
         <td><strong style="color:#e8eaf0;">@<%= a.username %></strong></td>
         <td><span style="color:rgba(255,255,255,0.5);font-size:12px;"><%= a.email %></span></td>
