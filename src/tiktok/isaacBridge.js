@@ -67,7 +67,7 @@ class IsaacBridge extends EventEmitter {
             });
         });
 
-        this.server.listen(this.port, '0.0.0.0', () => {
+        this.server.listen(this.port, process.env.BRIDGE_HOST || '127.0.0.1', () => {
             console.info(`[Isaac] TCP server listening on 0.0.0.0:${this.port}`);
         });
 

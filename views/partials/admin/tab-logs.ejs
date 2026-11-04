@@ -9,28 +9,28 @@
   };
 %>
 
-<p style="font-size:13px;color:rgba(255,255,255,0.4);margin-bottom:20px;line-height:1.6;">
-  Write live events to a plain-text file on the server (<code style="color:#00f2ea;">logs/events.txt</code>).
+<p style="font-size:13px;color: var(--muted);margin-bottom:20px;line-height:1.6;">
+  Write live events to a plain-text file on the server (<code style="color:var(--accent);">logs/events.txt</code>).
   Turn logging on, pick which event types to record, then download or clear the file below. Admin only.
 </p>
 
 <form method="POST" action="/admin/logging" style="margin-bottom:28px;">
-  <label style="display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid rgba(255,255,255,0.1);border-radius:12px;background:rgba(0,242,234,0.04);cursor:pointer;margin-bottom:20px;">
-    <input type="checkbox" name="enabled" <%= logging.enabled ? 'checked' : '' %> style="width:18px;height:18px;accent-color:#00f2ea;cursor:pointer;">
+  <label style="display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid var(--border2);border-radius: 4px;background:rgba(var(--accent-rgb),0.04);cursor:pointer;margin-bottom:20px;">
+    <input type="checkbox" name="enabled" <%= logging.enabled ? 'checked' : '' %> style="width:18px;height:18px;accent-color:var(--accent);cursor:pointer;">
     <div>
-      <div style="font-size:14px;font-weight:700;color:#e8eaf0;">Enable event logging</div>
-      <div style="font-size:11px;color:rgba(255,255,255,0.4);">Master switch — when off, nothing is written regardless of the selections below.</div>
+      <div style="font-size:14px;font-weight: 600;color:var(--text);">Enable event logging</div>
+      <div style="font-size:11px;color: var(--muted);">Master switch — when off, nothing is written regardless of the selections below.</div>
     </div>
   </label>
 
-  <div style="font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:10px;">Event types to record</div>
+  <div style="font-size: 12px;font-weight:800;color: var(--muted);margin-bottom:10px;">Event types to record</div>
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;margin-bottom:22px;">
     <% logCategories.forEach(cat => { const m = catMeta[cat] || { label: cat, desc: '' }; %>
-    <label style="display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border:1px solid rgba(255,255,255,0.08);border-radius:10px;background:rgba(255,255,255,0.02);cursor:pointer;">
-      <input type="checkbox" name="<%= cat %>" <%= logging.events[cat] ? 'checked' : '' %> style="width:16px;height:16px;accent-color:#00f2ea;cursor:pointer;margin-top:2px;">
+    <label style="display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border:1px solid var(--border2);border-radius: 4px;background:var(--tint);cursor:pointer;">
+      <input type="checkbox" name="<%= cat %>" <%= logging.events[cat] ? 'checked' : '' %> style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer;margin-top:2px;">
       <div>
-        <div style="font-size:13px;font-weight:600;color:#e8eaf0;"><%= m.label %></div>
-        <div style="font-size:11px;color:rgba(255,255,255,0.35);line-height:1.4;"><%= m.desc %></div>
+        <div style="font-size:13px;font-weight:600;color:var(--text);"><%= m.label %></div>
+        <div style="font-size:11px;color: var(--muted);line-height:1.4;"><%= m.desc %></div>
       </div>
     </label>
     <% }) %>
@@ -39,8 +39,8 @@
   <button type="submit" class="btn-search" style="height:38px;">Save Settings</button>
 </form>
 
-<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px;border-top:1px solid rgba(255,255,255,0.08);padding-top:20px;">
-  <div style="font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:rgba(255,255,255,0.3);">Log file — last 300 lines</div>
+<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px;border-top:1px solid var(--border2);padding-top:20px;">
+  <div style="font-size: 12px;font-weight:800;color: var(--muted);">Log file — last 300 lines</div>
   <div class="action-group" style="display:flex;gap:8px;">
     <a class="btn-sm" href="/admin/logging/download" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -55,5 +55,5 @@
 <% if (!logTail) { %>
 <div class="empty-state">Log file is empty. Enable logging above and the events you picked will appear here after the next live.</div>
 <% } else { %>
-<pre style="background:#0a0f1a;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;font-size:12px;line-height:1.55;color:#c8cad8;overflow-x:auto;max-height:520px;overflow-y:auto;white-space:pre-wrap;word-break:break-word;font-family:'SF Mono',Menlo,Consolas,monospace;"><%= logTail %></pre>
+<pre style="background:var(--bg);border:1px solid var(--border2);border-radius: 4px;padding:16px;font-size:12px;line-height:1.55;color:var(--text);overflow-x:auto;max-height:520px;overflow-y:auto;white-space:pre-wrap;word-break:break-word;font-family:'SF Mono',Menlo,Consolas,monospace;"><%= logTail %></pre>
 <% } %>

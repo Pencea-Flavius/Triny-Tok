@@ -1,24 +1,22 @@
 <div id="donorStatsContent" class="tab-content">
   <div class="page-header">
     <div>
-      <div class="page-eyebrow"><span class="eyebrow-dot"></span>Monitor</div>
       <h1 class="page-h1">Donor Stats</h1>
       <p class="page-sub">All-time supporters ranked by diamonds.</p>
     </div>
   </div>
 
-  <hr class="accent-rule">
 
   <% if (!user) { %>
-  <div class="card" style="text-align:center;padding:48px 24px;color:var(--dim);">
-    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.3;margin-bottom:12px;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-    <div style="font-size:13px;">Log in to see your donor stats.</div>
+  <div class="card empty-state">
+    <p>Log in to see your donor stats.</p>
+    <a href="/login?next=/app" class="btn-primary" style="text-decoration:none;">Sign in</a>
   </div>
   <% } else { %>
 
   <div class="card">
-    <div id="dsDonorsList" style="display:flex;flex-direction:column;gap:12px;">
-      <div style="text-align:center;padding:20px 0;font-size:12px;color:var(--dim);">Loading...</div>
+    <div id="dsDonorsList">
+      <div style="text-align:center;padding:20px 0;font-size:13px;color:var(--muted);">Loading...</div>
     </div>
   </div>
 
@@ -26,9 +24,14 @@
   (function() {
     const DSV = '<svg width="10" height="10" viewBox="0 0 640 640" fill="currentColor" style="vertical-align:middle;margin-right:2px;flex-shrink:0;"><path d="M232.5 136L320 229L407.5 136L232.5 136zM447.9 163.1L375.6 240L504.6 240L448 163.1zM497.9 288L142.1 288L320 484.3L497.9 288zM135.5 240L264.5 240L192.2 163.1L135.6 240zM569.8 280.1L337.8 536.1C333.3 541.1 326.8 544 320 544C313.2 544 306.8 541.1 302.2 536.1L70.2 280.1C62.5 271.6 61.9 258.9 68.7 249.7L180.7 97.7C185.2 91.6 192.4 87.9 200 87.9L440 87.9C447.6 87.9 454.8 91.5 459.3 97.7L571.3 249.7C578.1 258.9 577.4 271.6 569.8 280.1z"/></svg>';
 
+    function esc(v) {
+      return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
     function avatar(uid, size) {
+      uid = esc(uid);
       const init = (uid || '?').charAt(0).toUpperCase();
-      return `<div style="display:flex;width:${size}px;height:${size}px;border-radius:50%;background:rgba(0,242,234,0.08);border:1px solid rgba(0,242,234,0.15);align-items:center;justify-content:center;font-size:${Math.floor(size*0.4)}px;font-weight:900;color:var(--accent);flex-shrink:0;">${init}</div>`;
+      return `<div style="display:flex;width:${size}px;height:${size}px;border-radius:50%;background:rgba(var(--accent-rgb),0.08);border:1px solid rgba(var(--accent-rgb),0.15);align-items:center;justify-content:center;font-size:${Math.floor(size*0.4)}px;font-weight: 800;color:var(--accent);flex-shrink:0;">${init}</div>`;
     }
 
     let loaded = false;
@@ -40,25 +43,24 @@
         .then(data => {
           const list = document.getElementById('dsDonorsList');
           if (!data.success || !data.donors.length) {
-            list.innerHTML = '<div style="text-align:center;padding:20px 0;font-size:12px;color:var(--dim);">No donors yet — go live!</div>';
+            list.innerHTML = '<div style="text-align:center;padding:20px 0;font-size:13px;color:var(--muted);">No donors yet. Go live to start tracking.</div>';
             return;
           }
-          const medals = ['🥇','🥈','🥉'];
           list.innerHTML = data.donors.map((d, i) => `
-            <div style="display:flex;align-items:center;gap:10px;">
-              <span style="font-size:14px;width:20px;text-align:center;flex-shrink:0;">${medals[i] || '<span style="font-size:11px;font-weight:800;color:var(--dim);">' + (i+1) + '</span>'}</span>
+            <div class="donor-row">
+              <span class="donor-rank">${i + 1}</span>
               ${avatar(d.uniqueId, 32)}
-              <div style="flex:1;min-width:0;">
-                <div style="font-size:12px;font-weight:800;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">@${d.uniqueId}</div>
-                ${d.lastGift ? `<div style="font-size:10px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.lastGift}</div>` : ''}
+              <div class="donor-name">
+                <div>@${esc(d.uniqueId)}</div>
+                ${d.lastGift ? `<span>${esc(d.lastGift)}</span>` : ''}
               </div>
-              <div style="font-size:12px;font-weight:900;color:var(--accent);white-space:nowrap;">${DSV} ${d.totalDiamonds.toLocaleString()}</div>
+              <div class="donor-total">${DSV} ${d.totalDiamonds.toLocaleString()}</div>
             </div>
           `).join('');
         })
         .catch(() => {
           const list = document.getElementById('dsDonorsList');
-          if (list) list.innerHTML = '<div style="text-align:center;padding:20px 0;font-size:12px;color:var(--dim);">Could not load</div>';
+          if (list) list.innerHTML = '<div style="text-align:center;padding:20px 0;font-size:13px;color:var(--muted);">Could not load</div>';
         });
     }
 

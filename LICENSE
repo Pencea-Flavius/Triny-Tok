@@ -1,0 +1,32 @@
+TrinyTok Source-Available License
+
+Copyright (c) 2026 Pencea Flavius. All rights reserved.
+
+The source code of TrinyTok is published so people can read it and use the app on
+their own streams. It is not open source.
+
+You MAY:
+
+  - read the source code;
+  - run the software on your own computer, for your own streams, including streams
+    that earn money from TikTok gifts;
+  - change your own copy for your own use;
+  - report problems and suggest changes to the author.
+
+You MAY NOT, without written permission from the author:
+
+  - publish, share or sell the software, or a changed version of it;
+  - offer it to other people as a product or as a hosted service;
+  - remove this notice, or present the software or a part of it as your own work;
+  - use the code, the name or the design in another product.
+
+Viewing or forking this repository on GitHub, as GitHub's terms allow, gives you no
+rights beyond the ones listed above.
+
+Game names, game art and TikTok gift images belong to their owners and are not covered
+by this license. The third-party packages this software uses keep their own licenses.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+INCLUDING THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. THE AUTHOR IS NOT LIABLE FOR ANY CLAIM, DAMAGE OR OTHER LIABILITY
+ARISING FROM THE SOFTWARE OR ITS USE.

@@ -22,7 +22,7 @@ export function addChatItem(color, data, text, summarize) {
 
     container.append(`
         <div class=${summarize ? 'temporary' : 'static'}>
-            <img class="miniprofilepicture" src="${profilePic}" onerror="this.src='https://www.tiktok.com/static/images/avatar_default.png';">
+            <img class="miniprofilepicture" src="${sanitize(profilePic)}" onerror="this.src='https://www.tiktok.com/static/images/avatar_default.png';">
             <span>
                 <b>${generateUsernameLink(data)}:</b> 
                 <span style="color:${color}">${sanitize(text)}</span>

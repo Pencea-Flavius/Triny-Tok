@@ -78,7 +78,7 @@ export function initCommandsUI(ioConnection) {
         const keys = Object.keys(commands);
 
         if (keys.length === 0) {
-            tableBody.append('<tr><td colspan="3" style="text-align: center; padding: 20px;">No commands added</td></tr>');
+            tableBody.append('<tr><td colspan="3" style="text-align:center;padding:40px 20px;color:var(--muted);">No commands yet. Click Add Command to map a TikTok gift.</td></tr>');
             return;
         }
 

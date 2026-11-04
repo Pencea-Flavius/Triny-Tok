@@ -18,7 +18,7 @@
       text-decoration: none; margin-bottom: 32px;
       transition: color 0.15s;
     }
-    .account-back:hover { color: var(--teal); }
+    .account-back:hover { color: var(--accent); }
 
     .account-profile {
       display: flex; align-items: center; gap: 24px;
@@ -26,64 +26,63 @@
     }
     .account-avatar {
       width: 80px; height: 80px; border-radius: 50%;
-      border: 2px solid rgba(0,242,234,0.2);
+      border: 2px solid rgba(var(--accent-rgb),0.2);
       object-fit: cover; flex-shrink: 0;
-      background: rgba(0,242,234,0.08);
+      background: rgba(var(--accent-rgb),0.08);
     }
     .account-avatar-fallback {
       width: 80px; height: 80px; border-radius: 50%;
-      border: 2px solid rgba(0,242,234,0.2);
-      background: rgba(0,242,234,0.08);
+      border: 2px solid rgba(var(--accent-rgb),0.2);
+      background: rgba(var(--accent-rgb),0.08);
       display: none; align-items: center; justify-content: center;
-      font-size: 28px; font-weight: 900; color: var(--teal);
+      font-size: 28px; font-weight: 800; color: var(--accent);
       flex-shrink: 0;
     }
     .account-profile-info h1 {
-      font-size: 22px; font-weight: 900; letter-spacing: -0.5px; margin-bottom: 4px;
+      font-size: 22px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 4px;
     }
     .account-profile-info p { font-size: 14px; color: var(--muted); }
 
     .account-section {
       background: var(--bg2);
       border: 1px solid var(--border);
-      border-radius: 16px;
+      border-radius: 4px;
       padding: 24px 28px;
       margin-bottom: 16px;
     }
     .section-title {
-      font-size: 11px; font-weight: 800; letter-spacing: 1.5px;
-      text-transform: uppercase; color: var(--teal);
+      font-size: 12px; font-weight: 600; color: var(--accent);
       margin-bottom: 18px;
     }
     .info-row {
       display: flex; align-items: center; justify-content: space-between;
       padding: 12px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.04);
+      border-bottom: 1px solid var(--tint);
     }
     .info-row:last-child { border-bottom: none; padding-bottom: 0; }
     .info-row:first-of-type { padding-top: 0; }
-    .info-label { font-size: 12px; font-weight: 700; color: var(--dim); text-transform: uppercase; letter-spacing: 0.8px; }
-    .info-value { font-size: 14px; color: var(--text); font-weight: 500; }
+    .info-label { font-size: 12px; font-weight: 600; color: var(--dim); }
+    .info-value { font-size: 14px; color: var(--text); font-weight: 400; }
 
-    .danger-zone { border-color: rgba(244,63,94,0.2); }
+    .danger-zone { border-color: rgba(var(--danger-rgb),0.2); }
     .danger-zone .section-title { color: var(--danger); }
 
     .btn-danger {
       display: inline-flex; align-items: center; gap: 8px;
-      padding: 10px 20px; border-radius: 8px;
-      font-size: 13px; font-weight: 700; cursor: pointer;
-      font-family: inherit; transition: all 0.18s;
-      background: rgba(244,63,94,0.08);
-      border: 1px solid rgba(244,63,94,0.25);
+      padding: 10px 20px; border-radius: 4px;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      font-family: inherit; transition: background-color 0.18s, border-color 0.18s, color 0.18s, box-shadow 0.18s, opacity 0.18s, transform 0.18s;
+      background: rgba(var(--danger-rgb),0.08);
+      border: 1px solid rgba(var(--danger-rgb),0.25);
       color: var(--danger);
     }
-    .btn-danger:hover { background: rgba(244,63,94,0.15); border-color: var(--danger); }
+    .btn-danger:hover { background: rgba(var(--danger-rgb),0.15); border-color: var(--danger); }
 
     .success-banner {
       display: flex; align-items: center; gap: 10px;
       padding: 13px 16px; margin-bottom: 20px;
-      background: rgba(0,242,234,0.07); border: 1px solid rgba(0,242,234,0.2);
-      border-radius: 10px; font-size: 13px; font-weight: 600; color: var(--teal);
+      background: rgba(var(--accent-rgb),0.07); border: 1px solid rgba(var(--accent-rgb),0.2);
+      border-radius: 4px; font-size: 13px; font-weight: 600; color: var(--accent);
       animation: up 0.3s ease both;
     }
 
@@ -96,50 +95,47 @@
     /* Delete modal */
     .modal-overlay {
       position: fixed; inset: 0; z-index: 1000;
-      background: rgba(0,0,0,0.7);
-      backdrop-filter: blur(4px);
+      background: var(--scrim);
       display: flex; align-items: center; justify-content: center;
       opacity: 0; pointer-events: none;
       transition: opacity 0.2s;
     }
     .modal-overlay.open { opacity: 1; pointer-events: all; }
     .modal-box {
-      background: #0c1220;
-      border: 1px solid rgba(244,63,94,0.25);
-      border-radius: 18px;
+      background: var(--bg2);
+      border: 1px solid rgba(var(--danger-rgb),0.25);
+      border-radius: 4px;
       padding: 32px 28px 24px;
       max-width: 400px; width: 90%;
       transform: translateY(16px) scale(0.97);
       transition: transform 0.2s;
-      box-shadow: 0 30px 80px rgba(0,0,0,0.7);
-    }
+      }
     .modal-overlay.open .modal-box { transform: translateY(0) scale(1); }
     .modal-icon {
       width: 48px; height: 48px; border-radius: 50%;
-      background: rgba(244,63,94,0.1);
-      border: 1px solid rgba(244,63,94,0.2);
+      background: rgba(var(--danger-rgb),0.1);
+      border: 1px solid rgba(var(--danger-rgb),0.2);
       display: flex; align-items: center; justify-content: center;
       margin-bottom: 18px; color: var(--danger);
     }
-    .modal-title { font-size: 18px; font-weight: 900; margin-bottom: 8px; }
+    .modal-title { font-size: 18px; font-weight: 800; margin-bottom: 8px; }
     .modal-desc { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 24px; }
     .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
     .modal-cancel {
-      padding: 10px 20px; border-radius: 8px;
-      font-size: 13px; font-weight: 700; cursor: pointer;
-      font-family: inherit; transition: all 0.18s;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.08);
+      padding: 10px 20px; border-radius: 4px;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      font-family: inherit; transition: background-color 0.18s, border-color 0.18s, color 0.18s, box-shadow 0.18s, opacity 0.18s, transform 0.18s;
+      background: var(--tint);
+      border: 1px solid var(--border2);
       color: var(--muted);
     }
-    .modal-cancel:hover { background: rgba(255,255,255,0.09); color: var(--text); }
+    .modal-cancel:hover { background: var(--border2); color: var(--text); }
   </style>
 </head>
 <body>
 <%- include('partials/nav') %>
 
 <div class="account-wrap">
-  <div class="glow-blob blob-a" style="opacity:0.05;"></div>
 
   <a href="/" class="account-back">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
@@ -160,7 +156,7 @@
     </div>
     <div class="account-profile-info">
       <h1>@<%= account.username %></h1>
-      <p><%= account.first_name %> <%= account.last_name %> &middot; <%= account.email %></p>
+      <p><%= account.first_name %> <%= account.last_name %>, <%= account.email %></p>
     </div>
   </div>
 
@@ -231,10 +227,7 @@
   <!-- Streaming Preferences -->
   <div class="account-section">
     <div class="section-title">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:6px;">
-        <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2z"/>
-      </svg>
-      AI Streaming Preferences
+      AI streaming preferences
     </div>
     <p style="font-size:12px;color:var(--muted);margin-bottom:20px;line-height:1.6;">Used by the AI agents to suggest games and presets tailored to you.</p>
 
@@ -254,7 +247,7 @@
       <div class="form-field">
         <label class="form-label" style="margin-bottom:8px;">Favorite Games</label>
         <div class="pref-chips">
-          <% [['minecraft','Minecraft'],['isaac','Isaac'],['repo','R.E.P.O.'],['goi','Getting Over It'],['terraria','Terraria'],['other','Other']].forEach(([v,l]) => { %>
+          <% [['minecraft','Minecraft'],['isaac','Isaac'],['repo','R.E.P.O.'],['goi','Getting Over It'],['other','Other']].forEach(([v,l]) => { %>
           <label class="pref-chip">
             <input type="checkbox" name="favoriteGames" value="<%= v %>" <%= favGames.includes(v) ? 'checked' : '' %>>
             <span><%= l %></span>
@@ -322,7 +315,7 @@
     <div class="section-title">Danger zone</div>
     <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px;">
       <div>
-        <div style="font-size:14px; font-weight:700; margin-bottom:4px;">Delete account</div>
+        <div style="font-size:14px; font-weight: 600; margin-bottom:4px;">Delete account</div>
         <div style="font-size:13px; color:var(--muted);">Permanently removes your account. Cannot be undone.</div>
       </div>
       <button type="button" class="btn-danger" id="openDeleteModal">

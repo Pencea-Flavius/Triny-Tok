@@ -9,10 +9,10 @@
     </div>
 
     <!-- Spawn type tabs -->
-    <div style="display:flex;gap:2px;background:var(--bg2);padding:3px;border-radius:10px;border:1px solid var(--border);margin:12px 0 8px;flex-shrink:0;" id="repoSpawnTypeTabs">
-      <button class="repo-spawn-type-tab active" data-type="items" style="flex:1;padding:7px 0;border-radius:8px;border:none;background:var(--bg-light);color:var(--text);font-size:11px;font-weight:800;cursor:pointer;transition:all .2s;">Items</button>
-      <button class="repo-spawn-type-tab" data-type="valuables" style="flex:1;padding:7px 0;border-radius:8px;border:none;background:transparent;color:var(--dim);font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;">Valuables</button>
-      <button class="repo-spawn-type-tab" data-type="enemies" style="flex:1;padding:7px 0;border-radius:8px;border:none;background:transparent;color:var(--dim);font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;">Enemies</button>
+    <div style="display:flex;gap:2px;background:var(--bg2);padding:3px;border-radius: 4px;border:1px solid var(--border);margin:12px 0 8px;flex-shrink:0;" id="repoSpawnTypeTabs">
+      <button class="repo-spawn-type-tab active" data-type="items" style="flex:1;padding:7px 0;border-radius: 4px;border:none;background:var(--bg4);color:var(--text);font-size:11px;font-weight:800;cursor:pointer;transition: background-color .2s, border-color .2s, color .2s, box-shadow .2s, opacity .2s, transform .2s;">Items</button>
+      <button class="repo-spawn-type-tab" data-type="valuables" style="flex:1;padding:7px 0;border-radius: 4px;border:none;background:transparent;color:var(--dim);font-size:11px;font-weight:600;cursor:pointer;transition: background-color .2s, border-color .2s, color .2s, box-shadow .2s, opacity .2s, transform .2s;">Valuables</button>
+      <button class="repo-spawn-type-tab" data-type="enemies" style="flex:1;padding:7px 0;border-radius: 4px;border:none;background:transparent;color:var(--dim);font-size:11px;font-weight:600;cursor:pointer;transition: background-color .2s, border-color .2s, color .2s, box-shadow .2s, opacity .2s, transform .2s;">Enemies</button>
     </div>
 
     <!-- Biome filter (valuables only) -->
@@ -36,19 +36,19 @@
 
     <!-- Upgrade spawn option (items only, shown when an upgrade item is selected) -->
     <div id="repoUpgradeSpawnRow" style="display:none;margin-top:10px;padding:10px 14px;background:var(--bg4);border:1px solid var(--border2);border-radius:var(--r-md);flex-shrink:0;">
-      <div style="font-size:11px;font-weight:800;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Delivery Method</div>
+      <div style="font-size: 12px;font-weight:800;color:var(--dim);margin-bottom:8px;">Delivery Method</div>
       <div style="display:flex;gap:8px;">
-        <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 12px;border:2px solid var(--border);border-radius:8px;cursor:pointer;transition:all .2s;" id="repoUpgradeDirectLabel">
+        <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 12px;border:2px solid var(--border);border-radius: 4px;cursor:pointer;transition: background-color .2s, border-color .2s, color .2s, box-shadow .2s, opacity .2s, transform .2s;" id="repoUpgradeDirectLabel">
           <input type="radio" name="repoUpgradeDelivery" value="direct" checked style="accent-color:var(--accent);">
           <div>
-            <div style="font-size:12px;font-weight:700;">Apply directly</div>
+            <div style="font-size:12px;font-weight: 600;">Apply directly</div>
             <div style="font-size:10px;color:var(--dim);">Upgrade activates instantly</div>
           </div>
         </label>
-        <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 12px;border:2px solid var(--border);border-radius:8px;cursor:pointer;transition:all .2s;" id="repoUpgradeItemLabel">
+        <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 12px;border:2px solid var(--border);border-radius: 4px;cursor:pointer;transition: background-color .2s, border-color .2s, color .2s, box-shadow .2s, opacity .2s, transform .2s;" id="repoUpgradeItemLabel">
           <input type="radio" name="repoUpgradeDelivery" value="item" style="accent-color:var(--accent);">
           <div>
-            <div style="font-size:12px;font-weight:700;">Spawn as item</div>
+            <div style="font-size:12px;font-weight: 600;">Spawn as item</div>
             <div style="font-size:10px;color:var(--dim);">Item drops on the ground</div>
           </div>
         </label>

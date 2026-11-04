@@ -14,3 +14,6 @@ logs/events.txt
 public/goi-gifts.html
 set_admin.js
 public/plinko-overlay.html
+data/global.db-*
+data/gifts-cache.json.backup
+logs/

@@ -24,7 +24,7 @@
       <% gifts.forEach(g => { %>
       <tr>
         <td><% if (g.imageUrl) { %><img src="<%= g.imageUrl %>" class="gift-img" alt=""><% } %></td>
-        <td><strong style="color:#e8eaf0;"><%= g.name %></strong></td>
+        <td><strong style="color:var(--text);"><%= g.name %></strong></td>
         <td><span class="mono"><%= g.id %></span></td>
         <td><span class="diamonds"><%- diamondSvg %> <%= g.diamondCount %></span></td>
         <td>

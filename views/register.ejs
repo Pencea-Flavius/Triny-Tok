@@ -9,13 +9,11 @@
 <%- include('partials/nav') %>
 
 <div class="login-wrap">
-  <div class="glow-blob blob-a"></div>
-  <div class="glow-blob blob-b"></div>
 
   <div class="login-container">
 
     <div class="login-card">
-      <a href="/" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--dim);text-decoration:none;margin-bottom:20px;transition:color 0.15s;" onmouseover="this.style.color='var(--teal)'" onmouseout="this.style.color='var(--dim)'">
+      <a href="/" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--dim);text-decoration:none;margin-bottom:20px;transition:color 0.15s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--dim)'">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
         Back to homepage
       </a>
@@ -136,14 +134,9 @@
 
         <div class="ai-prefs-box">
           <div class="ai-prefs-header">
-            <div class="ai-prefs-icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2z"/>
-              </svg>
-            </div>
             <div>
               <div class="ai-prefs-title">AI Streaming Preferences</div>
-              <div class="ai-prefs-sub">Optional — helps the AI suggest better games and presets for you.</div>
+              <div class="ai-prefs-sub">Optional. Helps the AI suggest games and presets.</div>
             </div>
           </div>
 
@@ -154,7 +147,6 @@
               <label class="pref-chip"><input type="checkbox" name="favoriteGames" value="isaac"><span>Isaac</span></label>
               <label class="pref-chip"><input type="checkbox" name="favoriteGames" value="repo"><span>R.E.P.O.</span></label>
               <label class="pref-chip"><input type="checkbox" name="favoriteGames" value="goi"><span>Getting Over It</span></label>
-              <label class="pref-chip"><input type="checkbox" name="favoriteGames" value="terraria"><span>Terraria</span></label>
               <label class="pref-chip"><input type="checkbox" name="favoriteGames" value="other"><span>Other</span></label>
             </div>
           </div>
@@ -217,8 +209,7 @@
 
     <div class="login-features">
       <div style="margin-bottom:8px;">
-        <div style="font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--teal);margin-bottom:12px;">What you get</div>
-        <h2 style="font-size:26px;font-weight:900;letter-spacing:-0.8px;margin-bottom:10px;">Everything your stream needs</h2>
+        <h2 style="font-size:26px;font-weight: 800;letter-spacing: -0.02em;margin-bottom:10px;">Everything your stream needs</h2>
         <p style="font-size:14px;color:var(--muted);line-height:1.7;">Connect your TikTok LIVE stream to your games. Gifts trigger real in-game events — all running locally on your machine.</p>
       </div>
       <div class="feature-card">
@@ -228,8 +219,8 @@
           </svg>
         </div>
         <div>
-          <div class="feature-title">Real-Time Events</div>
-          <div class="feature-desc">Gifts trigger in-game events instantly — zero latency, pure chaos.</div>
+          <div class="feature-title">Real-time events</div>
+          <div class="feature-desc">Gifts trigger in-game events as they arrive.</div>
         </div>
       </div>
       <div class="feature-card">
@@ -241,8 +232,8 @@
           </svg>
         </div>
         <div>
-          <div class="feature-title">Multi-Game Support</div>
-          <div class="feature-desc">Minecraft, Isaac, Terraria, Repo — and more coming soon.</div>
+          <div class="feature-title">Four games</div>
+          <div class="feature-desc">Minecraft, Isaac, R.E.P.O. and Getting Over It.</div>
         </div>
       </div>
       <div class="feature-card">
@@ -252,8 +243,8 @@
           </svg>
         </div>
         <div>
-          <div class="feature-title">Runs Locally</div>
-          <div class="feature-desc">Your data stays on your machine. No cloud, no tracking, no limits.</div>
+          <div class="feature-title">Runs locally</div>
+          <div class="feature-desc">Your config stays on your machine.</div>
         </div>
       </div>
     </div>

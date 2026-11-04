@@ -35,20 +35,16 @@ export function addGiftItem(data) {
 
     let html = `
         <div ${pending ? `data-streakid="${streakId}"` : ''} class="gift-item">
-            <img class="miniprofilepicture" src="${profilePic}" onerror="this.src='https://www.tiktok.com/static/images/avatar_default.png';">
-            <div style="flex: 1;">
-                <div style="font-size: 0.9rem;">
-                    <b>${generateUsernameLink(data)}:</b> <span>${sanitize(describe)}</span>
+            <img class="gifticon" src="${sanitize(iconUrl)}" alt="">
+            <div class="gift-main">
+                <div class="gift-who">
+                    <img class="miniprofilepicture" src="${sanitize(profilePic)}" alt="" onerror="this.src='https://www.tiktok.com/static/images/avatar_default.png';">
+                    <b>${generateUsernameLink(data)}</b>
                 </div>
-                <div class="gift-details">
-                    <img class="gifticon" src="${iconUrl}">
-                    <div class="gift-info-text">
-                        <span>Name: <b>${sanitize(giftName)}</b> (ID:${data.giftId})</span><br>
-                        <span>Repeat: <b style="${pending ? 'color:red' : ''}">x${repeatCount.toLocaleString()}</b></span><br>
-                        <span>Cost: <b>${totalDiamonds.toLocaleString()} Diamonds</b></span>
-                    </div>
-                </div>
+                <div class="gift-what">${sanitize(describe)} <span>ID ${sanitize(data.giftId)}</span></div>
             </div>
+            <div class="gift-count ${pending ? 'is-pending' : ''}">x${repeatCount.toLocaleString()}</div>
+            <div class="gift-cost">${totalDiamonds.toLocaleString()} ${totalDiamonds === 1 ? 'diamond' : 'diamonds'}</div>
         </div>
     `;
 

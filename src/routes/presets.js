@@ -20,7 +20,6 @@ function extractGameConfig(game) {
     if (game === 'isaac') return { isaac_commands: JSON.stringify(config.isaacCommands || {}) };
     if (game === 'repo') return { repo_commands: JSON.stringify(config.repoCommands || {}) };
     if (game === 'goi') return { goi_commands: JSON.stringify(config.goiCommands || {}) };
-    if (game === 'terraria') return { terraria_commands: JSON.stringify(config.terrariaCommands || {}) };
 }
 
 router.get('/:game', (req, res) => {
@@ -90,8 +89,6 @@ router.post('/:id/load', express.json(), auth.requireAuth, async (req, res) => {
             if (row.repo_commands) config.repoCommands = JSON.parse(row.repo_commands);
         } else if (preset.game === 'goi') {
             if (row.goi_commands) config.goiCommands = JSON.parse(row.goi_commands);
-        } else if (preset.game === 'terraria') {
-            if (row.terraria_commands) config.terrariaCommands = JSON.parse(row.terraria_commands);
         }
         ctx.saveConfig();
         res.json({ success: true, config });

@@ -2,7 +2,7 @@
 
 const SECTIONS = {
   connect: {
-    label: 'Connection',
+    label: 'Live',
     desc: 'TikTok stream & status',
     body: 'sec-connect',
     first: 'connect'
@@ -15,7 +15,7 @@ const SECTIONS = {
   },
   game: {
     label: 'Game Bridge',
-    desc: 'Integrated games & gift effects',
+    desc: 'Games & gift effects',
     body: 'sec-game',
     first: null
   }
@@ -25,21 +25,20 @@ const TAB_LABELS = {
   connect: 'TikTok Connect',
   chat: 'Live Chat',
   tracker: 'Gift Log',
-  topDonors: 'Top Donators',
+  topDonors: 'Top Donors',
   donorStats: 'Donor Stats',
-  aiGameSuggest: 'AI Game Suggestion',
-  minecraft: 'Minecraft · Settings',
-  commands: 'Minecraft · Gift Commands',
-  isaacEffects: 'The Binding of Isaac · Gift Effects',
-  repoEffects: 'R.E.P.O. · Gift Effects',
-  goiEffects: 'Getting Over It · Gift Effects',
-  terrariaEffects: 'Terraria · Gift Effects'
+  aiGameSuggest: 'AI suggestions',
+  minecraft: 'Minecraft: Settings',
+  commands: 'Minecraft: Gift commands',
+  isaacEffects: 'The Binding of Isaac: Gift effects',
+  repoEffects: 'R.E.P.O.: Gift effects',
+  goiEffects: 'Getting Over It: Gift effects'
 };
 
 const SECTION_LABELS = {
-  connect: 'Connection',
+  connect: 'Live',
   monitor: 'Monitor',
-  game: 'Game Bridge'
+  game: 'Games'
 };
 
 // map tabs to their parent section
@@ -54,18 +53,13 @@ const TAB_SECTION = {
   commands: 'game',
   isaacEffects: 'game',
   repoEffects: 'game',
-  goiEffects: 'game',
-  terrariaEffects: 'game'
+  goiEffects: 'game'
 };
 
 // map tabs to their parent console accordion (if any)
 const TAB_CONSOLE = {
   minecraft: 'consoleMinecraft',
   commands: 'consoleMinecraft',
-  isaacEffects: 'consoleIsaac',
-  repoEffects: 'consoleRepo',
-  goiEffects: 'consoleGoi',
-  terrariaEffects: 'consoleTerraria'
 };
 
 const SECTION_LAST_TAB = {};
@@ -130,11 +124,6 @@ function activateSection(sectionId, tabOverride, { updateUrl = true } = {}) {
   // highlight rail icons
   document.querySelectorAll('.cat-btn[data-section]').forEach(b => {
     b.classList.toggle('active', b.dataset.section === sectionId);
-  });
-
-  // show the correct submenu section
-  document.querySelectorAll('.sub-group[data-section]').forEach(g => {
-    g.classList.toggle('visible', g.dataset.section === sectionId);
   });
 
   // update submenu title
@@ -204,26 +193,20 @@ export function setupTabs() {
     });
   });
 
-  // console header toggle — expand/collapse the accordion
+  // a game with several pages: its header opens the list and the first page, a second click folds it
   document.querySelectorAll('.sub-console-header').forEach(btn => {
     btn.addEventListener('click', () => {
       const consoleEl = btn.closest('.sub-console');
       if (!consoleEl) return;
-
-      document.querySelectorAll('.sub-console').forEach(other => {
-        if (other !== consoleEl) other.classList.remove('expanded');
-      });
-
-      const isExpanded = consoleEl.classList.toggle('expanded');
-      // if we just opened it, activate the first child tab automatically
-      if (isExpanded) {
-        const firstChild = consoleEl.querySelector('.sub-console-item[data-tab]');
-        if (firstChild) {
-          const tabId = firstChild.dataset.tab;
-          const sectionId = TAB_SECTION[tabId];
-          if (sectionId) activateSection(sectionId, tabId);
-        }
+      if (consoleEl.classList.contains('expanded')) {
+        consoleEl.classList.remove('expanded');
+        return;
       }
+      const child = consoleEl.querySelector('.sub-console-item.active') || consoleEl.querySelector('.sub-console-item[data-tab]');
+      if (!child) return;
+      const tabId = child.dataset.tab;
+      const sectionId = TAB_SECTION[tabId];
+      if (sectionId) activateSection(sectionId, tabId);
     });
   });
 

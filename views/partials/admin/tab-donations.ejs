@@ -16,7 +16,7 @@
       <% } %>
       <% donations.forEach(d => { %>
       <tr>
-        <td><strong style="color:#e8eaf0;"><%= d.nickname || d.uniqueId || d.userId || '—' %></strong></td>
+        <td><strong style="color:var(--text);"><%= d.nickname || d.uniqueId || d.userId || '—' %></strong></td>
         <td><%= d.giftName || `Gift #${d.giftId}` %></td>
         <td><span class="mono">x<%= d.count %></span></td>
         <td><span class="diamonds"><%- diamondSvg %> <%= d.totalDiamonds %></span></td>

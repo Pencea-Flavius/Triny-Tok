@@ -2,16 +2,6 @@ import { showToast, showConfirm } from './dialog.js';
 import { GiftDropdown } from './components/GiftDropdown.js';
 import { makeGiftCell, makeActionCell } from './components/GiftActionButtons.js';
 
-const QUALITY_COLORS = ['#888', '#a3e4a3', '#5bb8ff', '#c084fc', '#fbbf24'];
-const CATEGORY_COLORS = {
-    'Chaos': '#e05252',
-    'Curses': '#9b59b6',
-    'Punishment': '#e07c2a',
-    'Timed': '#3498db',
-    'Buff': '#27ae60',
-    'Glitch': '#00d2d3',
-    'Other': '#888888',
-};
 
 // Boss IDs (type.variant) that must be spawned N times on the SAME tile to form one whole boss.
 const SEGMENTED_BOSSES = {
@@ -165,7 +155,7 @@ export function initIsaacUI(ioConnection) {
                         ${it.type ? `<span class="type-tag">${it.type}</span>` : ''}
                     </div>
                 </div>
-                <div class="item-quality" style="border-left: 3px solid ${QUALITY_COLORS[it.quality] || '#888'};">Q${it.quality}</div>
+                <div class="tag ${it.quality === 4 ? 'tag-lead' : ''}">Q${it.quality}</div>
             </div>
         `);
         item.on('click', () => {
@@ -186,7 +176,7 @@ export function initIsaacUI(ioConnection) {
         } else {
             itemPreview.html(`<span style="font-size:9px;color:var(--dim);">?</span>`);
         }
-        itemQualityBadge.text(`Quality ${it.quality}`).css('background', QUALITY_COLORS[it.quality] || '#888').show();
+        itemQualityBadge.text(`Quality ${it.quality}`).toggleClass('tag-lead', it.quality === 4).show();
 
         const isActive = it.type && it.type.toLowerCase().includes('active');
         if (isActive) {
@@ -215,7 +205,7 @@ export function initIsaacUI(ioConnection) {
                             <span class="type-tag">ID: ${b.id}</span>
                         </div>
                     </div>
-                    <div class="item-quality" style="border-left:3px solid var(--accent);font-size:0.6rem;">BOSS</div>
+                    <div class="tag">Boss</div>
                 </div>
             `);
             bossEl.on('click', () => {
@@ -243,13 +233,13 @@ export function initIsaacUI(ioConnection) {
         // Show hint for segmented bosses, but don't override the 'Amount' (which now means 'Number of Bosses').
         const segCount = getSegmentedBossCount(b.id);
         if (segCount) {
-            let msg = `⚠ Segmented Boss — will automatically spawn ${segCount} segments per boss.`;
+            let msg = `Segmented Boss — will automatically spawn ${segCount} segments per boss.`;
             if (String(b.id) === '19.2' || String(b.id) === '19.3') {
                 msg += ` + Grimace for bombs.`;
             }
             $('#isaacBossSegmentHint').text(msg).show();
         } else if (String(b.id) === '921.0') {
-            $('#isaacBossSegmentHint').text(`⚠ Phase 1 Minions — will automatically spawn 3 Clickety Clacks for Clutch.`).show();
+            $('#isaacBossSegmentHint').text(`Phase 1 Minions — will automatically spawn 3 Clickety Clacks for Clutch.`).show();
         } else {
             $('#isaacBossSegmentHint').hide();
         }
@@ -353,7 +343,6 @@ export function initIsaacUI(ioConnection) {
         serverActive = !!active;
 
         const bridgeCard = $('#isaacBridgeCard');
-        const statusIndicator = $('#isaacStatusIndicator');
         const btnText = $('#isaacBtnText');
         const btnIcon = $('#isaacBtnIcon');
 
@@ -366,22 +355,9 @@ export function initIsaacUI(ioConnection) {
             : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`
         );
 
-        if (!serverActive) {
-            statusTextLarge.text('Offline').css('color', 'var(--dim)');
-            statusIndicator.css({
-                'background': 'var(--danger)',
-                'box-shadow': '0 0 12px var(--danger)'
-            });
-            bridgeCard.css('border-left-color', 'var(--danger)');
-        } else {
-            const statusColor = isConnected ? 'var(--success)' : 'var(--warning)';
-            statusTextLarge.text(isConnected ? 'Connected' : 'Listening...').css('color', statusColor);
-            statusIndicator.css({
-                'background': statusColor,
-                'box-shadow': `0 0 12px ${statusColor}`
-            });
-            bridgeCard.css('border-left-color', statusColor);
-        }
+        const state = !serverActive ? 'off' : (isConnected ? 'connected' : 'listening');
+        bridgeCard.attr('data-state', state);
+        statusTextLarge.text({ off: 'Offline', connected: 'Connected', listening: 'Listening...' }[state]);
 
         sidebarDot.toggle(isConnected).css('background', 'var(--success)');
     }
@@ -471,7 +447,7 @@ export function initIsaacUI(ioConnection) {
     function renderTable() {
         tableBody.empty();
         const keys = Object.keys(currentCommands);
-        if (!keys.length) return tableBody.append('<tr><td colspan="3" style="text-align:center;padding:30px;color:var(--dim);">No effects mapped.</td></tr>');
+        if (!keys.length) return tableBody.append('<tr><td colspan="3" style="text-align:center;padding:40px 20px;color:var(--muted);">No effects yet. Click Add Effect to map a TikTok gift.</td></tr>');
 
         keys.forEach(giftName => {
             const effect = currentCommands[giftName];
@@ -486,7 +462,7 @@ export function initIsaacUI(ioConnection) {
                 title = getEffectName(effect.profileId);
             } else if (effect && (effect.action === 'spawn_item' || effect.action === 'use_item')) {
                 const iname = effect.itemId === -1 ? 'Random Item' : (isaacItems.find(x => x.id === effect.itemId)?.name || `Item #${effect.itemId}`);
-                title = effect.action === 'use_item' ? `⚡ ${iname}` : iname;
+                title = effect.action === 'use_item' ? `Use ${iname}` : iname;
                 const s = getItemSprite(effect.itemId);
                 if (s) icon = $(`<div class="isaac-sprite" style="background-position:${s.x}px ${s.y}px;transform:scale(0.5);margin:-12px;"></div>`);
             } else if (effect && effect.action === 'spawn_boss') {
@@ -501,7 +477,7 @@ export function initIsaacUI(ioConnection) {
                 title = JSON.stringify(effect);
             }
 
-            const effectTd = $('<td class="command-cell"></td>');
+            const effectTd = $('<td class="effect-cell"></td>');
             const effectInner = $('<div style="display:flex;align-items:center;gap:8px;"></div>');
             if (icon) effectInner.append(icon);
             effectInner.append($('<span></span>').text(title));
@@ -547,13 +523,13 @@ export function initIsaacUI(ioConnection) {
         $('#isaacEntityIdInput').val('');
         $('#isaacEntityAmountInput').val(1);
         $('input[name="triggerType_isaac"][value="gift"]').prop('checked', true).trigger('change');
-        itemPreview.html('<span style="font-size:9px;color:var(--text-muted);">ITEM</span>');
+        itemPreview.html('<span style="font-size:9px;color:var(--muted);">ITEM</span>');
         itemNameLabel.hide();
         itemQualityBadge.hide();
 
         bossSelectedId.val('');
         bossSearchInput.val('');
-        bossPreview.html('<span style="font-size:9px;color:var(--text-muted);">BOSS</span>');
+        bossPreview.html('<span style="font-size:9px;color:var(--muted);">BOSS</span>');
         bossNameLabel.hide();
         $('#isaacBossHpInfo').hide();
         $('#isaacBossAmountInput').val(1);
@@ -579,7 +555,7 @@ export function initIsaacUI(ioConnection) {
                 giftDropdown.setValue(editGiftName);
             }
 
-            $('#isaacModalTitle').text('Edit TBOI Effect');
+            $('#isaacModalTitle').text('Edit Isaac effect');
             const effect = currentCommands[editGiftName];
             if (typeof effect === 'string') {
                 window.selectedIsaacProfile = effect;
@@ -618,7 +594,7 @@ export function initIsaacUI(ioConnection) {
             }
         } else {
             giftDropdown.setValue('');
-            $('#isaacModalTitle').text('Add TBOI Effect');
+            $('#isaacModalTitle').text('Add Isaac effect');
             buildIsaacCategoryTabs(null);
             renderProfileCards(null);
         }
@@ -630,10 +606,8 @@ export function initIsaacUI(ioConnection) {
         container.css({ display: 'flex', gap: '2px', background: 'var(--bg2)', padding: '3px', borderRadius: '10px', border: '1px solid var(--border)', overflowX: 'auto', scrollbarWidth: 'none' });
         const available = ISAAC_CAT_ORDER.filter(cat => profiles.some(p => (p.category || 'Other') === cat));
         available.forEach(cat => {
-            const color = CATEGORY_COLORS[cat] || '#888';
             const active = activeIsaacCat === cat;
-            const btn = $(`<button style="flex:1 0 auto;padding:8px 14px;border-radius:8px;border:none;background:${active ? 'var(--bg-light)' : 'transparent'};color:${active ? 'var(--text)' : 'var(--dim)'};font-size:11px;font-weight:${active ? '800' : '600'};cursor:pointer;transition:all .2s;white-space:nowrap;display:flex;align-items:center;gap:8px;box-shadow:${active ? '0 2px 8px rgba(0,0,0,0.2)' : 'none'};">
-                <div style="width:8px;height:8px;border-radius:50%;background:${color};box-shadow:0 0 6px ${color}88;opacity:${active ? 1 : 0.5};transition:opacity .2s;"></div>${cat}</button>`);
+            const btn = $(`<button class="cat-tab ${active ? 'active' : ''}">${cat}</button>`);
             btn.on('click', () => { activeIsaacCat = cat; buildIsaacCategoryTabs(selId); renderProfileCards(selId); });
             container.append(btn);
         });
@@ -643,15 +617,14 @@ export function initIsaacUI(ioConnection) {
         const cards = $('#isaacEffectCards').empty();
 
         const catProfiles = profiles.filter(p => (p.category || 'Other') === activeIsaacCat);
-        const catColor = CATEGORY_COLORS[activeIsaacCat] || '#888';
 
         catProfiles.forEach(p => {
                 const isSelected = p.id === selId;
                 const card = $(`
                     <div class="isaac-effect-card ${isSelected ? 'selected' : ''}"
-                         style="padding:9px 11px;border:1px solid ${isSelected ? catColor : 'var(--border)'};border-radius:8px;cursor:pointer;background:${isSelected ? catColor + '22' : 'var(--bg3)'};transition:border-color .15s,background .15s;">
-                        <div style="font-weight:700;font-size:.82rem;color:var(--text);margin-bottom:2px;">${p.name}</div>
-                        ${p.desc ? `<div style="font-size:.72rem;color:var(--text-muted);line-height:1.4;">${p.desc}</div>` : ''}
+                         style="padding:9px 11px;border:1px solid ${isSelected ? 'var(--accent)' : 'var(--border)'};border-radius: 4px;cursor:pointer;background:${isSelected ? 'var(--accent-dim)' : 'var(--bg3)'};transition:border-color .15s,background .15s;">
+                        <div style="font-weight: 600;font-size:.82rem;color:var(--text);margin-bottom:2px;">${p.name}</div>
+                        ${p.desc ? `<div style="font-size:.72rem;color:var(--muted);line-height:1.4;">${p.desc}</div>` : ''}
                     </div>
                 `);
                 card.on('click', () => { renderProfileCards(p.id); window.selectedIsaacProfile = p.id; });

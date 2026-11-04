@@ -1,3 +1,4 @@
+import { sanitize } from './utils/dom.js';
 import { TikTokIOConnection } from './socket.js';
 import { addChatItem, clearItems } from './ui/chat.js';
 import { addGiftItem, clearGifts } from './ui/gift.js';
@@ -9,7 +10,6 @@ import { initCommandsUI, refreshCommandsData } from './ui/commands.js';
 import { initIsaacUI } from './ui/isaac.js';
 import { initRepoUI } from './ui/repo.js';
 import { initGoiUI } from './ui/goi.js';
-import { initTerrariaUI } from './ui/terraria.js';
 import { showToast } from './ui/dialog.js';
 window.showToast = showToast;
 
@@ -43,12 +43,9 @@ function renderRecentFollowers() {
     container.empty();
     recentFollowers.forEach(f => {
         const item = $(`
-            <div style="display:flex;align-items:center;gap:12px;padding:8px 12px;background:var(--bg3);border-radius:var(--r-md);animation: modalIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);">
-                <img src="${f.avatar}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;border:1px solid var(--border);">
-                <div style="flex:1;min-width:0;">
-                    <div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.name}</div>
-                </div>
-                <div style="font-size:11px;font-weight:700;color:var(--accent);">Followed</div>
+            <div class="follower-row">
+                <img src="${sanitize(f.avatar)}" alt="">
+                <span>${sanitize(f.name)}</span>
             </div>
         `);
         container.append(item);
@@ -82,7 +79,6 @@ $(document).ready(() => {
     initIsaacUI(connection);
     initRepoUI(connection);
     initGoiUI(connection);
-    initTerrariaUI(connection);
 });
 
 function connect() {
@@ -108,7 +104,7 @@ function connect() {
         resetStats();
         clearTopDonors();
         updateSessionPanel();
-        $('#recentFollowersList').html('<div class="follower-placeholder" style="text-align:center;padding:16px 0;font-size:12px;color:var(--dim);">No new followers yet</div>');
+        $('#recentFollowersList').html('<div class="follower-placeholder" style="text-align:center;padding:16px 0;font-size:13px;color:var(--muted);">No new followers yet</div>');
 
         connection.connect(uniqueId, {
             enableExtendedGiftInfo: true
@@ -221,11 +217,11 @@ connection.on('gift', (data) => {
 connection.on('member', (msg) => {
     let text = msg.label ? msg.label.replace('{0:user}', '').replace('joined the member club', 'joined') : 'joined';
     if (text.includes('member club')) text = 'joined';
-    addChatItem('#21b2c2', msg, text, true);
+    addChatItem('var(--muted)', msg, text, true);
 });
 
 connection.on('social', (data) => {
-    let color = data.displayType.includes('follow') ? '#ff005e' : '#2fb816';
+    let color = data.displayType.includes('follow') ? 'var(--accent)' : 'var(--muted)';
     let text = data.label ? data.label.replace('{0:user}', '') : (data.displayType.includes('follow') ? 'followed' : 'shared');
     addChatItem(color, data, text);
 

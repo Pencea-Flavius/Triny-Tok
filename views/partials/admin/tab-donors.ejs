@@ -22,7 +22,7 @@
       <% } %>
       <% donors.forEach(d => { %>
       <tr>
-        <td><strong style="color:#e8eaf0;"><%= d.nickname || d.uniqueId || '—' %></strong></td>
+        <td><strong style="color:var(--text);"><%= d.nickname || d.uniqueId || '—' %></strong></td>
         <td><span class="mono"><%= d.uniqueId || d.userId || '—' %></span></td>
         <td><span class="diamonds"><%- diamondSvg %> <%= d.totalDiamonds || 0 %></span></td>
         <td><span class="mono"><%= d.lastSeen ? new Date(d.lastSeen).toLocaleDateString('en-GB') : '—' %></span></td>

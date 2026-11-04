@@ -1,3 +1,4 @@
+import { sanitize } from '../utils/dom.js';
 import { TikTokIOConnection } from '../socket.js';
 import { showToast } from './dialog.js';
 
@@ -24,6 +25,8 @@ export function initMinecraftUI(ioConnection) {
         if (!rconLog.length) return;
         const line = $('<div style="margin-bottom: 4px;"></div>');
         const ts = new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        text = sanitize(text);
+        subtext = sanitize(subtext);
         line.html(`
             <span style="color:var(--dim); font-size: 11px;">[${ts}]</span> 
             <span style="color:${color || 'var(--muted)'};">${text}</span>
@@ -153,8 +156,8 @@ function updateStatus(isConnected, config) {
     if (config) {
         hostInput.val(config.host);
         portInput.val(config.port);
-        if (config.password) {
-            passwordInput.val(config.password);
+        if (config.hasPassword) {
+            passwordInput.attr('placeholder', 'Saved. Leave empty to keep it');
         }
         if (config.autoConnect !== undefined) {
             autoConnectCheckbox.prop('checked', config.autoConnect);
@@ -163,8 +166,8 @@ function updateStatus(isConnected, config) {
 
     if (isConnected) {
         statusText.text('Connected').css('color', 'var(--success)');
-        statusDot.css({ background: 'var(--success)', boxShadow: '0 0 10px var(--success)' });
-        sidebarDot.css({ background: '#27ae60', boxShadow: '0 0 4px #27ae60', display: 'block' });
+        statusDot.css({ background: 'var(--success)' });
+        sidebarDot.css({ background: 'var(--success)', display: 'block' });
         connectBtn.text('Disconnect').prop('disabled', false).removeClass('btn-primary btn-danger').addClass('btn-secondary');
         hostInput.prop('disabled', true);
         portInput.prop('disabled', true);
@@ -172,7 +175,7 @@ function updateStatus(isConnected, config) {
     } else {
         statusText.text('Disconnected').css('color', 'var(--danger)');
         statusDot.css('background', 'var(--danger)');
-        sidebarDot.css({ background: 'transparent', boxShadow: 'none', display: 'none' });
+        sidebarDot.css({ background: 'transparent', display: 'none' });
         connectBtn.text('Connect').prop('disabled', false).removeClass('btn-danger').addClass('btn-primary');
         hostInput.prop('disabled', false);
         portInput.prop('disabled', false);

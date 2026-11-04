@@ -10,7 +10,6 @@ const KEY_MAP = {
     minecraft: 'giftCommands',
     isaac:     'isaacCommands',
     repo:      'repoCommands',
-    terraria:  'terrariaCommands',
 };
 
 const GOI_NAMES = {
@@ -138,17 +137,7 @@ async function resolveEffect(game, effect, conn) {
         const code = effect.code || action || '';
         return { effectName: ISAAC_MISC[code] || formatEffectName(code), effectImage: null, sprite: null, count, duration };
     }
-    // Terraria
-    if (game === 'terraria') {
-        const code = typeof effect === 'string' ? effect : (effect.code || '');
-        let effectName = formatEffectName(code);
-        try {
-            const effectsData = require('../data/terraria/native_effects.json');
-            const match = effectsData.find(e => e.id === code);
-            if (match) effectName = match.name;
-        } catch (_) {}
-        return { effectName, effectImage: null, count, duration, effectCode: code };
-    }
+
     // REPO
     if (game === 'repo') {
         const code = typeof effect === 'string' ? effect : (effect.code || '');

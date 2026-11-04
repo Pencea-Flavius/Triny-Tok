@@ -10,9 +10,9 @@ const SVG_DELETE = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" 
  * @param {{ onTest, onEdit, onDelete }} callbacks
  */
 export function makeActionCell(giftName, { onTest, onEdit, onDelete } = {}) {
-    const testBtn   = $(`<button class="btn-primary btn-sm" title="Test">${SVG_TEST} Test</button>`);
+    const testBtn   = $(`<button class="btn-secondary btn-sm" title="Test">${SVG_TEST} Test</button>`);
     const editBtn   = $(`<button class="btn-secondary btn-sm" title="Edit">${SVG_EDIT} Edit</button>`);
-    const deleteBtn = $(`<button class="btn-danger btn-sm" title="Delete">${SVG_DELETE} Delete</button>`);
+    const deleteBtn = $(`<button class="btn-quiet-danger btn-sm" title="Delete">${SVG_DELETE} Delete</button>`);
 
     if (onTest)   testBtn.on('click',   () => onTest(giftName));
     if (onEdit)   editBtn.on('click',   () => onEdit(giftName));
@@ -38,7 +38,7 @@ export function makeGiftCell(giftName, gift) {
     const td = $('<td style="overflow:hidden;"></td>');
     const inner = $('<div style="display:flex;align-items:center;gap:10px;min-width:0;"></div>');
     inner.append(
-        $(`<img src="${imgSrc}" style="width:28px;height:28px;border-radius:6px;border:1px solid var(--border);flex-shrink:0;">`),
+        $(`<img src="${imgSrc}" style="width:28px;height:28px;border-radius: 4px;border:1px solid var(--border);flex-shrink:0;">`),
         $('<b style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></b>').text(giftName)
     );
     td.append(inner);

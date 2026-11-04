@@ -3,15 +3,12 @@
 
 <head>
   <%- include('partials/head', { title: 'Dashboard' }) %>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap"
-    rel="stylesheet">
   <link rel="stylesheet" href="/css/app.css">
   <style>
     .preset-popup {
       position: absolute; top: calc(100% + 6px); right: 0;
-      width: 250px; background: #0c1220;
-      border: 1px solid rgba(var(--accent-rgb),0.2); border-radius: 12px;
-      box-shadow: 0 16px 48px rgba(0,0,0,0.7);
+      width: 250px; background: var(--bg2);
+      border: 1px solid rgba(var(--accent-rgb),0.2); border-radius: 4px;
       z-index: 300; overflow: hidden;
       opacity: 0; pointer-events: none;
       transform: translateY(-6px) scale(0.97);
@@ -20,71 +17,70 @@
     .preset-popup.open { opacity: 1; pointer-events: all; transform: none; }
     .preset-popup-header {
       display: flex; align-items: center; justify-content: space-between;
-      padding: 11px 13px; border-bottom: 1px solid rgba(255,255,255,0.05);
+      padding: 11px 13px; border-bottom: 1px solid var(--tint);
     }
-    .preset-popup-title { font-size: 10px; font-weight: 800; letter-spacing: 1.3px; text-transform: uppercase; color: var(--accent); }
+    .preset-popup-title { font-size: 12px; font-weight: 600; color: var(--accent); }
     .preset-save-btn {
       display: inline-flex; align-items: center; gap: 5px;
-      padding: 4px 9px; border-radius: 5px; font-size: 11px; font-weight: 700;
+      padding: 4px 9px; border-radius: 4px; font-size: 11px; font-weight: 600;
       background: rgba(var(--accent-rgb),0.1); border: 1px solid rgba(var(--accent-rgb),0.25);
-      color: var(--accent); cursor: pointer; font-family: inherit; transition: all 0.15s;
+      color: var(--accent); cursor: pointer; font-family: inherit; transition: background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, opacity 0.15s, transform 0.15s;
     }
     .preset-save-btn:hover { background: rgba(var(--accent-rgb),0.2); }
     .preset-name-form {
-      padding: 10px 13px; border-bottom: 1px solid rgba(255,255,255,0.05);
+      padding: 10px 13px; border-bottom: 1px solid var(--tint);
       display: none;
     }
     .preset-name-form input {
-      width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 6px; padding: 7px 10px; font-size: 12px; color: #e8eaf0;
+      width: 100%; background: var(--tint); border: 1px solid var(--border2);
+      border-radius: 4px; padding: 7px 10px; font-size: 12px; color: var(--text);
       font-family: inherit; margin-bottom: 8px;
     }
-    .preset-name-form input:focus { outline: none; border-color: var(--accent); }
+    .preset-name-form input:focus { border-color: var(--accent); }
     .preset-name-form-actions { display: flex; gap: 6px; }
     .preset-confirm-btn {
-      flex: 1; padding: 6px; border-radius: 5px; font-size: 11px; font-weight: 700;
-      background: var(--accent); border: none; color: #060912; cursor: pointer; font-family: inherit;
+      flex: 1; padding: 6px; border-radius: 4px; font-size: 11px; font-weight: 600;
+      background: var(--accent); border: none; color: var(--on-accent); cursor: pointer; font-family: inherit;
     }
     .preset-cancel-btn {
-      padding: 6px 10px; border-radius: 5px; font-size: 11px; font-weight: 700;
-      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
-      color: #5a6385; cursor: pointer; font-family: inherit;
+      padding: 6px 10px; border-radius: 4px; font-size: 11px; font-weight: 600;
+      background: var(--tint); border: 1px solid var(--border2);
+      color: var(--muted); cursor: pointer; font-family: inherit;
     }
     .preset-list { max-height: 220px; overflow-y: auto; }
     .preset-item {
       display: flex; align-items: center; padding: 9px 13px;
-      border-bottom: 1px solid rgba(255,255,255,0.03); transition: background 0.12s;
+      border-bottom: 1px solid var(--tint); transition: background 0.12s;
     }
     .preset-item:last-child { border-bottom: none; }
-    .preset-item:hover { background: rgba(255,255,255,0.03); }
+    .preset-item:hover { background: var(--tint); }
     .preset-item-info { flex: 1; min-width: 0; }
-    .preset-item-name { font-size: 12px; font-weight: 700; color: #c8cad8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .preset-item-date { font-size: 10px; color: rgba(255,255,255,0.2); margin-top: 1px; }
+    .preset-item-name { font-size: 12px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .preset-item-date { font-size: 10px; color: var(--muted); margin-top: 1px; }
     .preset-item-btns { display: flex; gap: 4px; flex-shrink: 0; margin-left: 8px; }
     .preset-action {
-      padding: 4px 8px; border-radius: 5px; font-size: 10px; font-weight: 700;
-      cursor: pointer; font-family: inherit; transition: all 0.12s; border: 1px solid;
+      padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 600;
+      cursor: pointer; font-family: inherit; transition: background-color 0.12s, border-color 0.12s, color 0.12s, box-shadow 0.12s, opacity 0.12s, transform 0.12s; border: 1px solid;
     }
     .preset-load { background: rgba(var(--accent-rgb),0.08); border-color: rgba(var(--accent-rgb),0.2); color: var(--accent); }
     .preset-load:hover { background: rgba(var(--accent-rgb),0.2); }
-    .preset-del { background: rgba(244,63,94,0.08); border-color: rgba(244,63,94,0.2); color: #f43f5e; }
-    .preset-del:hover { background: rgba(244,63,94,0.18); }
-    .preset-empty { padding: 18px 13px; text-align: center; font-size: 12px; color: rgba(255,255,255,0.2); }
+    .preset-del { background: rgba(var(--danger-rgb),0.08); border-color: rgba(var(--danger-rgb),0.2); color: var(--danger); }
+    .preset-del:hover { background: rgba(var(--danger-rgb),0.18); }
+    .preset-empty { padding: 18px 13px; text-align: center; font-size: 12px; color: var(--muted); }
 
     .preset-trigger {
       display: inline-flex; align-items: center; gap: 5px;
-      padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 800;
-      letter-spacing: 0.5px; text-transform: uppercase;
+      padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600;
       background: rgba(var(--accent-rgb),0.08); border: 1px solid rgba(var(--accent-rgb),0.2);
-      color: var(--accent); cursor: pointer; font-family: inherit; transition: all 0.15s;
+      color: var(--accent); cursor: pointer; font-family: inherit; transition: background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, opacity 0.15s, transform 0.15s;
     }
     .preset-trigger:hover { background: rgba(var(--accent-rgb),0.18); }
 
     .signin-topbar-link {
       display: inline-flex; align-items: center; gap: 6px;
-      padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 700;
-      color: #5a6385; border: 1px solid rgba(255,255,255,0.07);
-      text-decoration: none; transition: all 0.15s;
+      padding: 6px 14px; border-radius: 4px; font-size: 12px; font-weight: 600;
+      color: var(--muted); border: 1px solid var(--border2);
+      text-decoration: none; transition: background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, opacity 0.15s, transform 0.15s;
     }
     .signin-topbar-link:hover {
       color: var(--accent);
@@ -99,7 +95,6 @@
 <body class="sec-connect">
   <div class="app-layout">
 
-    <%- include('partials/app/cat-rail') %>
     <%- include('partials/app/sub-panel') %>
 
     <div class="content-wrap">
@@ -117,13 +112,10 @@
         <%- include('partials/app/tab-isaac-effects') %>
         <%- include('partials/app/tab-repo-effects') %>
         <%- include('partials/app/tab-goi-effects') %>
-        <%- include('partials/app/tab-terraria-effects') %>
       </div>
     </div>
 
   </div>
-  <%- include('partials/app/modal-terraria-setup') %>
-  <%- include('partials/app/modal-terraria-effect') %>
 </body>
 
 <script>
@@ -154,9 +146,9 @@ function _renderPresets(game, presets) {
     return;
   }
   list.innerHTML = presets.map(p => `
-    <div style="display:flex;align-items:center;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:12px 14px;gap:12px;">
+    <div style="display:flex;align-items:center;background:var(--tint);border:1px solid var(--tint);border-radius: 4px;padding:12px 14px;gap:12px;">
       <div style="flex:1;min-width:0;">
-        <div style="font-size:13px;font-weight:700;color:#e8eaf0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.name}</div>
+        <div style="font-size:13px;font-weight: 600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.name}</div>
         <div style="font-size:11px;color:var(--dim);margin-top:2px;">${new Date(p.created_at).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'})}</div>
       </div>
       <div style="display:flex;gap:6px;flex-shrink:0;">
@@ -183,7 +175,7 @@ window.closePresetModal = function(modalId) {
 window.savePreset = async function(game, modalId) {
   const input = document.getElementById('presetInput_' + game);
   const name = input.value.trim();
-  if (!name) { input.style.borderColor = '#f43f5e'; input.focus(); return; }
+  if (!name) { input.style.borderColor = 'var(--danger)'; input.focus(); return; }
   input.style.borderColor = '';
   const r = await fetch('/api/presets/' + game, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -232,12 +224,10 @@ window.generatePresetAI = async function(game) {
   const input = document.getElementById('aiPresetInput_' + game);
   const resultEl = document.getElementById('aiPresetResult_' + game);
   const btn = document.getElementById('aiPresetBtn_' + game);
-  const icon = document.getElementById('aiPresetBtnIcon_' + game);
 
   resultEl.style.display = 'block';
-  resultEl.innerHTML = '<div style="font-size:12px;color:var(--dim);padding:10px 0;">AI is thinking...</div>';
+  resultEl.innerHTML = '<div style="font-size:13px;color:var(--muted);padding:8px 0;">Thinking...</div>';
   btn.disabled = true;
-  if (icon) icon.style.animation = 'spin 1s linear infinite';
 
   try {
     const res = await fetch('/api/ai/preset-suggestion', {
@@ -248,16 +238,13 @@ window.generatePresetAI = async function(game) {
     const data = await res.json();
 
     if (!data.success) {
-      resultEl.innerHTML = '<div style="background:rgba(244,63,94,0.08);border:1px solid rgba(244,63,94,0.25);border-radius:8px;padding:12px;font-size:12px;color:#f43f5e;">' + _escAI(data.error || 'Something went wrong.') + '</div>';
+      resultEl.innerHTML = '<div style="background:rgba(var(--danger-rgb),0.08);border:1px solid rgba(var(--danger-rgb),0.25);border-radius: 4px;padding:12px;font-size:12px;color:var(--danger);">' + _escAI(data.error || 'Something went wrong.') + '</div>';
       return;
     }
 
-    let html = '<div style="background:rgba(0,242,234,0.04);border:1px solid rgba(0,242,234,0.15);border-radius:10px;padding:14px;">';
-    html += '<div style="font-size:11px;color:var(--dim);margin-bottom:8px;">' + _escAI(data.model || 'AI') + '</div>';
+    let html = '<div style="padding-top:4px;">';
     if (data.preset_created) {
-      html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;font-size:12px;font-weight:700;color:var(--teal);">';
-      html += '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
-      html += 'Preset &ldquo;' + _escAI(data.preset_name) + '&rdquo; created!</div>';
+      html += '<div style="margin-bottom:8px;font-size:13px;font-weight:600;">Preset &ldquo;' + _escAI(data.preset_name) + '&rdquo; created</div>';
     }
     html += '<div style="font-size:13px;line-height:1.7;color:var(--text);white-space:pre-wrap;">' + _escAI(data.suggestion || '(no response)') + '</div>';
     html += '</div>';
@@ -267,10 +254,9 @@ window.generatePresetAI = async function(game) {
       _renderPresets(game, data.presets);
     }
   } catch (err) {
-    resultEl.innerHTML = '<div style="background:rgba(244,63,94,0.08);border:1px solid rgba(244,63,94,0.25);border-radius:8px;padding:12px;font-size:12px;color:#f43f5e;">Network error: ' + _escAI(err.message) + '</div>';
+    resultEl.innerHTML = '<div style="background:rgba(var(--danger-rgb),0.08);border:1px solid rgba(var(--danger-rgb),0.25);border-radius: 4px;padding:12px;font-size:12px;color:var(--danger);">Network error: ' + _escAI(err.message) + '</div>';
   } finally {
     btn.disabled = false;
-    if (icon) icon.style.animation = '';
   }
 };
 </script>

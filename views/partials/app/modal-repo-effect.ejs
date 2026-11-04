@@ -6,7 +6,7 @@
 
       <div style="display:flex;flex-direction:column;gap:6px;">
         <label class="field-label">Trigger</label>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;background:rgba(0,0,0,0.25);padding:4px;border-radius:10px;border:1px solid var(--border);">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;background:var(--bg);padding:4px;border-radius: 4px;border:1px solid var(--border);">
           <label class="trigger-type-opt"><input type="radio" name="triggerType_repo" value="gift" checked><span>Gift</span></label>
           <label class="trigger-type-opt"><input type="radio" name="triggerType_repo" value="follow"><span>Follow</span></label>
           <label class="trigger-type-opt"><input type="radio" name="triggerType_repo" value="like"><span>Likes</span></label>
@@ -24,7 +24,7 @@
       </div>
 
       <!-- Mode Toggle -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;background:rgba(0,0,0,0.25);padding:4px;border-radius:10px;border:1px solid var(--border);">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--bg);padding:4px;border-radius: 4px;border:1px solid var(--border);">
         <button id="repoModeSpawnBtn" class="repo-mode-btn active" onclick="">Spawn</button>
         <button id="repoModePresetBtn" class="repo-mode-btn" onclick="">Effects</button>
       </div>
@@ -33,15 +33,15 @@
       <div id="repoSpawnActionView" style="display:flex;flex-direction:column;gap:12px;">
         <!-- Action Type tabs -->
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;">
-          <button class="repo-action-tab active" data-action="spawn_item" style="padding:12px;border-radius:8px;border:2px solid transparent;background:var(--bg3);color:var(--dim);display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;transition:all 0.2s;font-weight:700;font-size:12px;">
+          <button class="repo-action-tab active" data-action="spawn_item" style="padding:12px;border-radius: 4px;border:2px solid transparent;background:var(--bg3);color:var(--dim);display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;transition: background-color 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s, opacity 0.2s, transform 0.2s;font-weight: 600;font-size:12px;">
             <img src="/images/repo/items/GunHandgun.png" style="width:48px;height:48px;object-fit:contain;transition:transform 0.2s ease;">
             <span>Items</span>
           </button>
-          <button class="repo-action-tab" data-action="spawn_valuable" style="padding:12px;border-radius:8px;border:2px solid transparent;background:var(--bg3);color:var(--dim);display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;transition:all 0.2s;font-weight:700;font-size:12px;">
+          <button class="repo-action-tab" data-action="spawn_valuable" style="padding:12px;border-radius: 4px;border:2px solid transparent;background:var(--bg3);color:var(--dim);display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;transition: background-color 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s, opacity 0.2s, transform 0.2s;font-weight: 600;font-size:12px;">
             <img src="/images/repo/valuables/Diamond.png" style="width:48px;height:48px;object-fit:contain;transition:transform 0.2s ease;">
             <span>Valuables</span>
           </button>
-          <button class="repo-action-tab" data-action="spawn_enemy" style="padding:12px;border-radius:8px;border:2px solid transparent;background:var(--bg3);color:var(--dim);display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;transition:all 0.2s;font-weight:700;font-size:12px;">
+          <button class="repo-action-tab" data-action="spawn_enemy" style="padding:12px;border-radius: 4px;border:2px solid transparent;background:var(--bg3);color:var(--dim);display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;transition: background-color 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s, opacity 0.2s, transform 0.2s;font-weight: 600;font-size:12px;">
             <img src="/images/repo/enemies/Peeper%20Transparent.png" style="width:48px;height:48px;object-fit:contain;transition:transform 0.2s ease;">
             <span>Enemies</span>
           </button>
@@ -52,13 +52,13 @@
           <div style="display:flex;flex-direction:column;gap:8px;">
             <label class="field-label" id="repoSpawnSearchLabel">Search Item</label>
             <div style="position:relative;">
-              <div style="display:flex;align-items:center;gap:10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;transition:border-color .15s;" id="repoSpawnSearchWrapper">
-                <div id="repoSpawnPreview" style="width:48px;height:48px;border-radius:6px;background:var(--bg2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
-                  <span style="font-size:9px;color:var(--text-muted);">ICON</span>
+              <div style="display:flex;align-items:center;gap:10px;background:var(--bg3);border:1px solid var(--border);border-radius: 4px;padding:8px 12px;transition:border-color .15s;" id="repoSpawnSearchWrapper">
+                <div id="repoSpawnPreview" style="width:48px;height:48px;border-radius: 4px;background:var(--bg2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
+                  <span style="font-size:9px;color:var(--muted);">ICON</span>
                 </div>
                 <div style="flex:1;">
-                  <input type="text" id="repoSpawnSearchInput" class="input-ghost" placeholder="Search..." style="width:100%;background:none;border:none;outline:none;color:var(--text);font-size:.9rem;" autocomplete="off">
-                  <div id="repoSpawnNameLabel" style="font-size:.7rem;color:var(--text-muted);margin-top:1px;display:none;"></div>
+                  <input type="text" id="repoSpawnSearchInput" class="input-ghost" placeholder="Search..." style="width:100%;background:none;border:none;color:var(--text);font-size:.9rem;" autocomplete="off">
+                  <div id="repoSpawnNameLabel" style="font-size:.7rem;color:var(--muted);margin-top:1px;display:none;"></div>
                 </div>
               </div>
               <div id="repoSpawnSearchResults" class="glass search-results-list" style="display:none;"></div>
@@ -73,19 +73,19 @@
             
             <!-- Upgrade spawn option (items only, shown when an upgrade item is selected) -->
             <div id="repoUpgradeSpawnRow" style="display:none;margin-top:10px;padding:10px 14px;background:var(--bg4);border:1px solid var(--border2);border-radius:var(--r-md);flex-shrink:0;">
-              <div style="font-size:11px;font-weight:800;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Delivery Method</div>
+              <div style="font-size: 12px;font-weight:800;color:var(--dim);margin-bottom:8px;">Delivery Method</div>
               <div style="display:flex;gap:8px;">
-                <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 12px;border:2px solid var(--border);border-radius:8px;cursor:pointer;transition:all .2s;" id="repoUpgradeDirectLabel">
+                <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 12px;border:2px solid var(--border);border-radius: 4px;cursor:pointer;transition: background-color .2s, border-color .2s, color .2s, box-shadow .2s, opacity .2s, transform .2s;" id="repoUpgradeDirectLabel">
                   <input type="radio" name="repoUpgradeDelivery" value="direct" checked style="accent-color:var(--accent);">
                   <div>
-                    <div style="font-size:12px;font-weight:700;">Apply directly</div>
+                    <div style="font-size:12px;font-weight: 600;">Apply directly</div>
                     <div style="font-size:10px;color:var(--dim);">Upgrade activates instantly</div>
                   </div>
                 </label>
-                <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 12px;border:2px solid var(--border);border-radius:8px;cursor:pointer;transition:all .2s;" id="repoUpgradeItemLabel">
+                <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 12px;border:2px solid var(--border);border-radius: 4px;cursor:pointer;transition: background-color .2s, border-color .2s, color .2s, box-shadow .2s, opacity .2s, transform .2s;" id="repoUpgradeItemLabel">
                   <input type="radio" name="repoUpgradeDelivery" value="item" style="accent-color:var(--accent);">
                   <div>
-                    <div style="font-size:12px;font-weight:700;">Spawn as item</div>
+                    <div style="font-size:12px;font-weight: 600;">Spawn as item</div>
                     <div style="font-size:10px;color:var(--dim);">Item drops on the ground</div>
                   </div>
                 </label>
@@ -107,7 +107,7 @@
       <!-- Presets Panel -->
       <div id="repoPresetActionView" style="display:none;flex-direction:column;gap:12px;">
         <div style="display:flex;gap:4px;flex-wrap:wrap;" id="repoCategoryTabs"></div>
-        <div id="repoEffectCards" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;max-height:280px;overflow-y:auto;padding:2px;border:1px solid var(--border);border-radius:8px;background:var(--bg3);padding:8px;"></div>
+        <div id="repoEffectCards" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;max-height:280px;overflow-y:auto;padding:2px;border:1px solid var(--border);border-radius: 4px;background:var(--bg3);padding:8px;"></div>
         
         <!-- Duration (shown for timed effects) -->
         <div id="repoDurationRow" style="display:none;padding:10px 14px;background:var(--bg4);border:1px solid var(--border2);border-radius:var(--r-md);">
@@ -118,19 +118,19 @@
 
         <!-- Upgrade delivery option (shown when an Upgrade is selected) -->
         <div id="repoUpgradeDeliveryRow" style="display:none;padding:10px 14px;background:var(--bg4);border:1px solid var(--border2);border-radius:var(--r-md);">
-          <div style="font-size:11px;font-weight:800;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Delivery Method</div>
+          <div style="font-size: 12px;font-weight:800;color:var(--dim);margin-bottom:8px;">Delivery Method</div>
           <div style="display:flex;gap:8px;">
-            <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 12px;border:2px solid var(--border);border-radius:8px;cursor:pointer;transition:all .2s;" id="repoUpgradeDirectLabelModal">
+            <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 12px;border:2px solid var(--border);border-radius: 4px;cursor:pointer;transition: background-color .2s, border-color .2s, color .2s, box-shadow .2s, opacity .2s, transform .2s;" id="repoUpgradeDirectLabelModal">
               <input type="radio" name="repoUpgradeDeliveryModal" value="direct" checked style="accent-color:var(--accent);">
               <div>
-                <div style="font-size:12px;font-weight:700;">Apply directly</div>
+                <div style="font-size:12px;font-weight: 600;">Apply directly</div>
                 <div style="font-size:10px;color:var(--dim);">Upgrade activates instantly</div>
               </div>
             </label>
-            <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 12px;border:2px solid var(--border);border-radius:8px;cursor:pointer;transition:all .2s;" id="repoUpgradeItemLabelModal">
+            <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 12px;border:2px solid var(--border);border-radius: 4px;cursor:pointer;transition: background-color .2s, border-color .2s, color .2s, box-shadow .2s, opacity .2s, transform .2s;" id="repoUpgradeItemLabelModal">
               <input type="radio" name="repoUpgradeDeliveryModal" value="item" style="accent-color:var(--accent);">
               <div>
-                <div style="font-size:12px;font-weight:700;">Spawn as item</div>
+                <div style="font-size:12px;font-weight: 600;">Spawn as item</div>
                 <div style="font-size:10px;color:var(--dim);">Item drops on the ground</div>
               </div>
             </label>
@@ -142,7 +142,7 @@
       <div style="margin-top:4px;padding-top:12px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:10px;">
         <div style="display:flex;flex-direction:column;gap:6px;">
           <label class="field-label">Apply Effect To</label>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;background:rgba(0,0,0,0.25);padding:4px;border-radius:10px;border:1px solid var(--border);">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;background:var(--bg);padding:4px;border-radius: 4px;border:1px solid var(--border);">
             <label class="repo-target-opt"><input type="radio" name="repoTargetMode" value="local" checked><span>Live User</span></label>
             <label class="repo-target-opt"><input type="radio" name="repoTargetMode" value="random"><span>Random</span></label>
             <label class="repo-target-opt"><input type="radio" name="repoTargetMode" value="all"><span>Everyone</span></label>
@@ -157,7 +157,7 @@
       <div id="repoDelayConfigRow" style="display:none;flex-direction:column;gap:8px;padding:10px 14px;background:var(--bg4);border:1px solid var(--border2);border-radius:var(--r-md);">
         <label class="field-label" style="display:flex;justify-content:space-between;">
           <span>Execution Delay</span>
-          <span id="repoDelayValueDisplay" style="color:var(--accent);font-weight:700;">0.2s</span>
+          <span id="repoDelayValueDisplay" style="color:var(--accent);font-weight: 600;">0.2s</span>
         </label>
         <input type="range" id="repoExecuteDelayInput" min="0.1" max="1.0" step="0.1" value="0.2" style="width:100%;accent-color:var(--accent);">
       </div>
@@ -172,11 +172,11 @@
 </div>
 <style>
 .repo-action-tab.active { border-color: var(--accent) !important; background: var(--accent)22 !important; color: var(--text) !important; }
-.repo-mode-btn { flex:1; padding:9px 0; border-radius:7px; border:none; background:transparent; color:var(--muted); font-size:.82rem; font-weight:600; cursor:pointer; transition:background .18s, color .18s; font-family:inherit; }
+.repo-mode-btn { flex:1; padding:9px 0; border-radius: 4px; border:none; background:transparent; color:var(--muted); font-size:.82rem; font-weight:600; cursor:pointer; transition:background .18s, color .18s; font-family:inherit; }
 .repo-mode-btn.active { background:rgba(var(--accent-rgb), 0.15); color:var(--accent); }
-.repo-mode-btn:hover:not(.active) { background:rgba(255,255,255,0.05); color:var(--text); }
-.repo-target-opt { display:flex; align-items:center; justify-content:center; padding:8px 6px; border-radius:7px; cursor:pointer; font-size:12px; font-weight:700; color:var(--muted); transition:background .15s, color .15s; user-select:none; }
+.repo-mode-btn:hover:not(.active) { background:var(--tint); color:var(--text); }
+.repo-target-opt { display:flex; align-items:center; justify-content:center; padding:8px 6px; border-radius: 4px; cursor:pointer; font-size:12px; font-weight: 600; color:var(--muted); transition:background .15s, color .15s; user-select:none; }
 .repo-target-opt input { display:none; }
 .repo-target-opt:has(input:checked) { background:rgba(var(--accent-rgb), 0.15); color:var(--accent); }
-.repo-target-opt:hover:not(:has(input:checked)) { background:rgba(255,255,255,0.05); color:var(--text); }
+.repo-target-opt:hover:not(:has(input:checked)) { background:var(--tint); color:var(--text); }
 </style>

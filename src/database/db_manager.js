@@ -20,6 +20,10 @@ class DatabaseManager {
         const dataDir = path.dirname(dbPath);
         if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 
+        // First run: start from the game and gift catalogue. global.db stays on this PC, out of git.
+        const seedPath = path.join(dataDir, 'seed.db');
+        if (!fs.existsSync(dbPath) && fs.existsSync(seedPath)) fs.copyFileSync(seedPath, dbPath);
+
         this.globalDbPromise = open({
             filename: dbPath,
             driver: sqlite3.Database
@@ -186,7 +190,7 @@ class DatabaseManager {
                     id          INTEGER PRIMARY KEY AUTOINCREMENT,
                     account_id  INTEGER NOT NULL REFERENCES app_accounts(id) ON DELETE CASCADE,
                     name        TEXT NOT NULL,
-                    game        TEXT NOT NULL CHECK(game IN ('minecraft','isaac','repo','goi','terraria')),
+                    game        TEXT NOT NULL CHECK(game IN ('minecraft','isaac','repo','goi')),
                     created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
                     UNIQUE(account_id, name, game)
                 );
@@ -212,10 +216,6 @@ class DatabaseManager {
                     preset_id     INTEGER PRIMARY KEY REFERENCES presets(id) ON DELETE CASCADE,
                     goi_commands  TEXT
                 );
-                CREATE TABLE IF NOT EXISTS preset_terraria (
-                    preset_id       INTEGER PRIMARY KEY REFERENCES presets(id) ON DELETE CASCADE,
-                    terraria_commands TEXT
-                );
             `);
             for (const [col, sql] of authMigrations) {
                 if (!acColNames.includes(col)) await db.run(sql);
@@ -232,7 +232,6 @@ class DatabaseManager {
                         DROP TABLE IF EXISTS preset_isaac;
                         DROP TABLE IF EXISTS preset_repo;
                         DROP TABLE IF EXISTS preset_goi;
-                        DROP TABLE IF EXISTS preset_terraria;
                         DROP TABLE IF EXISTS presets;
                     `);
                     await db.exec(`
@@ -240,7 +239,7 @@ class DatabaseManager {
                             id INTEGER PRIMARY KEY AUTOINCREMENT,
                             account_id INTEGER NOT NULL REFERENCES app_accounts(id) ON DELETE CASCADE,
                             name TEXT NOT NULL,
-                            game TEXT NOT NULL CHECK(game IN ('minecraft','isaac','repo','goi','terraria')),
+                            game TEXT NOT NULL CHECK(game IN ('minecraft','isaac','repo','goi')),
                             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                             UNIQUE(account_id, name, game)
                         );
@@ -248,7 +247,6 @@ class DatabaseManager {
                         CREATE TABLE preset_isaac (preset_id INTEGER PRIMARY KEY REFERENCES presets(id) ON DELETE CASCADE, isaac_commands TEXT);
                         CREATE TABLE preset_repo (preset_id INTEGER PRIMARY KEY REFERENCES presets(id) ON DELETE CASCADE, repo_commands TEXT);
                         CREATE TABLE preset_goi (preset_id INTEGER PRIMARY KEY REFERENCES presets(id) ON DELETE CASCADE, goi_commands TEXT);
-                        CREATE TABLE preset_terraria (preset_id INTEGER PRIMARY KEY REFERENCES presets(id) ON DELETE CASCADE, terraria_commands TEXT);
                     `);
                     console.log('[DB] Migration: rebuilt presets tables with new schema.');
                 }

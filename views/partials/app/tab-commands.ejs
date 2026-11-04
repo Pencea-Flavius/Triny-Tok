@@ -1,9 +1,8 @@
 <div id="commandsContent" class="tab-content">
   <div class="page-header">
     <div>
-      <div class="page-eyebrow"><span class="eyebrow-dot"></span>Game Bridge</div>
-      <h1 class="page-h1">Gift Commands</h1>
-      <p class="page-sub">Map TikTok gifts to Minecraft commands.</p>
+      <h1 class="page-h1">Minecraft</h1>
+      <p class="page-sub">Gift commands. Choose which command each TikTok gift runs.</p>
     </div>
     <div class="page-actions">
       <a href="/gift-overlay.html?game=minecraft" target="_blank" class="btn-secondary btn-sm" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
@@ -22,11 +21,10 @@
       </button>
     </div>
   </div>
-  <hr class="accent-rule">
 
   <div class="card" style="flex:1;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-      <div style="font-size:10.5px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">Mapped Commands</div>
+      <div class="card-title">Mapped commands</div>
       <%- include('./preset-btn', { game: 'minecraft', wrapperId: 'presetWrapMinecraft' }) %>
     </div>
     <div class="table-wrap" style="margin:0;border:none;background:transparent;">
@@ -34,8 +32,8 @@
       <table class="data-table" style="table-layout:fixed;width:100%;">
         <thead>
           <tr>
-            <th style="width:200px;">TikTok Gift</th>
-            <th>Minecraft Command</th>
+            <th style="width:200px;">TikTok gift</th>
+            <th>Command</th>
             <th style="width:280px;text-align:center;">Actions</th>
           </tr>
         </thead>
@@ -56,7 +54,7 @@
       <div style="display:flex;flex-direction:column;gap:18px;">
         <div style="display:flex;flex-direction:column;gap:6px;">
           <label class="field-label">Trigger</label>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;background:rgba(0,0,0,0.25);padding:4px;border-radius:10px;border:1px solid var(--border);">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;background:var(--bg);padding:4px;border-radius: 4px;border:1px solid var(--border);">
             <label class="trigger-type-opt"><input type="radio" name="triggerType_minecraft" value="gift" checked><span>Gift</span></label>
             <label class="trigger-type-opt"><input type="radio" name="triggerType_minecraft" value="follow"><span>Follow</span></label>
             <label class="trigger-type-opt"><input type="radio" name="triggerType_minecraft" value="like"><span>Likes</span></label>
@@ -74,12 +72,12 @@
         </div>
 
         <div class="field">
-          <label class="field-label">Minecraft Commands (one per line)</label>
+          <label class="field-label">Commands (one per line)</label>
           <textarea id="commandInput"
             placeholder="execute at {playername} run summon creeper ~ ~ ~ {CustomName:'{username}', CustomNameVisible:1b}&#10;execute at {playername} run summon falling_block ~ ~10 ~ {BlockState:{Name:'minecraft:anvil'}}&#10;effect give {playername} minecraft:blindness 10 0 true"
-            rows="5" style="font-family:'JetBrains Mono',monospace;margin-top:6px;"></textarea>
+            rows="5" style="font-family:var(--mono);margin-top:6px;"></textarea>
           <p style="font-size:11.5px;color:var(--dim);margin-top:6px;line-height:1.65;">
-            <span style="font-weight:700;margin-right:4px;color:var(--muted);">Placeholders:</span>
+            <span style="font-weight: 600;margin-right:4px;color:var(--muted);">Placeholders:</span>
             <code title="Randomly picked target player from your list" style="cursor:pointer;">{playername}</code> ·
             <code title="TikTok @username of the sender" style="cursor:pointer;">{username}</code> ·
             <code title="TikTok display name of the sender" style="cursor:pointer;">{nickname}</code> ·
@@ -106,7 +104,7 @@
         <div id="delayConfigRow" style="display:none;flex-direction:column;gap:8px;">
           <label class="field-label" style="display:flex;justify-content:space-between;">
             <span>Execution Delay</span>
-            <span id="delayValueDisplay" style="color:var(--accent);font-weight:700;">0.2s</span>
+            <span id="delayValueDisplay" style="color:var(--accent);font-weight: 600;">0.2s</span>
           </label>
           <input type="range" id="executeDelayInput" min="0.1" max="1.0" step="0.1" value="0.2"
             style="width:100%;accent-color:var(--accent);">
@@ -143,8 +141,8 @@
   </div>
 </div>
 <style>
-.trigger-type-opt { display:flex; align-items:center; justify-content:center; padding:8px 6px; border-radius:7px; cursor:pointer; font-size:12px; font-weight:700; color:var(--muted); transition:background .15s, color .15s; user-select:none; }
+.trigger-type-opt { display:flex; align-items:center; justify-content:center; padding:8px 6px; border-radius: 4px; cursor:pointer; font-size:12px; font-weight: 600; color:var(--muted); transition:background .15s, color .15s; user-select:none; }
 .trigger-type-opt input { display:none; }
 .trigger-type-opt:has(input:checked) { background:rgba(var(--accent-rgb), 0.15); color:var(--accent); }
-.trigger-type-opt:hover:not(:has(input:checked)) { background:rgba(255,255,255,0.05); color:var(--text); }
+.trigger-type-opt:hover:not(:has(input:checked)) { background:var(--tint); color:var(--text); }
 </style>

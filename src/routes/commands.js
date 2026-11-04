@@ -1,6 +1,7 @@
 const express = require('express');
 const router  = express.Router();
 const ctx     = require('../context');
+const access  = require('../auth/access');
 
 router.get('/commands', (req, res) => {
     res.json({ success: true, commands: ctx.config.giftCommands, followCommand: ctx.config.followCommand, likeCommand: ctx.config.likeCommand });
@@ -34,14 +35,14 @@ router.post('/commands', express.json(), (req, res) => {
 });
 
 router.get('/config', (req, res) => {
-    res.json({ success: true, config: ctx.config });
+    res.json({ success: true, config: access.publicConfig(ctx.config) });
 });
 
 router.post('/config', express.json(), (req, res) => {
-    Object.assign(ctx.config, req.body);
+    access.applyConfigUpdate(ctx.config, req.body);
     try {
         ctx.saveConfig();
-        res.json({ success: true, config: ctx.config });
+        res.json({ success: true, config: access.publicConfig(ctx.config) });
     } catch (e) {
         res.status(500).json({ success: false, error: e.message });
     }

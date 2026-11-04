@@ -7,7 +7,7 @@
 
       <div style="display:flex;flex-direction:column;gap:6px;">
         <label class="field-label">Trigger</label>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;background:rgba(0,0,0,0.25);padding:4px;border-radius:10px;border:1px solid var(--border);">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;background:var(--bg);padding:4px;border-radius: 4px;border:1px solid var(--border);">
           <label class="trigger-type-opt"><input type="radio" name="triggerType_isaac" value="gift" checked><span>Gift</span></label>
           <label class="trigger-type-opt"><input type="radio" name="triggerType_isaac" value="follow"><span>Follow</span></label>
           <label class="trigger-type-opt"><input type="radio" name="triggerType_isaac" value="like"><span>Likes</span></label>
@@ -27,7 +27,7 @@
 
         <!-- Mode Toggle -->
         <div
-          style="display:grid;grid-template-columns:1fr 1fr;gap:4px;background:rgba(0,0,0,0.25);padding:4px;border-radius:10px;border:1px solid var(--border);">
+          style="display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--bg);padding:4px;border-radius: 4px;border:1px solid var(--border);">
           <button id="isaacModeCustomBtn" class="isaac-mode-btn active" onclick="">Spawn</button>
           <button id="isaacModeProfileBtn" class="isaac-mode-btn" onclick="">Effects</button>
         </div>
@@ -62,22 +62,22 @@
               </div>
               <div style="position:relative;">
                 <div
-                  style="display:flex;align-items:center;gap:10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;transition:border-color .15s;"
+                  style="display:flex;align-items:center;gap:10px;background:var(--bg3);border:1px solid var(--border);border-radius: 4px;padding:8px 12px;transition:border-color .15s;"
                   id="isaacItemSearchWrapper">
                   <div id="isaacItemPreview"
-                    style="width:48px;height:48px;border-radius:6px;background:var(--bg2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
-                    <span style="font-size:9px;color:var(--text-muted);">ITEM</span>
+                    style="width:48px;height:48px;border-radius: 4px;background:var(--bg2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
+                    <span style="font-size:9px;color:var(--muted);">ITEM</span>
                   </div>
                   <div style="flex:1;">
                     <input type="text" id="isaacItemSearchInput" class="input-ghost"
                       placeholder="Search items... (e.g. Magic Mushroom, Mom's Knife)"
-                      style="width:100%;background:none;border:none;outline:none;color:var(--text);font-size:.9rem;"
+                      style="width:100%;background:none;border:none;color:var(--text);font-size:.9rem;"
                       autocomplete="off">
                     <div id="isaacItemNameLabel"
-                      style="font-size:.7rem;color:var(--text-muted);margin-top:1px;display:none;"></div>
+                      style="font-size:.7rem;color:var(--muted);margin-top:1px;display:none;"></div>
                   </div>
                   <div id="isaacItemQualityBadge"
-                    style="display:none;padding:2px 8px;border-radius:4px;font-size:.7rem;font-weight:700;white-space:nowrap;">
+                    style="display:none;padding:2px 8px;border-radius:4px;font-size:.7rem;font-weight: 600;white-space:nowrap;">
                   </div>
                 </div>
                 <div id="isaacItemSearchResults" class="glass search-results-list" style="display:none;"></div>
@@ -107,7 +107,7 @@
             <div id="isaacUseEffectRow"
               style="display:none;margin-top:10px;padding:8px 12px;background:var(--bg4);border:1px solid var(--border2);border-radius:var(--r-md);">
               <label
-                style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.75rem;color:var(--accent);font-weight:800;text-transform:uppercase;letter-spacing:0.5px;">
+                style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.75rem;color:var(--accent);font-weight:800;">
                 <input type="checkbox" id="isaacUseEffectOnly"
                   style="width:16px;height:16px;accent-color:var(--accent);margin:0;">
                 Use Effect Only
@@ -124,7 +124,7 @@
               </div>
               <div style="flex:2; padding-bottom:10px;">
                 <label
-                  style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.75rem;color:var(--dim);font-weight:800;text-transform:uppercase;letter-spacing:0.5px;">
+                  style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.75rem;color:var(--dim);font-weight:800;">
                   <input type="checkbox" id="isaacItemAutoCollect"
                     style="width:16px;height:16px;accent-color:var(--accent);margin:0;">
                   Auto-Collect
@@ -139,19 +139,19 @@
               <label class="field-label">Search Boss</label>
               <div style="position:relative;">
                 <div
-                  style="display:flex;align-items:center;gap:10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;transition:border-color .15s;"
+                  style="display:flex;align-items:center;gap:10px;background:var(--bg3);border:1px solid var(--border);border-radius: 4px;padding:8px 12px;transition:border-color .15s;"
                   id="isaacBossSearchWrapper">
                   <div id="isaacBossPreview"
-                    style="width:48px;height:48px;border-radius:6px;background:var(--bg2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
-                    <span style="font-size:9px;color:var(--text-muted);">BOSS</span>
+                    style="width:48px;height:48px;border-radius: 4px;background:var(--bg2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
+                    <span style="font-size:9px;color:var(--muted);">BOSS</span>
                   </div>
                   <div style="flex:1;">
                     <input type="text" id="isaacBossSearchInput" class="input-ghost"
                       placeholder="Search bosses... (e.g. Monstro, Isaac)"
-                      style="width:100%;background:none;border:none;outline:none;color:var(--text);font-size:.9rem;"
+                      style="width:100%;background:none;border:none;color:var(--text);font-size:.9rem;"
                       autocomplete="off">
                     <div id="isaacBossNameLabel"
-                      style="font-size:.7rem;color:var(--text-muted);margin-top:1px;display:none;"></div>
+                      style="font-size:.7rem;color:var(--muted);margin-top:1px;display:none;"></div>
                   </div>
                 </div>
                 <div id="isaacBossSearchResults" class="glass search-results-list" style="display:none;"></div>
@@ -165,11 +165,11 @@
                 </div>
                 <div style="flex:2;">
                   <div id="isaacBossHpInfo" style="font-size:0.7rem;color:var(--dim);margin-bottom:4px;display:none;">
-                    Base HP: <span id="isaacBossBaseHp" style="color:var(--text);font-weight:700;">-</span>
+                    Base HP: <span id="isaacBossBaseHp" style="color:var(--text);font-weight: 600;">-</span>
                   </div>
                 </div>
               </div>
-              <div id="isaacBossSegmentHint" style="display:none;margin-top:8px;padding:8px 12px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.3);border-radius:8px;font-size:0.75rem;color:#fbbf24;font-weight:600;"></div>
+              <div id="isaacBossSegmentHint" style="display:none;margin-top:8px;padding:8px 12px;background:var(--tint);border:1px solid var(--tint);border-radius: 4px;font-size:0.75rem;color:var(--warning);font-weight:600;"></div>
               <input type="hidden" id="isaacSelectedBossId">
             </div>
           </div>
@@ -187,7 +187,7 @@
               </div>
             </div>
             <div
-              style="margin-top:8px;padding:10px 12px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;font-size:.78rem;color:var(--text-muted);">
+              style="margin-top:8px;padding:10px 12px;background:var(--tint);border:1px solid var(--border);border-radius: 4px;font-size:.78rem;color:var(--muted);">
               Input a valid entity ID from The Binding of Isaac.
             </div>
           </div>
@@ -213,7 +213,7 @@
         <div id="isaacDelayConfigRow" style="display:none;flex-direction:column;gap:8px;padding:10px 14px;background:var(--bg4);border:1px solid var(--border2);border-radius:var(--r-md);">
           <label class="field-label" style="display:flex;justify-content:space-between;">
             <span>Execution Delay</span>
-            <span id="isaacDelayValueDisplay" style="color:var(--accent);font-weight:700;">0.2s</span>
+            <span id="isaacDelayValueDisplay" style="color:var(--accent);font-weight: 600;">0.2s</span>
           </label>
           <input type="range" id="isaacExecuteDelayInput" min="0.1" max="1.0" step="0.1" value="0.2" style="width:100%;accent-color:var(--accent);">
         </div>

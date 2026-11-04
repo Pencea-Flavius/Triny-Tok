@@ -20,29 +20,29 @@ const diamondSvg = '<svg width="11" height="11" viewBox="0 0 640 640" fill="curr
       text-decoration: none; margin-bottom: 36px;
       transition: color 0.15s;
     }
-    .page-back:hover { color: var(--teal); }
+    .page-back:hover { color: var(--accent); }
 
     .page-header {
       display: flex; align-items: flex-end; justify-content: space-between;
       margin-bottom: 32px; flex-wrap: wrap; gap: 16px;
     }
     .page-title {
-      font-size: 28px; font-weight: 900; letter-spacing: -0.8px;
+      font-size: 28px; font-weight: 800; letter-spacing: -0.02em;
       line-height: 1;
     }
-    .page-title span { color: var(--teal); }
+    .page-title span { color: var(--accent); }
 
     .stats-bar {
       display: flex; gap: 12px; flex-wrap: wrap;
     }
     .stat-pill {
       display: flex; align-items: center; gap: 8px;
-      padding: 8px 14px; border-radius: 10px;
+      padding: 8px 14px; border-radius: 4px;
       background: var(--bg2); border: 1px solid var(--border);
-      font-size: 13px; font-weight: 700; color: var(--text);
+      font-size: 13px; font-weight: 600; color: var(--text);
     }
     .stat-pill .stat-label { color: var(--muted); font-weight: 600; }
-    .stat-pill .diamond { color: var(--teal); display:inline-flex;align-items:center; }
+    .stat-pill .diamond { color: var(--accent); display:inline-flex;align-items:center; }
 
     /* Podium */
     .podium {
@@ -54,23 +54,23 @@ const diamondSvg = '<svg width="11" height="11" viewBox="0 0 640 640" fill="curr
       gap: 10px; flex: 1; max-width: 200px;
       padding: 20px 16px;
       background: var(--bg2); border: 1px solid var(--border);
-      border-radius: 18px; text-align: center;
+      border-radius: 4px; text-align: center;
       position: relative; transition: transform 0.2s;
     }
     .podium-item:hover { transform: translateY(-3px); }
     .podium-1 {
-      border-color: rgba(255, 200, 30, 0.3);
-      background: linear-gradient(180deg, rgba(255,200,30,0.07) 0%, var(--bg2) 100%);
+      border-color: var(--border2);
+      background: var(--bg2);
       order: 2;
     }
     .podium-2 {
-      border-color: rgba(180,180,190,0.25);
-      background: linear-gradient(180deg, rgba(180,180,190,0.05) 0%, var(--bg2) 100%);
+      border-color: var(--border2);
+      background: var(--bg2);
       order: 1;
     }
     .podium-3 {
-      border-color: rgba(200,130,50,0.25);
-      background: linear-gradient(180deg, rgba(200,130,50,0.05) 0%, var(--bg2) 100%);
+      border-color: var(--border2);
+      background: var(--bg2);
       order: 3;
     }
     .podium-medal {
@@ -79,15 +79,15 @@ const diamondSvg = '<svg width="11" height="11" viewBox="0 0 640 640" fill="curr
     .podium-avatar {
       width: 60px; height: 60px; border-radius: 50%;
       object-fit: cover; flex-shrink: 0;
-      border: 2px solid rgba(0,242,234,0.2);
+      border: 2px solid rgba(var(--accent-rgb),0.2);
     }
-    .podium-1 .podium-avatar { border-color: rgba(255,200,30,0.5); width: 72px; height: 72px; }
+    .podium-1 .podium-avatar { border-color: var(--border2); width: 72px; height: 72px; }
     .podium-avatar-fallback {
       width: 60px; height: 60px; border-radius: 50%;
       display: none; align-items: center; justify-content: center;
-      font-size: 22px; font-weight: 900; color: var(--teal);
-      border: 2px solid rgba(0,242,234,0.2);
-      background: rgba(0,242,234,0.08);
+      font-size: 22px; font-weight: 800; color: var(--accent);
+      border: 2px solid rgba(var(--accent-rgb),0.2);
+      background: rgba(var(--accent-rgb),0.08);
     }
     .podium-1 .podium-avatar-fallback { width: 72px; height: 72px; }
     .podium-name {
@@ -99,7 +99,7 @@ const diamondSvg = '<svg width="11" height="11" viewBox="0 0 640 640" fill="curr
       max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
     .podium-diamonds {
-      font-size: 14px; font-weight: 900; color: var(--teal);
+      font-size: 14px; font-weight: 800; color: var(--accent);
     }
     .podium-count {
       font-size: 11px; color: var(--dim);
@@ -108,25 +108,24 @@ const diamondSvg = '<svg width="11" height="11" viewBox="0 0 640 640" fill="curr
     /* Table */
     .donors-table-wrap {
       background: var(--bg2); border: 1px solid var(--border);
-      border-radius: 16px; overflow: hidden;
+      border-radius: 4px; overflow: hidden;
     }
     .donors-table {
       width: 100%; border-collapse: collapse;
     }
     .donors-table thead th {
       padding: 14px 20px;
-      font-size: 10px; font-weight: 800; letter-spacing: 1.2px;
-      text-transform: uppercase; color: var(--dim);
-      border-bottom: 1px solid rgba(255,255,255,0.04);
+      font-size: 12px; font-weight: 600; color: var(--dim);
+      border-bottom: 1px solid var(--tint);
       text-align: left;
     }
     .donors-table thead th:last-child { text-align: right; }
     .donors-table tbody tr {
-      border-bottom: 1px solid rgba(255,255,255,0.03);
+      border-bottom: 1px solid var(--tint);
       transition: background 0.12s;
     }
     .donors-table tbody tr:last-child { border-bottom: none; }
-    .donors-table tbody tr:hover { background: rgba(255,255,255,0.025); }
+    .donors-table tbody tr:hover { background: var(--tint); }
     .donors-table td {
       padding: 14px 20px; vertical-align: middle;
     }
@@ -140,20 +139,20 @@ const diamondSvg = '<svg width="11" height="11" viewBox="0 0 640 640" fill="curr
     .donor-avatar {
       width: 36px; height: 36px; border-radius: 50%;
       object-fit: cover; flex-shrink: 0;
-      border: 1px solid rgba(0,242,234,0.15);
+      border: 1px solid rgba(var(--accent-rgb),0.15);
     }
     .donor-avatar-fallback {
       width: 36px; height: 36px; border-radius: 50%;
       display: none; align-items: center; justify-content: center;
-      font-size: 13px; font-weight: 900; color: var(--teal);
-      background: rgba(0,242,234,0.08);
-      border: 1px solid rgba(0,242,234,0.15);
+      font-size: 13px; font-weight: 800; color: var(--accent);
+      background: rgba(var(--accent-rgb),0.08);
+      border: 1px solid rgba(var(--accent-rgb),0.15);
       flex-shrink: 0;
     }
     .donor-info-name { font-size: 13px; font-weight: 800; color: var(--text); }
     .donor-info-nick { font-size: 11px; color: var(--muted); margin-top: 1px; }
     .diamonds-cell {
-      font-size: 14px; font-weight: 900; color: var(--teal); text-align: right;
+      font-size: 14px; font-weight: 800; color: var(--accent); text-align: right;
     }
     .diamonds-cell small { font-size: 11px; font-weight: 600; opacity: 0.6; }
     .count-cell {
@@ -173,13 +172,13 @@ const diamondSvg = '<svg width="11" height="11" viewBox="0 0 640 640" fill="curr
     }
     .page-btn {
       display: inline-flex; align-items: center; justify-content: center;
-      width: 36px; height: 36px; border-radius: 8px;
-      font-size: 13px; font-weight: 700; text-decoration: none;
+      width: 36px; height: 36px; border-radius: 4px;
+      font-size: 13px; font-weight: 600; text-decoration: none;
       border: 1px solid var(--border); color: var(--muted);
-      background: var(--bg2); transition: all 0.15s;
+      background: var(--bg2); transition: background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, opacity 0.15s, transform 0.15s;
     }
-    .page-btn:hover { border-color: var(--teal); color: var(--teal); }
-    .page-btn.active { background: var(--teal); color: #060912; border-color: var(--teal); }
+    .page-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .page-btn.active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
     .page-btn.disabled { opacity: 0.3; pointer-events: none; }
 
     @media (max-width: 640px) {
@@ -196,7 +195,6 @@ const diamondSvg = '<svg width="11" height="11" viewBox="0 0 640 640" fill="curr
 <%- include('partials/nav') %>
 
 <div class="page-wrap">
-  <div class="glow-blob blob-a" style="opacity:0.04;"></div>
 
   <a href="/account" class="page-back">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
@@ -240,7 +238,7 @@ const diamondSvg = '<svg width="11" height="11" viewBox="0 0 640 640" fill="curr
   <div class="podium">
     <% top3.forEach((d, i) => { %>
     <div class="podium-item podium-<%= i + 1 %>">
-      <div class="podium-medal"><%= ['🥇','🥈','🥉'][i] %></div>
+      <div class="podium-medal"><%= i + 1 %></div>
       <div class="podium-avatar-fallback" id="paf-<%= i %>" style="display:flex;">
         <%= (d.nickname || d.uniqueId || '?').charAt(0).toUpperCase() %>
       </div>

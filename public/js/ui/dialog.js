@@ -1,3 +1,4 @@
+import { sanitize } from '../utils/dom.js';
 // custom alerts and toasts 
 
 // popups that fade away
@@ -39,7 +40,7 @@ export function showToast(message, type = 'info', duration = 3500) {
         padding: 12px 16px;
         display: flex; align-items: center; gap: 10px;
         font-size: 13px; font-weight: 500; color: var(--text);
-        box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        box-shadow: 0 8px 32px var(--bg);
         font-family: inherit;
         min-width: 240px; max-width: 360px;
         opacity: 0;
@@ -48,7 +49,7 @@ export function showToast(message, type = 'info', duration = 3500) {
     `;
     toast.innerHTML = `
         <span style="color:${colors[type] || colors.info}; flex-shrink:0;">${icons[type] || icons.info}</span>
-        <span style="flex:1; line-height:1.4;">${message}</span>
+        <span style="flex:1; line-height:1.4;">${sanitize(message)}</span>
     `;
 
     container.appendChild(toast);
@@ -78,7 +79,7 @@ export function showConfirm({ title = 'Confirm', message = '', confirmText = 'Co
         const overlay = document.createElement('div');
         overlay.style.cssText = `
             position: fixed; inset: 0;
-            background: rgba(0,0,0,0.6);
+            background: var(--bg);
             backdrop-filter: blur(4px);
             display: flex; align-items: center; justify-content: center;
             z-index: 9998;
@@ -92,7 +93,7 @@ export function showConfirm({ title = 'Confirm', message = '', confirmText = 'Co
             border-radius: var(--r-xl);
             padding: 28px 28px 24px;
             max-width: 380px; width: 90%;
-            box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+            box-shadow: 0 24px 64px var(--bg);
             font-family: inherit;
             transform: scale(0.94) translateY(8px);
             transition: transform 0.2s, opacity 0.2s;
@@ -107,18 +108,18 @@ export function showConfirm({ title = 'Confirm', message = '', confirmText = 'Co
         box.innerHTML = `
             <div style="margin-bottom:16px;">${icon}</div>
             <div style="font-size:16px; font-weight:800; margin-bottom:8px; color:var(--text);">${title}</div>
-            <div style="font-size:13px; color:var(--muted); line-height:1.6; margin-bottom:24px;">${message}</div>
+            <div style="font-size:13px; color:var(--muted); line-height:1.6; margin-bottom:24px;">${sanitize(message)}</div>
             <div style="display:flex; gap:10px; justify-content:flex-end;">
                 <button id="dlg-cancel" style="
                     padding:8px 18px; border-radius:var(--r-md); border:1px solid var(--border);
                     background:var(--bg3); color:var(--muted); cursor:pointer;
-                    font-family:inherit; font-size:13px; font-weight:600; transition:all 0.15s;
+                    font-family:inherit; font-size:13px; font-weight:600; transition: background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, opacity 0.15s, transform 0.15s;
                 ">${cancelText}</button>
                 <button id="dlg-confirm" style="
                     padding:8px 18px; border-radius:var(--r-md); border:1px solid ${accentColor};
                     background:${danger ? 'var(--danger)' : 'var(--accent)'}; 
-                    color:${danger ? '#fff' : '#07090f'}; cursor:pointer;
-                    font-family:inherit; font-size:13px; font-weight:700; transition:all 0.15s;
+                    color:${danger ? '#fff' : 'var(--on-accent)'}; cursor:pointer;
+                    font-family:inherit; font-size:13px; font-weight: 600; transition: background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, opacity 0.15s, transform 0.15s;
                 ">${confirmText}</button>
             </div>
         `;

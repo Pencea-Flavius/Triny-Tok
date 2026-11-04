@@ -29,11 +29,11 @@
   function openModal(type, id, name) {
     if (type === 'gift') {
       modalTitle.textContent = 'Delete gift?';
-      modalDesc.innerHTML    = `Remove <strong style="color:#e8eaf0;">${name}</strong> from the database? This cannot be undone.`;
+      modalDesc.innerHTML    = `Remove <strong style="color:var(--text);">${name}</strong> from the database? This cannot be undone.`;
       modalForm.action       = `/admin/gifts/${id}/delete?tab=gifts&<%= sort ? 'sort=' + sort + '&dir=' + dir + '&' : '' %><%= search ? 'search=' + encodeURIComponent(search) : '' %>`;
     } else {
       modalTitle.textContent = 'Delete account?';
-      modalDesc.innerHTML    = `Permanently delete <strong style="color:#e8eaf0;">@${name}</strong>? This cannot be undone.`;
+      modalDesc.innerHTML    = `Permanently delete <strong style="color:var(--text);">@${name}</strong>? This cannot be undone.`;
       modalForm.action       = `/admin/accounts/${id}/delete`;
     }
     modal.classList.add('open');

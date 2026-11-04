@@ -24,15 +24,15 @@
       <% streamers.forEach(s => { %>
       <tr>
         <td>
-          <img src="https://www.tiktok.com/static/images/avatar_default.png" style="width:30px;height:30px;border-radius:50%;object-fit:cover;background:rgba(0,242,234,0.08);" alt="">
+          <img src="https://www.tiktok.com/static/images/avatar_default.png" style="width:30px;height:30px;border-radius:50%;object-fit:cover;background:rgba(var(--accent-rgb),0.08);" alt="">
         </td>
-        <td><strong style="color:#e8eaf0;">@<%= s.uniqueId %></strong></td>
+        <td><strong style="color:var(--text);">@<%= s.uniqueId %></strong></td>
         <td>
           <% if (s.username) { %>
-            <span style="color:rgba(255,255,255,0.7);">@<%= s.username %></span>
+            <span style="color: var(--muted);">@<%= s.username %></span>
             <span class="mono" style="margin-left:6px;font-size:10px;"><%= s.email %></span>
           <% } else { %>
-            <span style="color:rgba(255,255,255,0.2);">—</span>
+            <span style="color: var(--muted);">—</span>
           <% } %>
         </td>
         <td><span class="mono"><%= s.donationCount %></span></td>

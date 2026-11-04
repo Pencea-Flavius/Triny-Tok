@@ -1,0 +1,134 @@
+/* Hallmark · shape: app screen · genre: playful · theme: brand · redesign: restyle
+ * nav: kept, restyled as a plain list · signature: the gift-to-effect card in the game's colour · states: kept
+ * axes: dark/pixel/chromatic-ember · posture: full-palette · contrast: pass · v2.0.0 */
+:root {
+  color-scheme: dark;
+
+
+  --text: oklch(95% 0.01 85);
+  --muted: oklch(78% 0.012 75);
+  --dim: oklch(71% 0.012 75);
+
+  --field-border: oklch(62% 0.014 70);
+  --tint: oklch(95% 0.01 85 / 0.05);
+  --shadow: oklch(8% 0.005 60 / 0.5);
+  --scrim: oklch(8% 0.005 60 / 0.8);
+  /* How much of the hero picture shows through: lower alpha = more picture. */
+  --hero-veil-strong: oklch(15% 0.009 60 / 0.86);
+  --hero-veil: oklch(15% 0.009 60 / 0.55);
+
+  --accent: oklch(66% 0.215 40);
+  --accent-rgb: 248, 82, 0;
+  --accent-dim: rgba(var(--accent-rgb), 0.14);
+  --accent-glow: rgba(var(--accent-rgb), 0.2);
+  --accent-2: oklch(88% 0.195 115);
+  --on-accent: oklch(15% 0.009 60);
+  --focus: oklch(88% 0.195 115);
+  /* What a pressable sits on. */
+  --press: var(--text);
+
+  --crt-r: oklch(63% 0.24 25);
+  --crt-g: oklch(80% 0.25 140);
+  --crt-b: oklch(60% 0.24 265);
+  --crt-c: oklch(78% 0.14 200);
+  --crt-shade: oklch(8% 0.005 60);
+
+  --success: oklch(80% 0.18 145);
+  --success-rgb: 80, 220, 120;
+  --danger: oklch(68% 0.22 20);
+  --danger-rgb: 255, 80, 100;
+  --warning: oklch(83% 0.16 85);
+
+  --game-minecraft: #4ade80;
+  --game-isaac: #f43f5e;
+  --game-repo: #f0ad16;
+  --game-goi: #9db85a;
+
+  --font: 'Chivo', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Bungee', Impact, sans-serif;
+  --font-figure: 'Silkscreen', ui-monospace, monospace;
+  --mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
+
+/* The ground takes a trace of the active game's hue: set --ground-h / --ground-c, the rest follows. */
+body {
+  --ground-h: 60;
+  --ground-c: 0.009;
+  --bg: oklch(15% var(--ground-c) var(--ground-h));
+  --bg2: oklch(19% calc(var(--ground-c) * 1.3) var(--ground-h));
+  --bg3: oklch(23% calc(var(--ground-c) * 1.4) var(--ground-h));
+  --bg4: oklch(27% calc(var(--ground-c) * 1.5) var(--ground-h));
+  --border: oklch(32% calc(var(--ground-c) * 1.6) var(--ground-h));
+  --border2: oklch(45% calc(var(--ground-c) * 1.6) var(--ground-h));
+}
+
+html,
+body {
+  overflow-x: clip;
+}
+
+/* Acid on every control: it stays visible on any game's colour. */
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+b,
+strong,
+th {
+  font-weight: 600;
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+/* The screen: only on pictures, never under running text. */
+.crt {
+  position: relative;
+  isolation: isolate;
+}
+
+.crt::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    repeating-linear-gradient(to right, color-mix(in oklab, var(--crt-r) 5%, transparent) 0 1px, color-mix(in oklab, var(--crt-g) 5%, transparent) 1px 2px, color-mix(in oklab, var(--crt-b) 5%, transparent) 2px 3px),
+    repeating-linear-gradient(to bottom, transparent 0 2px, color-mix(in oklab, var(--crt-shade) 16%, transparent) 2px 3px);
+}
+
+/* Every label in the app: categories, Timed, Quality. Colour never sorts them. */
+.tag,
+.pool-tag,
+.type-tag {
+  display: inline-block;
+  padding: 1px 6px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--muted);
+  border: 1px solid var(--border2);
+  border-radius: 2px;
+  white-space: nowrap;
+}
+
+.tag.tag-lead {
+  color: var(--on-accent);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

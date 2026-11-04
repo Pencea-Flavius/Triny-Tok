@@ -1,8 +1,7 @@
 <div id="topDonorsContent" class="tab-content">
   <div class="page-header">
     <div>
-      <div class="page-eyebrow"><span class="eyebrow-dot"></span>Ranking</div>
-      <h1 class="page-h1">Top Donators</h1>
+      <h1 class="page-h1">Top Donors</h1>
       <p class="page-sub">Session leaderboard, sorted by diamonds.</p>
     </div>
     <div class="page-actions">
@@ -16,30 +15,15 @@
       </button>
     </div>
   </div>
-  <hr class="accent-rule">
 
-  <div class="stats-row">
-    <div class="stat-card">
-      <div class="stat-label" style="display:flex;align-items:center;gap:6px;">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-          stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="6 3 20 3 14 9 20 15 6 15" />
-          <line x1="6" y1="3" x2="6" y2="21" />
-        </svg>
-        Tracked Diamonds
-      </div>
-      <div class="stat-value" id="totalDiamonds">0</div>
+  <div class="figures figures-2">
+    <div class="figure">
+      <div class="label">Tracked diamonds</div>
+      <div class="figure-value" id="totalDiamonds">0</div>
     </div>
-    <div class="stat-card">
-      <div class="stat-label" style="display:flex;align-items:center;gap:6px;">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-          stroke-linecap="round" stroke-linejoin="round">
-          <line x1="12" y1="1" x2="12" y2="23" />
-          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-        </svg>
-        Est. Earnings (USD)
-      </div>
-      <div class="stat-value" id="totalUSD">$0.00</div>
+    <div class="figure">
+      <div class="label">Est. earnings (USD)</div>
+      <div class="figure-value" id="totalUSD">$0.00</div>
     </div>
   </div>
 
@@ -61,12 +45,12 @@
             <th style="width:54px;">#</th>
             <th>User</th>
             <th>Diamonds</th>
-            <th>Last Gift</th>
+            <th>Last gift</th>
           </tr>
         </thead>
         <tbody id="topDonorsTableBody">
           <tr>
-            <td colspan="4" style="text-align:center;padding:40px;color:var(--dim);">No data yet</td>
+            <td colspan="4" style="text-align:center;padding:40px 20px;color:var(--muted);">No donors yet. Connect to a live stream to start tracking.</td>
           </tr>
         </tbody>
       </table>

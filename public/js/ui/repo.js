@@ -30,10 +30,6 @@ const BASIC_EFFECTS = [
 ];
 
 const EFFECT_CATEGORIES    = ['Player', 'Toggle', 'Movement', 'Voice', 'World'];
-const EFFECT_CATEGORY_COLORS = {
-    Player: '#27ae60', Toggle: '#e05252', Movement: '#3498db',
-    Voice: '#9b59b6', World: '#e07c2a',
-};
 
 // ─── Item image map (id suffix → filename) ───────────────────────────────────
 const ITEM_IMAGE = {
@@ -255,7 +251,6 @@ export function initRepoUI(ioConnection) {
         isConnected = !!connected;
         serverActive = !!active;
         const bridgeCard      = $('#repoBridgeCard');
-        const statusIndicator = $('#repoStatusIndicator');
         const statusTextLarge = $('#repoStatusTextLarge');
         const btnText  = $('#repoBtnText');
         const btnIcon  = $('#repoBtnIcon');
@@ -265,16 +260,9 @@ export function initRepoUI(ioConnection) {
             ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12"></rect></svg>`
             : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`
         );
-        if (!serverActive) {
-            statusTextLarge.text('Offline').css('color', 'var(--dim)');
-            statusIndicator.css({ background: 'var(--danger)', 'box-shadow': '0 0 12px var(--danger)' });
-            bridgeCard.css('border-left-color', 'var(--danger)');
-        } else {
-            const sc = isConnected ? 'var(--success)' : 'var(--warning)';
-            statusTextLarge.text(isConnected ? 'Connected' : 'Listening...').css('color', sc);
-            statusIndicator.css({ background: sc, 'box-shadow': `0 0 12px ${sc}` });
-            bridgeCard.css('border-left-color', sc);
-        }
+        const state = !serverActive ? 'off' : (isConnected ? 'connected' : 'listening');
+        bridgeCard.attr('data-state', state);
+        statusTextLarge.text({ off: 'Offline', connected: 'Connected', listening: 'Listening...' }[state]);
         $('#repoStatusSidebarDot').toggle(isConnected).css('background', 'var(--success)');
     }
 
@@ -284,10 +272,8 @@ export function initRepoUI(ioConnection) {
         const container = $('#repoCategoryTabs').empty();
         container.css({ display: 'flex', gap: '2px', background: 'var(--bg2)', padding: '3px', borderRadius: '10px', border: '1px solid var(--border)', overflowX: 'auto', scrollbarWidth: 'none', marginBottom: '4px' });
         EFFECT_CATEGORIES.forEach(cat => {
-            const color = EFFECT_CATEGORY_COLORS[cat] || '#888';
             const active = activeEffectCat === cat;
-            const btn = $(`<button style="flex:1 0 auto;padding:8px 14px;border-radius:8px;border:none;background:${active ? 'var(--bg-light)' : 'transparent'};color:${active ? 'var(--text)' : 'var(--dim)'};font-size:11px;font-weight:${active ? '800' : '600'};cursor:pointer;transition:all .2s;white-space:nowrap;display:flex;align-items:center;gap:8px;box-shadow:${active ? '0 2px 8px rgba(0,0,0,0.2)' : 'none'};">
-                <div style="width:8px;height:8px;border-radius:50%;background:${color};box-shadow:0 0 6px ${color}88;opacity:${active ? 1 : 0.5};transition:opacity .2s;"></div>${cat}</button>`);
+            const btn = $(`<button class="cat-tab ${active ? 'active' : ''}">${cat}</button>`);
             btn.on('click', () => { activeEffectCat = cat; buildEffectCategoryTabs(); renderEffectCards(selectedEffect ? selectedEffect.id : null); });
             container.append(btn);
         });
@@ -296,15 +282,14 @@ export function initRepoUI(ioConnection) {
     function renderEffectCards(selId) {
         const cards = $('#repoEffectCards').empty();
         const filtered = BASIC_EFFECTS.filter(e => e.category === activeEffectCat);
-        const color = EFFECT_CATEGORY_COLORS[activeEffectCat] || '#888';
         filtered.forEach(e => {
             const isSel = e.id === selId;
-            const card = $(`<div style="padding:12px;border:1px solid ${isSel ? color : 'var(--border)'};border-radius:12px;cursor:pointer;background:${isSel ? color + '15' : 'var(--bg4)'};transition:all .2s;display:flex;flex-direction:column;gap:4px;position:relative;overflow:hidden;">
-                ${isSel ? `<div style="position:absolute;top:0;right:0;width:30px;height:30px;background:${color};clip-path:polygon(100% 0,0 0,100% 100%);display:flex;align-items:flex-start;justify-content:flex-end;padding:4px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>` : ''}
-                <div style="font-weight:800;font-size:.85rem;color:${isSel ? 'var(--text)' : 'var(--text-muted)'};display:flex;align-items:center;gap:6px;">${e.name}${e.timed ? `<span style="font-size:8px;padding:1px 5px;border-radius:4px;background:${color}22;color:${color};font-weight:900;text-transform:uppercase;border:1px solid ${color}33;">TIMED</span>` : ''}</div>
+            const card = $(`<div style="padding:12px;border:1px solid ${isSel ? 'var(--accent)' : 'var(--border)'};border-radius: 4px;cursor:pointer;background:${isSel ? 'var(--accent-dim)' : 'var(--bg4)'};transition: background-color .2s, border-color .2s, color .2s, box-shadow .2s, opacity .2s, transform .2s;display:flex;flex-direction:column;gap:4px;position:relative;overflow:hidden;">
+                ${isSel ? `<div style="position:absolute;top:0;right:0;width:30px;height:30px;background:var(--accent);clip-path:polygon(100% 0,0 0,100% 100%);display:flex;align-items:flex-start;justify-content:flex-end;padding:4px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" style="stroke:var(--on-accent)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>` : ''}
+                <div style="font-weight:800;font-size:.85rem;color:${isSel ? 'var(--text)' : 'var(--muted)'};display:flex;align-items:center;gap:6px;">${e.name}${e.timed ? `<span class="tag">Timed</span>` : ''}</div>
                 ${e.desc ? `<div style="font-size:.7rem;color:var(--dim);line-height:1.3;">${e.desc}</div>` : ''}
             </div>`);
-            card.on('mouseover', function() { if (!isSel) $(this).css({ borderColor: color + '88', background: 'var(--bg3)' }); });
+            card.on('mouseover', function() { if (!isSel) $(this).css({ borderColor: 'var(--accent)', background: 'var(--bg3)' }); });
             card.on('mouseout',  function() { if (!isSel) $(this).css({ borderColor: 'var(--border)', background: 'var(--bg4)' }); });
             card.on('click', () => {
                 selectedEffect = e;
@@ -349,7 +334,7 @@ export function initRepoUI(ioConnection) {
     function clearSpawnSelection() {
         $('#repoSpawnSearchInput').val('');
         $('#repoSelectedSpawnId').val('');
-        $('#repoSpawnPreview').html('<span style="font-size:9px;color:var(--text-muted);">ICON</span>');
+        $('#repoSpawnPreview').html('<span style="font-size:9px;color:var(--muted);">ICON</span>');
         $('#repoSpawnNameLabel').hide();
         $('#repoUpgradeSpawnRow').hide();
         $('#repoSpawnSearchResults').hide();
@@ -417,7 +402,7 @@ export function initRepoUI(ioConnection) {
         if (imgUrl) {
             $('#repoSpawnPreview').html(`<img src="${imgUrl}" style="width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 0 6px var(--accent-glow));">`);
         } else {
-            $('#repoSpawnPreview').html(`<span style="font-size:9px;color:var(--text-muted);">?</span>`);
+            $('#repoSpawnPreview').html(`<span style="font-size:9px;color:var(--muted);">?</span>`);
         }
 
         const isUpgrade = activeSpawnType === 'spawn_item' && e.id.includes('Upgrade');
@@ -613,9 +598,9 @@ export function initRepoUI(ioConnection) {
     }
 
     function getSpawnBadge(code) {
-        if (code.startsWith('spawnenemy_')) return { label: 'Enemy', color: '#7f8c8d' };
-        if (dbItems.find(i => i.id === code)) return { label: 'Item', color: '#00d2d3' };
-        return { label: 'Valuable', color: '#fbbf24' };
+        if (code.startsWith('spawnenemy_')) return { label: 'Enemy' };
+        if (dbItems.find(i => i.id === code)) return { label: 'Item' };
+        return { label: 'Valuable' };
     }
 
     function renderTables() {
@@ -623,7 +608,7 @@ export function initRepoUI(ioConnection) {
         const keys = Object.keys(currentCommands);
 
         if (!keys.length) {
-            tbody.append('<tr><td colspan="3" style="text-align:center;padding:20px;color:var(--dim);">No effects mapped.</td></tr>');
+            tbody.append('<tr><td colspan="3" style="text-align:center;padding:40px 20px;color:var(--muted);">No effects yet. Click Add Effect to map a TikTok gift.</td></tr>');
             return;
         }
 
@@ -632,7 +617,7 @@ export function initRepoUI(ioConnection) {
             const code   = typeof effect === 'string' ? effect : effect.code;
             const gift   = availableGifts.find(g => g.name === giftName);
 
-            const effectTd = $('<td class="command-cell"></td>');
+            const effectTd = $('<td class="effect-cell"></td>');
             if (isSpawnCode(code)) {
                 const badge = getSpawnBadge(code);
                 const label = getSpawnLabel(code);
@@ -654,7 +639,7 @@ export function initRepoUI(ioConnection) {
                     ? $(`<img src="${entityImgUrl}" style="width:24px;height:24px;object-fit:contain;border-radius:4px;flex-shrink:0;" onerror="this.style.display='none'">`)
                     : null;
                 const inner = $('<div style="display:flex;align-items:center;gap:8px;"></div>')
-                    .append($(`<span style="font-size:9px;padding:1px 6px;border-radius:3px;background:${badge.color}33;color:${badge.color};font-weight:800;text-transform:uppercase;">${badge.label}</span>`));
+                    .append($(`<span class="tag">${badge.label}</span>`));
                 if (imgEl) inner.append(imgEl);
                 inner.append($('<span></span>').text(label));
                 effectTd.append(inner);
@@ -663,13 +648,12 @@ export function initRepoUI(ioConnection) {
                 const upgradeItem = dbItems.find(i => i.id === EFFECT_TO_UPGRADE_ITEM[code]);
                 const label = upgradeItem ? upgradeItem.name : code.replace('player_upgrade_', 'Upgrade ');
                 effectTd.append($('<div style="display:flex;align-items:center;gap:8px;"></div>')
-                    .append($(`<span style="font-size:9px;padding:1px 6px;border-radius:3px;background:#f39c1233;color:#f39c12;font-weight:800;text-transform:uppercase;">Upgrade</span>`))
+                    .append($(`<span class="tag">Upgrade</span>`))
                     .append($('<span></span>').text(label)));
             } else {
                 const found = BASIC_EFFECTS.find(e => e.id === code);
-                const color = found ? (EFFECT_CATEGORY_COLORS[found.category] || '#888') : '#888';
                 effectTd.append($('<div style="display:flex;align-items:center;gap:8px;"></div>')
-                    .append(found ? $(`<span style="font-size:9px;padding:1px 6px;border-radius:3px;background:${color}33;color:${color};font-weight:800;text-transform:uppercase;">${found.category}</span>`) : '')
+                    .append(found ? $(`<span class="tag">${found.category}</span>`) : '')
                     .append($('<span></span>').text(found ? found.name : code)));
             }
 

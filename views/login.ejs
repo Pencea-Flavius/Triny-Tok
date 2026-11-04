@@ -9,13 +9,11 @@
 <%- include('partials/nav') %>
 
 <div class="login-wrap">
-  <div class="glow-blob blob-a"></div>
-  <div class="glow-blob blob-b"></div>
 
   <div class="login-container">
 
     <div class="login-card">
-      <a href="/" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--dim);text-decoration:none;margin-bottom:20px;transition:color 0.15s;" onmouseover="this.style.color='var(--teal)'" onmouseout="this.style.color='var(--dim)'">
+      <a href="/" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--dim);text-decoration:none;margin-bottom:20px;transition:color 0.15s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--dim)'">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
         Back to homepage
       </a>
@@ -31,7 +29,7 @@
       </div>
 
       <% if (typeof success !== 'undefined' && success) { %>
-      <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;background:rgba(0,242,234,0.07);border:1px solid rgba(0,242,234,0.2);border-radius:10px;font-size:13px;font-weight:600;color:var(--teal);margin-bottom:20px;">
+      <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;background:rgba(var(--accent-rgb),0.07);border:1px solid rgba(var(--accent-rgb),0.2);border-radius: 4px;font-size:13px;font-weight:600;color:var(--accent);margin-bottom:20px;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
         <span><%= success %></span>
       </div>
@@ -112,8 +110,10 @@
             <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
           </svg>
         </div>
-        <div class="feature-title">Real-Time Events</div>
-        <div class="feature-desc">Gifts trigger in-game events instantly — zero latency, pure chaos.</div>
+        <div>
+          <div class="feature-title">Real-time events</div>
+          <div class="feature-desc">Gifts trigger in-game events as they arrive.</div>
+        </div>
       </div>
       <div class="feature-card">
         <div class="feature-icon">
@@ -123,8 +123,10 @@
             <line x1="12" y1="17" x2="12" y2="21"/>
           </svg>
         </div>
-        <div class="feature-title">Multi-Game Support</div>
-        <div class="feature-desc">Minecraft, Isaac, Terraria, Repo — and more coming soon.</div>
+        <div>
+          <div class="feature-title">Four games</div>
+          <div class="feature-desc">Minecraft, Isaac, R.E.P.O. and Getting Over It.</div>
+        </div>
       </div>
       <div class="feature-card">
         <div class="feature-icon">
@@ -132,8 +134,10 @@
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
           </svg>
         </div>
-        <div class="feature-title">Runs Locally</div>
-        <div class="feature-desc">Your data stays on your machine. No cloud, no tracking, no limits.</div>
+        <div>
+          <div class="feature-title">Runs locally</div>
+          <div class="feature-desc">Your config stays on your machine.</div>
+        </div>
       </div>
     </div>
 

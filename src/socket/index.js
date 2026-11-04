@@ -4,9 +4,9 @@ const minecraftBridge  = require('../tiktok/minecraftBridge');
 const isaacBridge      = require('../tiktok/isaacBridge');
 const repoBridge       = require('../tiktok/repoBridge');
 const goiBridge        = require('../tiktok/goiBridge');
-const terrariaBridge   = require('../tiktok/terrariaBridge');
 const db               = require('../database/db_manager');
 const ctx              = require('../context');
+const access = require('../auth/access');
 const logger           = require('../utils/eventLogger');
 const { avatarUrl, injectAvatar, finalizeGift } = require('../events/giftHandler');
 
@@ -15,22 +15,28 @@ function setupSocket(io) {
         console.info('New connection from origin', socket.handshake.headers['origin'] || socket.handshake.headers['referer']);
 
         socket.emit('statUpdate', { trackedDiamonds: ctx.trackedDiamonds, initialDonorsSynced: ctx.initialDonorsSynced, initialDonorsSum: ctx.initialDonorsSum });
-        socket.emit('minecraftStatus', { isConnected: minecraftBridge.isConnected, config: ctx.config.minecraft });
+        // Everything a client can send changes the app or the game, so it follows the same rule as the API.
+        socket.on('error', () => {});
+        socket.use((packet, next) => {
+            if (access.isTrusted(socket.request)) return next();
+            next(new Error('Forbidden'));
+        });
+
+        socket.emit('minecraftStatus', { isConnected: minecraftBridge.isConnected, config: access.publicMinecraft(ctx.config.minecraft) });
         socket.emit('isaacStatus',  { isConnected: isaacBridge.isConnected,  serverActive: !!isaacBridge.server  });
         socket.emit('isaacProfiles', isaacBridge.profiles.length > 0 ? isaacBridge.profiles : (ctx.config.isaacProfiles || ctx.ISAAC_DEFAULT_PROFILES));
         socket.emit('repoStatus', { isConnected: repoBridge.isConnected, serverActive: !!repoBridge.server });
         socket.emit('goiStatus',  { isConnected: goiBridge.isConnected,  serverActive: !!goiBridge.server  });
-        socket.emit('terrariaStatus', { isConnected: terrariaBridge.isConnected, serverActive: !!terrariaBridge.server });
 
         // ── Minecraft ─────────────────────────────────────────────────────────
         socket.on('minecraftConnect', (data) => {
             ctx.config.minecraft.host     = data.host;
             ctx.config.minecraft.port     = data.port;
-            ctx.config.minecraft.password = data.password;
+            if (data.password) ctx.config.minecraft.password = data.password;
             if (data.autoConnect !== undefined) ctx.config.minecraft.autoConnect = data.autoConnect;
             ctx.saveConfig();
 
-            minecraftBridge.connect(data.host, data.port, data.password, data.autoConnect).then(() => {
+            minecraftBridge.connect(data.host, data.port, ctx.config.minecraft.password, data.autoConnect).then(() => {
                 ctx.config.minecraft.enabled = true;
                 ctx.saveConfig();
             }).catch(err => socket.emit('minecraftError', err.message));
@@ -40,7 +46,7 @@ function setupSocket(io) {
             minecraftBridge.disconnect();
             ctx.config.minecraft.enabled = false;
             ctx.saveConfig();
-            io.emit('minecraftStatus', { isConnected: false, config: ctx.config.minecraft });
+            io.emit('minecraftStatus', { isConnected: false, config: access.publicMinecraft(ctx.config.minecraft) });
         });
 
         // ── Isaac ─────────────────────────────────────────────────────────────
@@ -74,17 +80,6 @@ function setupSocket(io) {
         socket.on('goiStop', () => {
             goiBridge.stop();
             io.emit('goiStatus', { isConnected: false, serverActive: false });
-        });
-
-        // ── Terraria ──────────────────────────────────────────────────────────
-        socket.on('terrariaStart', () => {
-            terrariaBridge.start(ctx.config.terraria?.port || 53000);
-            io.emit('terrariaStatus', { isConnected: terrariaBridge.isConnected, serverActive: true });
-        });
-
-        socket.on('terrariaStop', () => {
-            terrariaBridge.stop();
-            io.emit('terrariaStatus', { isConnected: false, serverActive: false });
         });
 
         // ── RCON test / manual ────────────────────────────────────────────────
@@ -284,7 +279,6 @@ function setupSocket(io) {
                 if (ctx.config.repoCommands?.['Like']?.minLikes) minLikes = Math.min(minLikes, ctx.config.repoCommands['Like'].minLikes);
                 if (ctx.config.isaacCommands?.['Like']?.minLikes) minLikes = Math.min(minLikes, ctx.config.isaacCommands['Like'].minLikes);
                 if (ctx.config.goiCommands?.['Like']?.minLikes) minLikes = Math.min(minLikes, ctx.config.goiCommands['Like'].minLikes);
-                if (ctx.config.terrariaCommands?.['Like']?.minLikes) minLikes = Math.min(minLikes, ctx.config.terrariaCommands['Like'].minLikes);
 
                 if (minLikes !== Infinity && minLikes > 0) {
                     const uid = msg.userId || msg.uniqueId;

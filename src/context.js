@@ -7,14 +7,12 @@ if (!fs.existsSync(configDir)) fs.mkdirSync(configDir, { recursive: true });
 
 let config = {
     minecraft:    { host: 'localhost', port: 25575, password: '', enabled: false, autoConnect: false },
-    isaac:        { port: 58431, enabled: true },
+    isaac:        { port: 58430, enabled: true },
     repo:         { port: 51337, enabled: false },
-    terraria:     { port: 53000, enabled: false },
     giftCommands: {},
     isaacCommands: {},
     repoCommands:  {},
     goiCommands:   {},
-    terrariaCommands: {},
     followCommand: { command: '', cooldown: 0 },
     likeCommand:   { command: '', minLikes: 100 },
     targetPlayers: [],
@@ -67,7 +65,6 @@ const PRESET_DETAIL_TABLE = {
     isaac:     'preset_isaac',
     repo:      'preset_repo',
     goi:       'preset_goi',
-    terraria:  'preset_terraria',
 };
 
 function saveConfig() {

@@ -31,14 +31,6 @@ const GOI_EFFECTS = [
     { id: 'only_hammer',     name: 'Only Hammer',     category: 'Hammer',   desc: 'Pot passes through — only the hammer collides', timed: true, counted: false },
 ];
 
-const CATEGORY_COLORS = {
-    'Instant':  '#e74c3c',
-    'Gravity':  '#3498db',
-    'Friction': '#f39c12',
-    'Camera':   '#9b59b6',
-    'Input':    '#e67e22',
-    'Hammer':   '#16a085',
-};
 
 const ALL_CATEGORIES = ['Instant', 'Gravity', 'Friction', 'Camera', 'Input', 'Hammer'];
 
@@ -104,7 +96,6 @@ export function initGoiUI(ioConnection) {
         serverActive = !!active;
 
         const bridgeCard      = $('#goiBridgeCard');
-        const statusIndicator = $('#goiStatusIndicator');
         const btnText         = $('#goiBtnText');
         const btnIcon         = $('#goiBtnIcon');
 
@@ -116,16 +107,9 @@ export function initGoiUI(ioConnection) {
             : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`
         );
 
-        if (!serverActive) {
-            statusTextLarge.text('Offline').css('color', 'var(--dim)');
-            statusIndicator.css({ background: 'var(--danger)', 'box-shadow': '0 0 12px var(--danger)' });
-            bridgeCard.css('border-left-color', 'var(--danger)');
-        } else {
-            const statusColor = isConnected ? 'var(--success)' : 'var(--warning)';
-            statusTextLarge.text(isConnected ? 'Connected' : 'Listening...').css('color', statusColor);
-            statusIndicator.css({ background: statusColor, 'box-shadow': `0 0 12px ${statusColor}` });
-            bridgeCard.css('border-left-color', statusColor);
-        }
+        const state = !serverActive ? 'off' : (isConnected ? 'connected' : 'listening');
+        bridgeCard.attr('data-state', state);
+        statusTextLarge.text({ off: 'Offline', connected: 'Connected', listening: 'Listening...' }[state]);
 
         sidebarDot.toggle(isConnected).css('background', 'var(--success)');
     }
@@ -143,20 +127,9 @@ export function initGoiUI(ioConnection) {
         });
 
         ALL_CATEGORIES.forEach(cat => {
-            const color    = CATEGORY_COLORS[cat] || '#888';
             const isActive = activeCategory === cat;
             const btn = $(`
-                <button style="
-                    flex: 1 0 auto; padding: 8px 14px; border-radius: 8px; border: none;
-                    background: ${isActive ? 'var(--bg-light)' : 'transparent'};
-                    color: ${isActive ? 'var(--text)' : 'var(--dim)'};
-                    font-size: 11px; font-weight: ${isActive ? '800' : '600'};
-                    cursor: pointer; transition: all .2s; white-space: nowrap;
-                    display: flex; align-items: center; gap: 8px;
-                    box-shadow: ${isActive ? '0 2px 8px rgba(0,0,0,0.2)' : 'none'};
-                ">
-                    <div style="width:8px;height:8px;border-radius:50%;background:${color};
-                        box-shadow:0 0 6px ${color}88;opacity:${isActive ? 1 : 0.5};transition:opacity .2s;"></div>
+                <button class="cat-tab ${isActive ? 'active' : ''}">
                     ${cat}
                 </button>
             `);
@@ -168,30 +141,29 @@ export function initGoiUI(ioConnection) {
     function renderEffectCards(selId) {
         const cards    = $('#goiEffectCards').empty();
         const filtered = GOI_EFFECTS.filter(e => e.category === activeCategory);
-        const color    = CATEGORY_COLORS[activeCategory] || '#888';
 
         filtered.forEach(e => {
             const isSelected = e.id === selId;
             const card = $(`
                 <div style="
-                    padding:12px; border:1px solid ${isSelected ? color : 'var(--border)'}; border-radius:12px;
-                    cursor:pointer; background:${isSelected ? color + '15' : 'var(--bg4)'};
-                    transition:all .2s cubic-bezier(0.4,0,0.2,1);
+                    padding:12px; border:1px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}; border-radius: 4px;
+                    cursor:pointer; background:${isSelected ? 'var(--accent-dim)' : 'var(--bg4)'};
+                    transition: background-color .2s cubic-bezier(0.4,0,0.2,1), border-color .2s cubic-bezier(0.4,0,0.2,1), color .2s cubic-bezier(0.4,0,0.2,1), box-shadow .2s cubic-bezier(0.4,0,0.2,1), opacity .2s cubic-bezier(0.4,0,0.2,1), transform .2s cubic-bezier(0.4,0,0.2,1);
                     display:flex; flex-direction:column; gap:4px; position:relative; overflow:hidden;
-                    box-shadow:${isSelected ? 'inset 0 0 12px ' + color + '10' : 'none'};
+                    box-shadow:${isSelected ? 'none' : 'none'};
                 ">
-                    ${isSelected ? `<div style="position:absolute;top:0;right:0;width:30px;height:30px;background:${color};
+                    ${isSelected ? `<div style="position:absolute;top:0;right:0;width:30px;height:30px;background:var(--accent);
                         clip-path:polygon(100% 0,0 0,100% 100%);display:flex;align-items:flex-start;justify-content:flex-end;padding:4px;">
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style="stroke:var(--on-accent)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                     </div>` : ''}
-                    <div style="font-weight:800;font-size:.85rem;color:${isSelected ? 'var(--text)' : 'var(--text-muted)'};display:flex;align-items:center;gap:6px;">
+                    <div style="font-weight:800;font-size:.85rem;color:${isSelected ? 'var(--text)' : 'var(--muted)'};display:flex;align-items:center;gap:6px;">
                         ${e.name}
-                        ${e.timed ? `<span style="font-size:8px;padding:1px 5px;border-radius:4px;background:${color}22;color:${color};font-weight:900;text-transform:uppercase;border:1px solid ${color}33;">TIMED</span>` : ''}
+                        ${e.timed ? `<span class="tag">Timed</span>` : ''}
                     </div>
                     ${e.desc ? `<div style="font-size:.7rem;color:var(--dim);line-height:1.3;">${e.desc}</div>` : ''}
                 </div>
             `);
-            card.on('mouseover', function() { if (!isSelected) $(this).css({ 'border-color': color + '88', 'background': 'var(--bg3)' }); });
+            card.on('mouseover', function() { if (!isSelected) $(this).css({ 'border-color': 'var(--accent)', 'background': 'var(--bg3)' }); });
             card.on('mouseout',  function() { if (!isSelected) $(this).css({ 'border-color': 'var(--border)', 'background': 'var(--bg4)' }); });
             card.on('click', () => { selectedEffect = e; renderEffectCards(e.id); $('#goiDurationRow').toggle(!!e.timed); $('#goiCountRow').toggle(!!e.counted); $('#goiPowerRow').toggle(!!e.powered); });
             cards.append(card);
@@ -211,20 +183,19 @@ export function initGoiUI(ioConnection) {
     function renderTable() {
         tableBody.empty();
         const keys = Object.keys(currentCommands);
-        if (!keys.length) return tableBody.append('<tr><td colspan="3" style="text-align:center;padding:30px;color:var(--dim);">No effects mapped.</td></tr>');
+        if (!keys.length) return tableBody.append('<tr><td colspan="3" style="text-align:center;padding:40px 20px;color:var(--muted);">No effects yet. Click Add Effect to map a TikTok gift.</td></tr>');
 
         keys.forEach(giftName => {
             const effect = currentCommands[giftName];
             const gift   = availableGifts.find(g => g.name === giftName);
             const code   = typeof effect === 'string' ? effect : effect.code;
             const found  = GOI_EFFECTS.find(e => e.id === code);
-            const color  = found ? (CATEGORY_COLORS[found.category] || '#888') : '#888';
 
-            const effectTd = $('<td class="command-cell"></td>');
+            const effectTd = $('<td class="effect-cell"></td>');
             const inner    = $('<div style="display:flex;align-items:center;gap:8px;"></div>');
-            if (found) inner.append($(`<span style="font-size:9px;padding:1px 6px;border-radius:3px;background:${color}33;color:${color};font-weight:800;text-transform:uppercase;">${found.category}</span>`));
+            if (found) inner.append($(`<span class="tag">${found.category}</span>`));
             inner.append($('<span></span>').text(getEffectName(effect)));
-            if (typeof effect === 'object' && effect.count > 1) inner.append($(`<span style="font-size:9px;padding:1px 6px;border-radius:3px;background:var(--bg3);color:var(--dim);font-weight:700;">×${effect.count}</span>`));
+            if (typeof effect === 'object' && effect.count > 1) inner.append($(`<span style="font-size:9px;padding:1px 6px;border-radius:3px;background:var(--bg3);color:var(--dim);font-weight: 600;">×${effect.count}</span>`));
             effectTd.append(inner);
 
             const row = $('<tr></tr>');
